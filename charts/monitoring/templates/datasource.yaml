@@ -1,0 +1,65 @@
+# This should be installed by default by the loki helm chart
+# But it is here just for reference
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ include "common.names.fullname" . }}-datasources
+  namespace: {{ include "common.names.namespace" $ | quote }}
+  labels:
+    {{ include "common.labels.standard" $ | nindent 4 }}
+    grafana_datasource: "1"
+
+data:
+  datasource.yml: |-
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        type: loki
+        orgId: 1
+        access: proxy
+        url: http://loki-gateway:80
+        basicAuth: false
+        uid: loki_ds
+      - name: alertmanager
+        type: alertmanager
+        orgId: 1
+        access: proxy
+        url: http://mtor-alertmanager:9093
+        basicAuth: false
+        uid: alertmanager_ds
+        jsonData:
+          implementation: prometheus
+      - name: mimir
+        type: prometheus
+        orgId: 1
+        #access: proxy
+        url: http://mimir-nginx:80/prometheus
+        basicAuth: false
+        uid: mimir_ds
+      - name: tempo
+        type: tempo
+        orgId: 1
+        #access: proxy
+        url: http://tempo-query-frontend:3200
+        basicAuth: false
+        uid: tempo_ds
+
+      ## Custom 
+      {{ range $k, $v := .Values.postgresql }}
+      {{ with $v }}
+      {{ if .enabled }}
+      - name: "pg-{{ include "common.tplvalues.render" (dict "value" $k "context" $) }}"
+        type: postgres
+        url: "{{ include "common.tplvalues.render" (dict "value" .host "context" $) }}:{{ include "common.tplvalues.render" (dict "value" .port "context" $) }}"
+        database: "{{ include "common.tplvalues.render" (dict "value" .database "context" $) }}"
+        user: "{{ include "common.tplvalues.render" (dict "value" .user "context" $) }}"
+        secureJsonData:
+          password: ${POSTGRESQL_PASSWORD_{{ include "common.tplvalues.render" (dict "value" $k "context" $) }}}
+        jsonData:
+          sslmode: 'disable'
+          maxOpenConns: 10
+          maxIdleConns: 2
+          connMaxLifetime: 14400
+      {{ end }}
+      {{ end }}
+      {{ end }}

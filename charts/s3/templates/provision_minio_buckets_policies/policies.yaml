@@ -1,0 +1,17 @@
+{{ with .Values.provision_minio_buckets_policies }}
+{{ if .enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ include "common.names.fullname" $ }}-minio-buckets-policies"
+  namespace: {{ include "common.names.namespace" $ | quote }}
+  labels:
+    {{ include "common.labels.standard" $ | nindent 4 }}
+data:
+  {{ range .policies }}
+  "{{ .name }}.json": |
+    {{ .policy | toJson | nindent 4 }}
+  {{ end }}
+
+{{ end }}
+{{ end }}

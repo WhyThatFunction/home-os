@@ -1,0 +1,161 @@
+{{ with .Values.provision_minio_buckets_policies }}
+{{ if .enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-buckets-policies
+  namespace: {{ include "common.names.namespace" $ | quote }}
+  labels:
+    {{ include "common.labels.standard" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  parallelism: 1
+  template:
+    metadata:
+      labels:
+        {{ include "common.labels.matchLabels" $ | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      terminationGracePeriodSeconds: 0
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: Always
+        supplementalGroups: [ ]
+        sysctls: [ ]
+      serviceAccountName: "{{ include "common.names.fullname" $ }}-minio"
+      initContainers:
+        - name: wait-for-available-minio
+          image: {{ include "common.images.image" (dict "imageRoot" $.Values.minio.defaultInitContainers.volumePermissions.image "global" $.Values.global) }}
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 1001
+            runAsNonRoot: true
+            runAsUser: 1001
+            seLinuxOptions: { }
+            seccompProfile:
+              type: RuntimeDefault
+          command:
+            - /bin/bash
+            - -c
+            - |-
+              set -e;
+              echo "Waiting for Minio";
+              wait-for-port \
+                --host="{{ include "common.names.fullname" $ }}-minio" \
+                --state=inuse \
+                --timeout=120 \
+                9000;
+              echo "Minio is available";
+          resources:
+            limits:
+              cpu: 750m
+              ephemeral-storage: 2Gi
+              memory: 768Mi
+            requests:
+              cpu: 500m
+              ephemeral-storage: 50Mi
+              memory: 512Mi
+      containers:
+        - name: minio
+          image: {{ include "common.images.image" (dict "imageRoot" $.Values.minio.image "global" $.Values.global) }}
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 1001
+            runAsNonRoot: true
+            runAsUser: 1001
+            seLinuxOptions: { }
+            seccompProfile:
+              type: RuntimeDefault
+          command:
+            - /bin/bash
+            - -c
+            - |-
+              set -e;
+              
+              echo "Start Minio bucketer";
+              
+              retry_while() {
+                local -r cmd="${1:?cmd is missing}"
+                local -r retries="${2:-12}"
+                local -r sleep_time="${3:-5}"
+                local return_value=1
+
+                read -r -a command <<< "$cmd"
+                for ((i = 1 ; i <= retries ; i+=1 )); do
+                    "${command[@]}" && return_value=0 && break
+                    sleep "$sleep_time"
+                done
+                return $return_value
+              }
+
+              mc alias set bucketer $MINIO_SCHEME://{{ include "common.names.fullname" $ }}-minio:9000 $(<$MINIO_ROOT_USER_FILE) $(<$MINIO_ROOT_PASSWORD_FILE);
+              #mc admin service restart bucketer --wait --json;
+
+              # Adding a sleep to ensure that the check below does not cause
+              # a race condition. We check for the MinIO port because the
+              # "mc admin service restart --wait" command is not working as expected
+              sleep 5;
+
+              {{ range .policies }}
+              mc anonymous set-json /etc/buckets-policies/{{ .name }}.json bucketer/{{ .name }}
+              {{ end }}
+
+              echo "End Minio bucketer";
+          env:
+            - name: MINIO_SCHEME
+              value: "http"
+            - name: MINIO_ROOT_USER_FILE
+              value: /opt/bitnami/minio/secrets/root-user
+            - name: MINIO_ROOT_PASSWORD_FILE
+              value: /opt/bitnami/minio/secrets/root-password
+          resources:
+            limits:
+              cpu: 750m
+              ephemeral-storage: 2Gi
+              memory: 768Mi
+            requests:
+              cpu: 500m
+              ephemeral-storage: 50Mi
+              memory: 512Mi
+          volumeMounts:
+            - name: empty-dir
+              mountPath: /.mc
+              subPath: app-mc-dir
+            - name: empty-dir
+              mountPath: /opt/bitnami/minio/tmp
+              subPath: app-tmp-dir
+            - name: empty-dir
+              mountPath: /tmp
+              subPath: tmp-dir
+            - name: minio-buckets-policies
+              mountPath: /etc/buckets-policies
+              readOnly: true
+            - name: minio-credentials
+              mountPath: /opt/bitnami/minio/secrets/
+              readOnly: true
+      volumes:
+        - name: empty-dir
+          emptyDir: { }
+        - name: minio-buckets-policies
+          configMap:
+            name: "{{ include "common.names.fullname" $ }}-minio-buckets-policies"
+        - name: minio-credentials
+          secret:
+            secretName: "{{ include "common.names.fullname" $ }}-minio"
+
+{{ end }}
+{{ end }}

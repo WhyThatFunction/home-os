@@ -1,0 +1,48 @@
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: longhorn-local
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+reclaimPolicy: "{{ .Values.longhorn.persistence.reclaimPolicy }}"
+volumeBindingMode: {{ .Values.longhorn.persistence.volumeBindingMode | default "Immediate" }}
+parameters:
+  numberOfReplicas: "1"
+  staleReplicaTimeout: "30"
+  fromBackup: ""
+  {{- if .Values.longhorn.persistence.defaultFsType }}
+  fsType: "{{ .Values.longhorn.persistence.defaultFsType }}"
+  {{- end }}
+  {{- if .Values.longhorn.persistence.defaultMkfsParams }}
+  mkfsParams: "{{ .Values.longhorn.persistence.defaultMkfsParams }}"
+  {{- end }}
+  {{- if .Values.longhorn.persistence.migratable }}
+  migratable: "{{ .Values.longhorn.persistence.migratable }}"
+  {{- end }}
+  {{- if .Values.longhorn.persistence.backingImage.enable }}
+  backingImage: {{ .Values.longhorn.persistence.backingImage.name }}
+  backingImageDataSourceType: {{ .Values.longhorn.persistence.backingImage.dataSourceType }}
+  backingImageDataSourceParameters: {{ .Values.longhorn.persistence.backingImage.dataSourceParameters }}
+  backingImageChecksum: {{ .Values.longhorn.persistence.backingImage.expectedChecksum }}
+  {{- end }}
+  {{- if .Values.longhorn.persistence.recurringJobSelector.enable }}
+  recurringJobSelector: '{{ .Values.longhorn.persistence.recurringJobSelector.jobList }}'
+  {{- end }}
+  dataLocality: "strict-local"
+  {{- if .Values.longhorn.persistence.defaultDiskSelector.enable }}
+  diskSelector: "{{ .Values.longhorn.persistence.defaultDiskSelector.selector }}"
+  {{- end }}
+  {{- if .Values.longhorn.persistence.defaultNodeSelector.enable }}
+  nodeSelector: "{{ .Values.longhorn.persistence.defaultNodeSelector.selector }}"
+  {{- end }}
+  {{- if .Values.longhorn.persistence.removeSnapshotsDuringFilesystemTrim }}
+  unmapMarkSnapChainRemoved: "{{ .Values.longhorn.persistence.removeSnapshotsDuringFilesystemTrim }}"
+  {{- end }}
+  {{- if .Values.longhorn.persistence.disableRevisionCounter }}
+  disableRevisionCounter: "{{ .Values.longhorn.persistence.disableRevisionCounter }}"
+  dataEngine: "{{ .Values.longhorn.persistence.dataEngine }}"
+  {{- end }}
+  {{- if .Values.longhorn.persistence.backupTargetName }}
+  backupTargetName: "{{ .Values.longhorn.persistence.backupTargetName }}"
+  {{- end }}

@@ -1,0 +1,9 @@
+local
+kubeconfig
+talosconfig
+
+*gen*
+
+.idea
+
+*.tg*

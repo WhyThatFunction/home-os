@@ -1,0 +1,6 @@
+longhorn:
+  persistence:
+    defaultClass: false
+    defaultClassReplicaCount: 2
+  defaultSettings:
+    defaultDataPath: "/var/mnt/longhorn"

@@ -1,0 +1,40 @@
+controller:
+  replicas: 1
+
+redis:
+  enabled: true
+
+server:
+  replicas: 1
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    annotations:
+      cert-manager.io/cluster-issuer: cert-cloudflare
+    tls: true
+    hostname: argocd.ssegning.me
+
+repoServer:
+  replicas: 1
+
+applicationSet:
+  replicas: 1
+
+notifications:
+  argocdUrl: https://argocd.ssegning.me
+
+configs:
+  secret:
+    createSecret: false
+  cm:
+    url: https://argocd.ssegning.me
+    "oidc.config": |
+      name: SSegning Dev
+      issuer: https://accounts.ssegning.com/realms/dev
+      clientID: app-argocd
+      clientSecret: $oidc.keycloak.clientSecret
+      requestedScopes: ["openid", "profile", "email", "groups"]
+  rbac:
+    "policy.csv": |
+      g, ArgoCDAdmins, role:admin
+      g, ArgoCDViewer, role:readonly

@@ -1,0 +1,156 @@
+minio:
+  enabled: true
+  metrics:
+    enabled: true
+  mode: distributed
+  statefulset:
+    replicaCount: 2
+    zones: 1
+    drivesPerNode: 1
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/minio/v2/metrics/cluster"
+    prometheus.io/port: "9000"
+  auth:
+    existingSecret: minio-root
+  persistence:
+    storageClass: longhorn-local
+    size: 10Gi
+  service:
+    type: ClusterIP
+  console:
+    ingress:
+      enabled: true
+      ingressClassName: traefik
+      hostname: s3-admin.ssegning.me
+      annotations:
+        cert-manager.io/cluster-issuer: cert-cloudflare
+      tls: true
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hostname: s3.ssegning.me
+    annotations:
+      cert-manager.io/cluster-issuer: cert-cloudflare
+    tls: true
+  provisioning:
+    enabled: true
+    
+    policies:
+      - name: nocodb-policy
+        statements:
+          - actions:
+              - "s3:*"
+            effect: "Allow"
+            resources:
+              - "arn:aws:s3:::nocodb-bucket/*"
+              - "arn:aws:s3:::nocodb-bucket"
+      - name: ai-apps-policy
+        statements:
+          - actions:
+              - "s3:*"
+            effect: "Allow"
+            resources:
+              - "arn:aws:s3:::ai-apps/*"
+              - "arn:aws:s3:::ai-apps"
+      - name: monitoring-policy
+        statements:
+          - actions:
+              - "s3:*"
+            effect: "Allow"
+            resources:
+              - "arn:aws:s3:::monitoring/*"
+              - "arn:aws:s3:::monitoring"
+              - "arn:aws:s3:::monitoring-loki-ruler/*"
+              - "arn:aws:s3:::monitoring-loki-ruler"
+              - "arn:aws:s3:::monitoring-loki-chunks/*"
+              - "arn:aws:s3:::monitoring-loki-chunks"
+              - "arn:aws:s3:::monitoring-tempo/*"
+              - "arn:aws:s3:::monitoring-tempo"
+              - "arn:aws:s3:::monitoring-mimir/*"
+              - "arn:aws:s3:::monitoring-mimir"
+              - "arn:aws:s3:::monitoring-mimir-alertmanager/*"
+              - "arn:aws:s3:::monitoring-mimir-alertmanager"
+              - "arn:aws:s3:::monitoring-mimir-blocs/*"
+              - "arn:aws:s3:::monitoring-mimir-blocs"
+              - "arn:aws:s3:::monitoring-mimir-ruler/*"
+              - "arn:aws:s3:::monitoring-mimir-ruler"
+      - name: sschool-policy
+        statements:
+          - actions:
+              - "s3:*"
+            effect: "Allow"
+            resources:
+              - "arn:aws:s3:::sschool/*"
+              - "arn:aws:s3:::sschool"
+      - name: vaam-eat-policy
+        statements:
+          - actions:
+              - "s3:*"
+            effect: "Allow"
+            resources:
+              - "arn:aws:s3:::vaam-eat/*"
+              - "arn:aws:s3:::vaam-eat"
+    
+    usersExistingSecrets:
+      - minio-users
+    
+    buckets:
+      - name: nocodb-bucket
+        withLock: false
+      - name: ai-apps
+        withLock: false
+      - name: sschool
+        withLock: false
+      - name: vaam-eat
+        withLock: false
+      - name: monitoring
+        withLock: false
+      - name: monitoring-mimir
+        withLock: false
+      - name: monitoring-loki-chunks
+        withLock: false
+      - name: monitoring-loki-ruler
+        withLock: false
+      - name: monitoring-tempo
+        withLock: false
+      - name: monitoring-mimir-alertmanager
+        withLock: false
+      - name: monitoring-mimir-blocs
+        withLock: false
+      - name: monitoring-mimir-ruler
+        withLock: false
+
+provision_minio_buckets_policies:
+  enabled: true
+  policies:
+    - name: manual-sschool
+      policy:
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "AWS": [ "*" ] },
+              "Action": [ "s3:GetObject" ],
+              "Resource": [
+                "arn:aws:s3:::sschool/images/*"
+              ]
+            }
+          ]
+        }
+    - name: manual-vaam-eat
+      policy:
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "AWS": [ "*" ] },
+              "Action": [ "s3:GetObject" ],
+              "Resource": [
+                "arn:aws:s3:::vaam-eat/images/*"
+              ]
+            }
+          ]
+        }

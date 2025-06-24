@@ -1,0 +1,388 @@
+argoCdConfigs:
+  secretMap:
+    stephane-segning-home-os-repo:
+      type: repository
+      data:
+        url: "https://github.com/stephane-segning/home-os"
+        name: home-os
+        type: git
+
+projects:
+  - name: external
+    additionalLabels: { }
+    additionalAnnotations: { }
+    permitOnlyProjectScopedClusters: false
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    description: External Applications
+    sourceRepos:
+      - "*"
+    destinations:
+      - namespace: "*"
+        server: https://kubernetes.default.svc
+    clusterResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    clusterResourceBlacklist: [ ]
+    namespaceResourceBlacklist:
+      - group: ""
+        kind: ResourceQuota
+      - group: ""
+        kind: LimitRange
+      - group: ""
+        kind: NetworkPolicy
+    namespaceResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    orphanedResources: { }
+    roles: [ ]
+    syncWindows:
+      - kind: allow
+        schedule: "10 1 * * *"
+        duration: 1h
+        applications:
+          - "*-infra"
+        manualSync: true
+    sourceNamespaces:
+      - "*"
+  - name: infrastructure
+    additionalLabels: { }
+    additionalAnnotations: { }
+    permitOnlyProjectScopedClusters: false
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    description: Infrastructure Applications
+    sourceRepos:
+      - "*"
+    destinations:
+      - namespace: "*"
+        server: https://kubernetes.default.svc
+    clusterResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    clusterResourceBlacklist: [ ]
+    namespaceResourceBlacklist:
+      - group: ""
+        kind: ResourceQuota
+      - group: ""
+        kind: LimitRange
+      - group: ""
+        kind: NetworkPolicy
+    namespaceResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    orphanedResources: { }
+    roles: [ ]
+    syncWindows:
+      - kind: allow
+        schedule: "10 1 * * *"
+        duration: 1h
+        applications:
+          - "*-infra"
+        manualSync: true
+    sourceNamespaces:
+      - "*"
+  - name: ai
+    additionalLabels: { }
+    additionalAnnotations: { }
+    permitOnlyProjectScopedClusters: false
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    description: AI Applications
+    sourceRepos:
+      - "*"
+    destinations:
+      - namespace: "*"
+        server: https://kubernetes.default.svc
+    clusterResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    clusterResourceBlacklist: [ ]
+    namespaceResourceBlacklist:
+      - group: ""
+        kind: ResourceQuota
+      - group: ""
+        kind: LimitRange
+      - group: ""
+        kind: NetworkPolicy
+    namespaceResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    orphanedResources: { }
+    roles: [ ]
+    syncWindows: [ ]
+    #      - kind: allow
+    #        schedule: "10 1 * * *"
+    #        duration: 1h
+    #        applications:
+    #          - "*"
+    #        manualSync: true
+    sourceNamespaces:
+      - "*"
+  - name: base-apps
+    additionalLabels: { }
+    additionalAnnotations: { }
+    permitOnlyProjectScopedClusters: false
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    description: Random normal applications
+    sourceRepos:
+      - "*"
+    destinations:
+      - namespace: "*"
+        server: https://kubernetes.default.svc
+    clusterResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    clusterResourceBlacklist: [ ]
+    namespaceResourceBlacklist:
+      - group: ""
+        kind: ResourceQuota
+      - group: ""
+        kind: LimitRange
+      - group: ""
+        kind: NetworkPolicy
+    namespaceResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    orphanedResources: { }
+    roles: [ ]
+    syncWindows: [ ]
+    sourceNamespaces:
+      - "*"
+
+applications:
+  - name: cd
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://github.com/stephane-segning/home-os
+      targetRevision: HEAD
+      path: charts/cd
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: argocd
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+        
+  - name: storage
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://github.com/stephane-segning/home-os
+      targetRevision: HEAD
+      path: charts/storage
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: storage
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+        
+  - name: nvidia
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://nvidia.github.io/k8s-device-plugin
+      targetRevision: 0.13.0
+      chart: nvidia-device-plugin
+      helm:
+        valuesObject:
+          runtimeClassName: nvidia
+          nodeSelector:
+            gpu-node: true
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: nvidia
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+        
+  - name: cloudnative-pg
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://charts.bitnami.com/bitnami
+      targetRevision: 1.0.1
+      chart: cloudnative-pg
+      helm:
+        valuesObject:
+          global:
+            defaultStorageClass: longhorn-local
+          pluginBarmanCloud:
+            enabled: true
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: cloudnative-pg
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: traefik
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://traefik.github.io/charts
+      targetRevision: 36.2.0
+      chart: traefik
+      helm:
+        valuesObject:
+          additionalArguments:
+            - "--api.dashboard=true"
+            - "--api.insecure=true"
+            - "--serversTransport.insecureSkipVerify=true"
+            - "--log.level=ERROR"
+            - "--entryPoints.web.http.redirections.entryPoint.to=:443"
+            - "--entryPoints.web.http.redirections.entryPoint.scheme=https"
+            - "--entryPoints.web.http2.maxConcurrentStreams=500"
+            - "--entryPoints.websecure.http2.maxConcurrentStreams=500"
+            - "--global.sendAnonymousUsage=false"
+            # Uncomment the next line if you want to use your self-signed cert for Traefik dashboard
+            # - "--entrypoints.websecure.http.tls.domains[0].main=*.home.ssegning"
+          logs:
+            access:
+              enabled: "false"
+          service:
+            loadBalancerIP: 10.10.0.130
+          ports:
+            web:
+              forwardedHeaders:
+                trustedIPs:
+                  - 10.10.0.0/24
+            websecure:
+              forwardedHeaders:
+                trustedIPs:
+                  - 10.10.0.0/24
+            traefik:
+              expose:
+                web: true
+                websecure: true
+          providers:
+            kubernetesCRD:
+              allowCrossNamespace: "true"
+            kubernetesGateway:
+              enabled: true
+          
+          gateway:
+            namespacePolicy: All
+          
+          ingressRoute:
+            dashboard:
+              enabled: "true"
+              entryPoints:
+                - web
+                - websecure
+              matchRule: Host(`traefik.home.ssegning`)
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: traefik
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+        
+  - name: cert
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://github.com/stephane-segning/home-os
+      targetRevision: HEAD
+      path: charts/cert
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: cert
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+        
+#  - name: monitoring
+#    finalizers:
+#      - resources-finalizer.argocd.argoproj.io
+#    project: infrastructure
+#    source:
+#      repoURL: https://github.com/stephane-segning/home-os
+#      targetRevision: HEAD
+#      path: charts/monitoring
+#    destination:
+#      server: https://kubernetes.default.svc
+#      namespace: monitoring
+#    syncPolicy:
+#      syncOptions:
+#        - CreateNamespace=true
+#        - ServerSideApply=true
+#      automated:
+#        prune: true
+#        selfHeal: true
+
+  - name: s3
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://github.com/stephane-segning/home-os
+      targetRevision: HEAD
+      path: charts/s3
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: s3
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+
+#  - name: s3
+#    finalizers:
+#      - resources-finalizer.argocd.argoproj.io
+#    project: default
+#    source:
+#      repoURL: https://github.com/stephane-segning/home-os
+#      targetRevision: HEAD
+#      path: charts/s3
+#    destination:
+#      server: https://kubernetes.default.svc
+#      namespace: s3
+#    syncPolicy:
+#      automated:
+#        prune: true
+#        selfHeal: true
+  
+  - name: redis
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: base-apps
+    source:
+      repoURL: registry-1.docker.io/bitnamicharts
+      targetRevision: 21.2.5
+      chart: redis
+      helm:
+        valuesObject:
+          global:
+            defaultStorageClass: longhorn-local
+          auth:
+            enabled: false
+          architecture: replication
+          replica:
+            replicaCount: 2
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: database
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true

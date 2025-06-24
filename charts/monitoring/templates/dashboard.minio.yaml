@@ -1,0 +1,18 @@
+# This should be installed by default by the loki helm chart
+# But it is here just for reference
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ include "common.names.fullname" . }}-minio-dashboard
+  namespace: {{ include "common.names.namespace" $ | quote }}
+  labels:
+    {{ include "common.labels.standard" $ | nindent 4 }}
+    grafana_dashboard: "1"
+
+data:
+  "minio-bucket.json": |
+    {{ $.Files.Get "src/dashboards/minio-bucket.json" | fromJson | toJson }}
+  "minio-node.json": |
+    {{ $.Files.Get "src/dashboards/minio-node.json" | fromJson | toJson }}
+  "minio-server.json": |
+    {{ $.Files.Get "src/dashboards/minio-server.json" | fromJson | toJson }}

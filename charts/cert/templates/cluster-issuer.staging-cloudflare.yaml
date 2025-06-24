@@ -1,0 +1,35 @@
+{{ with .Values.solvers.cloudflare }}
+{{ if and .enabled .enabledStaging }}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: cert-cloudflare-staging
+  namespace: {{ include "common.names.namespace" $ }}
+  labels:
+    {{ include "common.labels.standard" $ | nindent 4 }}
+  annotations:
+    {{- with .commonAnnotations }}
+    {{ include "common.tplvalues.render" ( dict "value" . "context" $ ) | nindent 4 }}
+    {{- end }}
+    {{- with $.Values.commonAnnotations }}
+    {{ include "common.tplvalues.render" ( dict "value" . "context" $ ) | nindent 4 }}
+    {{- end }}
+spec:
+  acme:
+    # The ACME server URL
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    # Email address used for ACME registration
+    email: {{ include "common.tplvalues.render" ( dict "value" .email "context" $ ) }}
+    # Name of a secret used to store the ACME account private key
+    privateKeySecretRef:
+      name: cert-cloudflare-staging
+    solvers:
+      - dns01:
+          cloudflare:
+            # Email address used for ACME registration
+            email: {{ include "common.tplvalues.render" ( dict "value" .email "context" $ ) }}
+            apiKeySecretRef:
+              name: cloudflare-secret
+              key: api-token-staging
+{{ end }}
+{{ end }}

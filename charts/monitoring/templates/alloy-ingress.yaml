@@ -1,0 +1,51 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: alloy-otel
+  namespace: {{ include "common.names.namespace" $ }}
+  labels:
+    {{ include "common.labels.standard" $ | nindent 4 }}
+  annotations:
+    cert-manager.io/cluster-issuer: cert-cloudflare
+spec:
+  rules:
+    - host: otel.ssegning.com
+      http:
+        paths:
+          - backend:
+              service:
+                name: alloy
+                port:
+                  name: otel-http
+            path: /
+            pathType: Prefix
+  tls:
+    - secretName: otel.ssegning.com-tls
+      hosts:
+        - otel.ssegning.com
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: alloy-12345
+  namespace: {{ include "common.names.namespace" $ }}
+  labels:
+    {{ include "common.labels.standard" $ | nindent 4 }}
+  annotations:
+    cert-manager.io/cluster-issuer: self-signed-ca
+spec:
+  rules:
+    - host: alloy.home.ssegning
+      http:
+        paths:
+          - backend:
+              service:
+                name: alloy
+                port:
+                  number: 12345
+            path: /
+            pathType: Prefix
+  tls:
+    - secretName: alloy.home.ssegning-tls
+      hosts:
+        - alloy.home.ssegning

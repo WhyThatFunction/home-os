@@ -1,0 +1,9 @@
+dependencies:
+- name: longhorn
+  repository: https://charts.longhorn.io
+  version: 1.9.0
+- name: common
+  repository: https://charts.bitnami.com/bitnami
+  version: 2.31.3
+digest: sha256:534006b0e0b30511bac8f7c38ff7edff51a34d298ca39bc27fba635ca937c363
+generated: "2025-06-22T01:04:47.972999+02:00"
