@@ -21,35 +21,28 @@ commonLabels: { }
 commonAnnotations:
   "kubernetes.io/description": 'Home ({{ include "common.names.fullname" $ }} / monitoring)'
 
-postgresql: {}
-  #  headscale:
-  #    enabled: true
-  #    password: '{{ .Values.global.pg.pw }}'
-  #    host: '{{ .Values.global.pg.host }}'
-  #    user: '{{ .Values.global.pg.user }}'
-  #    database: headscale
-  #    port: 5432
-  #  keycloak:
-  #    enabled: true
-  #    password: '{{ .Values.global.pg.pw }}'
-  #    host: '{{ .Values.global.pg.host }}'
-  #    user: '{{ .Values.global.pg.user }}'
-  #    database: keycloak
-  #    port: 5432
-  #  litellm:
-  #    enabled: true
-  #    password: '{{ .Values.global.pg.pw }}'
-  #    host: '{{ .Values.global.pg.host }}'
-  #    user: '{{ .Values.global.pg.user }}'
-  #    database: litellm
-  #    port: 5432
-
-keycloak:
-  enabled: true
-  client_id: "grafana"
-  client_secret: "BoU716G4QF9cuctvVmYziU7miNJAsXVn"
-  url: "https://accounts.ssegning.com"
-  realm: "home"
+#  headscale:
+#    enabled: true
+#    password: '{{ .Values.global.pg.pw }}'
+#    host: '{{ .Values.global.pg.host }}'
+#    user: '{{ .Values.global.pg.user }}'
+#    database: headscale
+#    port: 5432
+#  keycloak:
+#    enabled: true
+#    password: '{{ .Values.global.pg.pw }}'
+#    host: '{{ .Values.global.pg.host }}'
+#    user: '{{ .Values.global.pg.user }}'
+#    database: keycloak
+#    port: 5432
+#  litellm:
+#    enabled: true
+#    password: '{{ .Values.global.pg.pw }}'
+#    host: '{{ .Values.global.pg.host }}'
+#    user: '{{ .Values.global.pg.user }}'
+#    database: litellm
+#    port: 5432
+postgresql: { }
 
 meta:
   enabled: false
@@ -392,7 +385,7 @@ alloy:
             regex         = "(.+)"
             action        = "replace"
           }
-                    
+        
           # :port from annotation
           rule {
             source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_port", "__address__"]
@@ -402,7 +395,7 @@ alloy:
             separator     = ";"
             action        = "replace"
           }
-      
+        
           rule {
             source_labels = ["__meta_kubernetes_namespace"]
             action = "replace"
@@ -1040,7 +1033,7 @@ prom-stack:
   crds:
     upgradeJob:
       enabled: true
-      
+  
   alertmanager:
     ingress:
       enabled: true
@@ -1063,25 +1056,6 @@ prom-stack:
             resources:
               requests:
                 storage: 5Gi
-    tplConfig: true
-    config:
-      route:
-        receiver: "discord"
-        group_by:
-          - namespace
-        continue: false
-        routes:
-          - receiver: "discord"
-            matchers:
-              - alertname="Watchdog"
-            continue: false
-        group_wait: 30s
-        group_interval: 5m
-        repeat_interval: 12h
-      receivers:
-        - name: discord
-          discord_configs:
-            - webhook_url: "https://discord.com/api/webhooks/1384830588711600170/LBFfxTTABz5vR-Cyv25mXiZD-RXx4wqWWtmMAeAiKjvGypCtvoBTQkELg1q696G8ybwr"
 
   prometheus:
     enabled: false

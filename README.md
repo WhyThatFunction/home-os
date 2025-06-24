@@ -65,7 +65,7 @@ Managed by ArgoCD.
 
 Managed by ArgoCD.
 
-test
+Testing:
 ```shell
 kubectl apply -f - <<EOF
 ---
