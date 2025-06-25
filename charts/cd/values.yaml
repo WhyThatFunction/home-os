@@ -223,6 +223,8 @@ applications:
       server: https://kubernetes.default.svc
       namespace: cloudnative-pg
     syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
       automated:
         prune: true
         selfHeal: true
