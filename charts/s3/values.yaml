@@ -14,7 +14,7 @@ minio:
   auth:
     existingSecret: minio-root
   persistence:
-    storageClass: longhorn-local
+    storageClass: longhorn
     size: 10Gi
   service:
     type: ClusterIP
