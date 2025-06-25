@@ -269,7 +269,7 @@ applications:
                 websecure: true
           providers:
             kubernetesCRD:
-              allowCrossNamespace: "true"
+              allowCrossNamespace: true
             kubernetesGateway:
               enabled: true
           
