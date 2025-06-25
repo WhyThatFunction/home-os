@@ -2,11 +2,7 @@ minio:
   enabled: true
   metrics:
     enabled: true
-  mode: distributed
-  statefulset:
-    replicaCount: 2
-    zones: 1
-    drivesPerNode: 1
+  mode: standalone
   podAnnotations:
     prometheus.io/scrape: "true"
     prometheus.io/path: "/minio/v2/metrics/cluster"
