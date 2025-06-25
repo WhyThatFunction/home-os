@@ -196,7 +196,7 @@ applications:
         valuesObject:
           runtimeClassName: nvidia
           nodeSelector:
-            gpu-node: true
+            gpu-node: "true"
     destination:
       server: https://kubernetes.default.svc
       namespace: nvidia
@@ -278,7 +278,7 @@ applications:
           
           ingressRoute:
             dashboard:
-              enabled: "true"
+              enabled: true
               entryPoints:
                 - web
                 - websecure
