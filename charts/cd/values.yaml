@@ -251,7 +251,7 @@ applications:
             # - "--entrypoints.websecure.http.tls.domains[0].main=*.home.ssegning"
           logs:
             access:
-              enabled: "false"
+              enabled: false
           service:
             loadBalancerIP: 10.10.0.130
           ports:
@@ -383,6 +383,7 @@ applications:
     syncPolicy:
       syncOptions:
         - CreateNamespace=true
+        - ServerSideApply=true
       automated:
         prune: true
         selfHeal: true
