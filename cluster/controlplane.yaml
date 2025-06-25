@@ -4,45 +4,12 @@ persist: true
 # Provides machine specific configuration options.
 machine:
   type: controlplane # Defines the role of the machine within the cluster.
-  # Extra certificate subject alternative names for the machine's certificate.
-  certSANs: [ ]
-  
-  # Used to provide additional options to the kubelet.
-  kubelet:
-    image: ghcr.io/siderolabs/kubelet:v1.33.1 # The `image` field is an optional reference to an alternative kubelet image.
-    defaultRuntimeSeccompProfileEnabled: true # Enable container runtime default Seccomp profile.
-    disableManifestsDirectory: true # The `disableManifestsDirectory` field configures the kubelet to get static pod manifests from the /etc/kubernetes/manifests directory.
-  
-  # Provides machine specific network configuration options.
-  network: { }
   
   # Used to provide instructions for installations.
   install:
     disk: /dev/sda # The disk used for installations.
     image: factory.talos.dev/installer/ce4c980550dd2ab1b17bbf2b08801c7eb59418eafe8f279833297925d67c7515:v1.10.4 # Allows for supplying the image used to perform the installation.
     wipe: true # Indicates if the installation disk should be wiped at installation time.
-  
-  # Used to configure the machine's container image registry mirrors.
-  registries: { }
-  
-  # Features describe individual Talos features that can be switched on or off.
-  features:
-    rbac: true # Enable role-based access control (RBAC).
-    stableHostname: true # Enable stable default hostname.
-    apidCheckExtKeyUsage: true # Enable checks for extended key usage of client certificates in apid.
-    diskQuotaSupport: true # Enable XFS project quota support for EPHEMERAL partition and user disks.
-    # KubePrism - local proxy/load balancer on defined port that will distribute
-    kubePrism:
-      enabled: true # Enable KubePrism support - will start local load balancing proxy.
-      port: 7445 # KubePrism port.
-    # Configures host DNS caching resolver.
-    hostDNS:
-      enabled: true # Enable host DNS caching resolver.
-      forwardKubeDNSToHost: true # Use the host DNS resolver as upstream for Kubernetes CoreDNS pods.
-  
-  # Configures the node labels for the machine.
-  nodeLabels:
-    node.kubernetes.io/exclude-from-external-load-balancers: ""
 
 # Provides cluster specific configuration options.
 cluster:
@@ -59,51 +26,14 @@ cluster:
     # # The CNI used.
     cni:
       name: none # Name of CNI to use.
-  # API server specific configuration options.
-  apiServer:
-    image: registry.k8s.io/kube-apiserver:v1.33.1 # The container image used in the API server manifest.
-    # Extra certificate subject alternative names for the API server's certificate.
-    certSANs:
-      - 10.10.0.112
-    disablePodSecurityPolicy: true # Disable PodSecurityPolicy in the API server and default manifests.
-    # Configure the API server admission plugins.
-    admissionControl:
-      - name: PodSecurity # Name is the name of the admission controller.
-        # Configuration is an embedded configuration object to be used as the plugin's
-        configuration:
-          apiVersion: pod-security.admission.config.k8s.io/v1alpha1
-          defaults:
-            audit: restricted
-            audit-version: latest
-            enforce: baseline
-            enforce-version: latest
-            warn: restricted
-            warn-version: latest
-          exemptions:
-            namespaces:
-              - kube-system
-            runtimeClasses: [ ]
-            usernames: [ ]
-          kind: PodSecurityConfiguration
-    # Configure the API server audit policy.
-    auditPolicy:
-      apiVersion: audit.k8s.io/v1
-      kind: Policy
-      rules:
-        - level: Metadata
   
   # Controller manager server specific configuration options.
   controllerManager:
     image: registry.k8s.io/kube-controller-manager:v1.33.1 # The container image used in the controller manager manifest.
   # Kube-proxy server-specific configuration options
   proxy:
-    #image: registry.k8s.io/kube-proxy:v1.33.1 # The container image used in the kube-proxy manifest.
-    
     # # Disable kube-proxy deployment on cluster bootstrap.
-    disabled: false
-  # Scheduler server specific configuration options.
-  scheduler:
-    image: registry.k8s.io/kube-scheduler:v1.33.1 # The container image used in the scheduler manifest.
+    disabled: true
   # Configures cluster member discovery.
   discovery:
     enabled: true # Enable the cluster membership discovery feature.
@@ -159,7 +89,14 @@ cluster:
         apiVersion: v1
         kind: Namespace
         metadata:
-          name: nvidia
+          name: argocd
+
+    - name: monitoring-ci # Name of the manifest.
+      contents: |- # Manifest contents as a string.
+        apiVersion: v1
+        kind: Namespace
+        metadata:
+          name: monitoring
 
     - name: cloudnative-pg-ci # Name of the manifest.
       contents: |- # Manifest contents as a string.
@@ -298,4 +235,4 @@ cluster:
                   - --set
                   - k8sServicePort=7445
   
-  allowSchedulingOnControlPlanes: true
+  #allowSchedulingOnControlPlanes: true

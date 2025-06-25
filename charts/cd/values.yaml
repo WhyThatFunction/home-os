@@ -3,7 +3,7 @@ argoCdConfigs:
     stephane-segning-home-os-repo:
       type: repository
       data:
-        url: "https://github.com/stephane-segning/home-os"
+        url: "https://github.com/whythatfunction/home-os"
         name: home-os
         type: git
 
@@ -157,7 +157,7 @@ applications:
       - resources-finalizer.argocd.argoproj.io
     project: infrastructure
     source:
-      repoURL: https://github.com/stephane-segning/home-os
+      repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD
       path: charts/cd
     destination:
@@ -173,7 +173,7 @@ applications:
       - resources-finalizer.argocd.argoproj.io
     project: infrastructure
     source:
-      repoURL: https://github.com/stephane-segning/home-os
+      repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD
       path: charts/storage
     destination:
@@ -298,7 +298,7 @@ applications:
       - resources-finalizer.argocd.argoproj.io
     project: infrastructure
     source:
-      repoURL: https://github.com/stephane-segning/home-os
+      repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD
       path: charts/cert
     destination:
@@ -314,7 +314,7 @@ applications:
 #      - resources-finalizer.argocd.argoproj.io
 #    project: infrastructure
 #    source:
-#      repoURL: https://github.com/stephane-segning/home-os
+#      repoURL: https://github.com/whythatfunction/home-os
 #      targetRevision: HEAD
 #      path: charts/monitoring
 #    destination:
@@ -333,7 +333,7 @@ applications:
       - resources-finalizer.argocd.argoproj.io
     project: infrastructure
     source:
-      repoURL: https://github.com/stephane-segning/home-os
+      repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD
       path: charts/s3
     destination:
@@ -349,7 +349,7 @@ applications:
 #      - resources-finalizer.argocd.argoproj.io
 #    project: default
 #    source:
-#      repoURL: https://github.com/stephane-segning/home-os
+#      repoURL: https://github.com/whythatfunction/home-os
 #      targetRevision: HEAD
 #      path: charts/s3
 #    destination:

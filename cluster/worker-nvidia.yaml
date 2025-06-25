@@ -4,15 +4,9 @@ persist: true
 # Provides machine specific configuration options.
 machine:
   type: worker # Defines the role of the machine within the cluster.
-  # Extra certificate subject alternative names for the machine's certificate.
-  certSANs: [ ]
   
   # Used to provide additional options to the kubelet.
   kubelet:
-    image: ghcr.io/siderolabs/kubelet:v1.33.1 # The `image` field is an optional reference to an alternative kubelet image.
-    defaultRuntimeSeccompProfileEnabled: true # Enable container runtime default Seccomp profile.
-    disableManifestsDirectory: true # The `disableManifestsDirectory` field configures the kubelet to get static pod manifests from the /etc/kubernetes/manifests directory.
-    
     # # The `extraMounts` field is used to add additional mounts to the kubelet container.
     extraMounts:
       - destination: "/var/mnt/longhorn" # Destination is the absolute path where the mount will be placed in the container.
@@ -24,32 +18,11 @@ machine:
           - rshared
           - rw
   
-  # Provides machine specific network configuration options.
-  network: { }
-  
   # Used to provide instructions for installations.
   install:
     disk: /dev/sda # The disk used for installations.
     image: factory.talos.dev/installer/c35d5bd14fd96abc839f9f44f5effd00c48f654edb8a42648f4b2eb6051d1dd6:v1.10.4 # Allows for supplying the image used to perform the installation.
     wipe: true # Indicates if the installation disk should be wiped at installation time.
-  
-  # Used to configure the machine's container image registry mirrors.
-  registries: { }
-  
-  # Features describe individual Talos features that can be switched on or off.
-  features:
-    rbac: true # Enable role-based access control (RBAC).
-    stableHostname: true # Enable stable default hostname.
-    apidCheckExtKeyUsage: true # Enable checks for extended key usage of client certificates in apid.
-    diskQuotaSupport: true # Enable XFS project quota support for EPHEMERAL partition and user disks.
-    # KubePrism - local proxy/load balancer on defined port that will distribute
-    kubePrism:
-      enabled: true # Enable KubePrism support - will start local load balancing proxy.
-      port: 7445 # KubePrism port.
-    # Configures host DNS caching resolver.
-    hostDNS:
-      enabled: true # Enable host DNS caching resolver.
-      forwardKubeDNSToHost: true # Use the host DNS resolver as upstream for Kubernetes CoreDNS pods.
   
   # # MachineSysctls usage example.
   sysctls:
@@ -75,30 +48,9 @@ machine:
 cluster:
   # Provides cluster specific network configuration options.
   network:
-    dnsDomain: cluster.local # The domain used by Kubernetes DNS.
-    # The pod subnet CIDR.
-    podSubnets:
-      - 10.244.0.0/16
-    # The service subnet CIDR.
-    serviceSubnets:
-      - 10.96.0.0/12
-    
     # # The CNI used.
     cni:
       name: none # Name of CNI to use.
-    #     # URLs containing manifests to apply for the CNI.
-    #     urls:
-    #         - https://docs.projectcalico.org/archive/v3.20/manifests/canal.yaml
-  # Configures cluster member discovery.
-  discovery:
-    enabled: true # Enable the cluster membership discovery feature.
-    # Configure registries used for cluster member discovery.
-    registries:
-      # Kubernetes registry uses Kubernetes API server to discover cluster members and stores additional information
-      kubernetes:
-        disabled: true # Disable Kubernetes discovery registry.
-      # Service registry is using an external service to push and pull information about cluster members.
-      service: { }
   
   # # Kube-proxy server-specific configuration options
   proxy:
