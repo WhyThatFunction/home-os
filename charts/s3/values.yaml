@@ -119,6 +119,7 @@ minio:
 
 provision_minio_buckets_policies:
   enabled: true
+  secret: minio-root
   policies:
     - name: manual-sschool
       policy:
