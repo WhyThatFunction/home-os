@@ -1,10 +1,3 @@
-global:
-  domain: 'home.ssegning'
-  
-  extraEnvFrom:
-    - secretRef:
-        name: "minio"
-
 ## @param kubeVersion Override Kubernetes version
 ##
 kubeVersion: ""
@@ -49,6 +42,11 @@ meta:
 
 loki:
   fullnameOverride: loki
+  global:
+    extraEnvFrom:
+      - secretRef:
+          name: "minio"
+          
   memcachedExporter:
     enabled: false
   resultsCache:
@@ -87,7 +85,7 @@ loki:
       common:
         storage:
           s3:
-            endpoint: "base-minio.base.svc.cluster.local:9000"
+            endpoint: "s3-minio.s3.svc.cluster.local:9000"
             access_key_id: "${rootUser}"
             secret_access_key: "${rootPassword}"
             insecure: true
@@ -139,7 +137,6 @@ loki:
   deploymentMode: SingleBinary
 
   singleBinary:
-    #replicas: 2
     autoscaling:
       # -- Enable autoscaling
       enabled: true
@@ -165,285 +162,14 @@ loki:
       - secretRef:
           name: "minio"
 
-alloy:
-  fullnameOverride: alloy
-  alloy:
-    configMap:
-      content: |-
-        // ======================= Grafana Alloy ==============================
-        logging {
-          level  = "info"
-          format = "logfmt"
-        }
-
-        discovery.kubernetes "pods" {
-          role = "pod"
-        }
-
-        discovery.kubernetes "nodes" {
-          role = "node"
-        }
-
-        discovery.kubernetes "services" {
-          role = "service"
-        }
-
-        discovery.kubernetes "endpoints" {
-          role = "endpoints"
-        }
-
-        discovery.kubernetes "endpointslices" {
-          role = "endpointslice"
-        }
-
-        discovery.kubernetes "ingresses" {
-          role = "ingress"
-        }
-
-        loki.write "default" {
-          endpoint {
-            url = "http://loki-gateway:80/loki/api/v1/push"
-          }
-        }
-
-        // ─── Node syslog ───────────────────────────────────────────────────
-        // local.file_match discovers files on the local filesystem using glob patterns and the doublestar library. It returns an array of file paths.
-        local.file_match "node_logs" {
-          path_targets = [{
-            // Monitor syslog to scrape node-logs
-            __path__  = "/var/log/syslog",
-            job       = "node/syslog",
-            node_name = sys.env("HOSTNAME"),
-            cluster   = "main",
-          }]
-        }
-
-        // loki.source.file reads log entries from files and forwards them to other loki.* components.
-        // You can specify multiple loki.source.file components by giving them different labels.
-        loki.source.file "node_logs" {
-          targets    = local.file_match.node_logs.targets
-          forward_to = [loki.write.default.receiver]
-        }
-
-        // ─── Pod/container logs ────────────────────────────────────────────
-        // discovery.relabel rewrites the label set of the input targets by applying one or more relabeling rules.
-        // If no rules are defined, then the input targets are exported as-is.
-        discovery.relabel "pod_logs" {
-          targets = discovery.kubernetes.pods.targets
-
-          // Label creation - "namespace" field from "__meta_kubernetes_namespace"
-          rule {
-            source_labels = ["__meta_kubernetes_namespace"]
-            action = "replace"
-            target_label = "namespace"
-          }
-
-          // Label creation - "pod" field from "__meta_kubernetes_pod_name"
-          rule {
-            source_labels = ["__meta_kubernetes_pod_name"]
-            action = "replace"
-            target_label = "pod"
-          }
-
-          // Label creation - "container" field from "__meta_kubernetes_pod_container_name"
-          rule {
-            source_labels = ["__meta_kubernetes_pod_container_name"]
-            action = "replace"
-            target_label = "container"
-          }
-
-          // Label creation -  "app" field from "__meta_kubernetes_pod_label_app_kubernetes_io_name"
-          rule {
-            source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
-            action = "replace"
-            target_label = "app"
-          }
-
-          // Label creation -  "job" field from "__meta_kubernetes_namespace" and "__meta_kubernetes_pod_container_name"
-          // Concatenate values __meta_kubernetes_namespace/__meta_kubernetes_pod_container_name
-          rule {
-            source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"]
-            action        = "replace"
-            separator     = "/"
-            target_label  = "job"
-            replacement   = "$1/$2"
-          }
-
-          // Label creation - "container" field from "__meta_kubernetes_pod_uid" and "__meta_kubernetes_pod_container_name"
-          // Concatenate values __meta_kubernetes_pod_uid/__meta_kubernetes_pod_container_name.log
-          rule {
-            source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
-            action        = "replace"
-            separator     = "/"
-            target_label  = "__path__"
-            replacement   = "/var/log/pods/*$1/*.log"
-          }
-
-          // Label creation -  "container_runtime" field from "__meta_kubernetes_pod_container_id"
-          rule {
-            source_labels = ["__meta_kubernetes_pod_container_id"]
-            action        = "replace"
-            target_label  = "container_runtime"
-            regex         = "^(\\S+):\\/\\/.+$"
-            replacement   = "$1"
-          }
-        }
-
-        // loki.source.kubernetes tails logs from Kubernetes containers using the Kubernetes API.
-        loki.source.kubernetes "pod_logs" {
-          targets    = discovery.relabel.pod_logs.output
-          forward_to = [loki.process.pod_logs.receiver]
-        }
-
-        // loki.process receives log entries from other Loki components, applies one or more processing stages,
-        // and forwards the results to the list of receivers in the component's arguments.
-        loki.process "pod_logs" {
-          stage.static_labels {
-              values = {
-                cluster = "main",
-              }
-          }
-
-          forward_to = [loki.write.default.receiver]
-        }
-
-        // ─── Cluster events ────────────────────────────────────────────────
-        // loki.source.kubernetes_events tails events from the Kubernetes API and converts them
-        // into log lines to forward to other Loki components.
-        loki.source.kubernetes_events "cluster_events" {
-          job_name   = "integrations/kubernetes/eventhandler"
-          log_format = "logfmt"
-          forward_to = [
-            loki.process.cluster_events.receiver,
-          ]
-        }
-
-        // loki.process receives log entries from other loki components, applies one or more processing stages,
-        // and forwards the results to the list of receivers in the component's arguments.
-        loki.process "cluster_events" {
-          forward_to = [loki.write.default.receiver]
-
-          stage.static_labels {
-            values = {
-              cluster = "main",
-            }
-          }
-
-          stage.labels {
-            values = {
-              kubernetes_cluster_events = "job",
-            }
-          }
-        }
-
-        // ─── OpenTelemetry (OTLP) Gateway ──────────────────────────────────
-        otelcol.receiver.otlp "default" {
-          http {}
-
-          grpc {}
-
-          output {
-            logs    = [otelcol.processor.batch.logs.input]
-            metrics = [otelcol.processor.batch.metrics.input]
-            traces  = [otelcol.processor.batch.traces.input]
-          }
-        }
-
-        otelcol.processor.batch "logs"    { output { logs    = [otelcol.exporter.loki.default.input] } }
-        otelcol.processor.batch "metrics" { output { metrics = [otelcol.exporter.prometheus.default.input] } }
-        otelcol.processor.batch "traces"  { output { traces  = [otelcol.exporter.otlphttp.tempo.input] } }
-
-        otelcol.exporter.loki "default" {
-          forward_to = [loki.write.default.receiver]
-        }
-
-        otelcol.exporter.prometheus "default" {
-          forward_to = [prometheus.remote_write.mimir.receiver]
-        }
-
-        otelcol.exporter.otlphttp "tempo" {
-          client { endpoint = "tempo-distributor:4318" }
-        }
-        
-        discovery.relabel "scrape_targets" {
-          targets = concat(
-            discovery.kubernetes.pods.targets,
-          )
-        
-          rule {
-              source_labels = [
-              "__meta_kubernetes_pod_annotation_prometheus_io_scrape",
-            ]
-              regex   = "true"
-              action  = "keep"
-          }
-        
-          # __metrics_path__ from annotation
-          rule {
-            source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_path"]
-            target_label  = "__metrics_path__"
-            regex         = "(.+)"
-            action        = "replace"
-          }
-        
-          # :port from annotation
-          rule {
-            source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_port", "__address__"]
-            regex         = "(\\d+);(.+)"
-            target_label  = "__address__"
-            replacement   = "$2:$1"
-            separator     = ";"
-            action        = "replace"
-          }
-        
-          rule {
-            source_labels = ["__meta_kubernetes_namespace"]
-            action = "replace"
-            target_label = "namespace"
-          }
-        }
-
-        prometheus.scrape "k8s" {
-          targets = discovery.relabel.scrape_targets.output
-          forward_to = [ prometheus.remote_write.mimir.receiver ]
-        }
-
-        prometheus.remote_write "mimir" {
-          endpoint {
-            url = "http://mimir-nginx:80/api/v1/push"
-          }
-        }
-
-    resources:
-      requests:
-        cpu: '100m'
-        memory: '600Mi'
-      limits:
-        cpu: '800m'
-        memory: '4Gi'
-    extraPorts:
-      - name: "otel"
-        port: 4317
-        targetPort: 4317
-        protocol: "TCP"
-      - name: "otel-http"
-        port: 4318
-        targetPort: 4318
-        protocol: "TCP"
-  controller:
-    type: "deployment"
-    autoscaling:
-      enabled: true
-      minReplicas: 1
-      maxReplicas: 3
-      targetMemoryUtilizationPercentage: 90
-      targetCPUUtilizationPercentage: 90
-
 tempo:
   fullnameOverride: tempo
     
   tempo:
     reportingEnabled: false
+    extraEnvFrom:
+      - secretRef:
+          name: "minio"
     metricsGenerator: 
       enabled: true
       remoteWriteUrl: "http://mimir-nginx:80/api/v1/push"
@@ -467,517 +193,10 @@ tempo:
         backend: s3
         s3:
           bucket: "monitoring-tempo" # store traces in this bucket
-          endpoint: "base-minio.base.svc.cluster.local:9000"
+          endpoint: "s3-minio.s3.svc.cluster.local:9000"
           access_key: "${rootUser}"
           secret_key: "${rootPassword}"
           insecure: true
-
-mimir:
-  fullnameOverride: mimir
-  admin_api:
-    enabled: false
-  gr-aggr-cache:
-    enabled: false
-  metaMonitoring:
-    dashboards:
-      enabled: true
-  ingester:
-    replicas: 3
-    resources:
-      requests:
-        cpu: 100m
-        memory: 512Mi
-      limits:
-        cpu: 200m
-        memory: 1024Mi
-    persistentVolume:
-      enabled: false
-    zoneAwareReplication:
-      enabled: false
-  querier:
-    replicas: 1
-  query_frontend:
-    replicas: 1
-  query_scheduler:
-    replicas: 1
-  compactor:
-    replicas: 1
-    persistentVolume:
-      enabled: false
-  store_gateway:
-    replicas: 1
-    zoneAwareReplication:
-      enabled: false
-    persistentVolume:
-      enabled: false
-  memcached:
-    enabled: false
-  alertmanager:
-    enabled: false
-  minio:
-    enabled: false
-  rollout_operator:
-    enabled: false
-  distributor:
-    enabled: true
-    replicas: 1
-  nginx:
-    enabled: true
-  ingress:
-    enabled: true
-    annotations:
-      cert-manager.io/cluster-issuer: self-signed-ca
-    hosts:
-      - mimir.home.ssegning
-    tls:
-      - secretName: mimir.home.ssegning-tls
-        hosts:
-          - mimir.home.ssegning
-  mimir:
-    config: |
-      limits:
-        out_of_order_time_window: 10h
-      
-      usage_stats:
-        installation_mode: helm
-      
-      activity_tracker:
-        filepath: /active-query-tracker/activity.log
-      
-      {{- if .Values.enterprise.enabled }}
-      admin_api:
-        leader_election:
-          enabled: true
-          ring:
-            kvstore:
-              store: "memberlist"
-      
-      admin_client:
-        storage:
-        {{- if .Values.minio.enabled }}
-          type: s3
-          s3:
-            access_key_id: {{ .Values.minio.rootUser }}
-            bucket_name: enterprise-metrics-admin
-            endpoint: {{ template "minio.fullname" .Subcharts.minio }}.{{ .Release.Namespace }}.svc:{{ .Values.minio.service.port }}
-            insecure: true
-            secret_access_key: {{ .Values.minio.rootPassword }}
-        {{- end }}
-        {{- if (index .Values "admin-cache" "enabled") }}
-          cache:
-            backend: memcached
-            memcached:
-              addresses: {{ include "mimir.adminCacheAddress" . }}
-              max_item_size: {{ mul (index .Values "admin-cache").maxItemMemory 1024 1024 }}
-        {{- end }}
-      {{- end }}
-      
-      alertmanager:
-        data_dir: /data
-        enable_api: true
-        external_url: /alertmanager
-        {{- if .Values.alertmanager.zoneAwareReplication.enabled }}
-        sharding_ring:
-          zone_awareness_enabled: true
-        {{- end }}
-        {{- if .Values.alertmanager.fallbackConfig }}
-        fallback_config_file: /configs/alertmanager_fallback_config.yaml
-        {{- end }}
-      
-      {{- if .Values.minio.enabled }}
-      alertmanager_storage:
-        backend: s3
-        s3:
-          access_key_id: {{ .Values.minio.rootUser }}
-          bucket_name: {{ include "mimir.minioBucketPrefix" . }}-ruler
-          endpoint: {{ template "minio.fullname" .Subcharts.minio }}.{{ .Release.Namespace }}.svc:{{ .Values.minio.service.port }}
-          insecure: true
-          secret_access_key: {{ .Values.minio.rootPassword }}
-      {{- end }}
-      
-      {{- if .Values.enterprise.enabled }}
-      auth:
-        type: enterprise
-        admin:
-          pass_access_policy_name: true
-          pass_token_name: true
-      {{- end }}
-      
-      # This configures how the store-gateway synchronizes blocks stored in the bucket. It uses Minio by default for getting started (configured via flags) but this should be changed for production deployments.
-      blocks_storage:
-        backend: s3
-        bucket_store:
-          {{- if index .Values "chunks-cache" "enabled" }}
-          chunks_cache:
-            backend: memcached
-            memcached:
-              addresses: {{ include "mimir.chunksCacheAddress" . }}
-              max_item_size: {{ mul (index .Values "chunks-cache").maxItemMemory 1024 1024 }}
-              timeout: 750ms
-              max_idle_connections: 150
-          {{- end }}
-          {{- if index .Values "index-cache" "enabled" }}
-          index_cache:
-            backend: memcached
-            memcached:
-              addresses: {{ include "mimir.indexCacheAddress" . }}
-              max_item_size: {{ mul (index .Values "index-cache").maxItemMemory 1024 1024 }}
-              timeout: 750ms
-              max_idle_connections: 150
-          {{- end }}
-          {{- if index .Values "metadata-cache" "enabled" }}
-          metadata_cache:
-            backend: memcached
-            memcached:
-              addresses: {{ include "mimir.metadataCacheAddress" . }}
-              max_item_size: {{ mul (index .Values "metadata-cache").maxItemMemory 1024 1024 }}
-              max_idle_connections: 150
-          {{- end }}
-          sync_dir: /data/tsdb-sync
-        {{- if .Values.minio.enabled }}
-        s3:
-          access_key_id: {{ .Values.minio.rootUser }}
-          bucket_name: {{ include "mimir.minioBucketPrefix" . }}-tsdb
-          endpoint: {{ template "minio.fullname" .Subcharts.minio }}.{{ .Release.Namespace }}.svc:{{ .Values.minio.service.port }}
-          insecure: true
-          secret_access_key: {{ .Values.minio.rootPassword }}
-        {{- end }}
-        tsdb:
-          dir: /data/tsdb
-          head_compaction_interval: 15m
-          wal_replay_concurrency: 3
-      
-      {{- if .Values.enterprise.enabled }}
-      cluster_name: "{{ .Release.Name }}"
-      {{- end }}
-      
-      compactor:
-        compaction_interval: 30m
-        deletion_delay: 2h
-        max_closing_blocks_concurrency: 2
-        max_opening_blocks_concurrency: 4
-        symbols_flushers_concurrency: 4
-        first_level_compaction_wait_period: 25m
-        data_dir: "/data"
-        sharding_ring:
-          wait_stability_min_duration: 1m
-          heartbeat_period: 1m
-          heartbeat_timeout: 4m
-      
-      distributor:
-        ring:
-          heartbeat_period: 1m
-          heartbeat_timeout: 4m
-      
-      frontend:
-        parallelize_shardable_queries: true
-        {{- if index .Values "results-cache" "enabled" }}
-        results_cache:
-          backend: memcached
-          memcached:
-            timeout: 500ms
-            addresses: {{ include "mimir.resultsCacheAddress" . }}
-            max_item_size: {{ mul (index .Values "results-cache").maxItemMemory 1024 1024 }}
-        cache_results: true
-        query_sharding_target_series_per_shard: 2500
-        {{- end }}
-        {{- if and .Values.query_scheduler.enabled (not .Values.federation_frontend.disableOtherComponents) }}
-        scheduler_address: {{ template "mimir.fullname" . }}-query-scheduler-headless.{{ .Release.Namespace }}.svc:{{ include "mimir.serverGrpcListenPort" . }}
-        {{- end }}
-        {{- if .Values.enterprise.enabled }}
-        log_query_request_headers: X-Access-Policy-Name,X-Token-Name
-        {{- end }}
-      
-      frontend_worker:
-        grpc_client_config:
-          max_send_msg_size: 419430400 # 400MiB
-        {{- if .Values.query_scheduler.enabled }}
-        scheduler_address: {{ template "mimir.fullname" . }}-query-scheduler-headless.{{ .Release.Namespace }}.svc:{{ include "mimir.serverGrpcListenPort" . }}
-        {{- else }}
-        frontend_address: {{ template "mimir.fullname" . }}-query-frontend-headless.{{ .Release.Namespace }}.svc:{{ include "mimir.serverGrpcListenPort" . }}
-        {{- end }}
-      
-      {{- if and .Values.enterprise.enabled }}
-      gateway:
-        proxy:
-          admin_api:
-            url: http://{{ template "mimir.fullname" . }}-admin-api.{{ .Release.Namespace }}.svc:{{ include "mimir.serverHttpListenPort" . }}
-          alertmanager:
-            url: http://{{ template "mimir.fullname" . }}-alertmanager-headless.{{ .Release.Namespace }}.svc:{{ include "mimir.serverHttpListenPort" . }}
-          compactor:
-            url: http://{{ template "mimir.fullname" . }}-compactor.{{ .Release.Namespace }}.svc:{{ include "mimir.serverHttpListenPort" . }}
-          default:
-            url: http://{{ template "mimir.fullname" . }}-admin-api.{{ .Release.Namespace }}.svc:{{ include "mimir.serverHttpListenPort" . }}
-          {{- if and .Values.distributor.enabled (not .Values.federation_frontend.disableOtherComponents) }}
-          distributor:
-            url: dns:///{{ template "mimir.fullname" . }}-distributor-headless.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }}:{{ include "mimir.serverGrpcListenPort" . }}
-          {{- end }}
-          ingester:
-            url: http://{{ template "mimir.fullname" . }}-ingester-headless.{{ .Release.Namespace }}.svc:{{ include "mimir.serverHttpListenPort" . }}
-          query_frontend:
-          {{ if .Values.federation_frontend.enabled }}
-            url: http://{{ template "mimir.fullname" . }}-federation-frontend.{{ .Release.Namespace }}.svc:{{ include "mimir.serverHttpListenPort" . }}
-          {{ else }}
-            url: http://{{ template "mimir.fullname" . }}-query-frontend.{{ .Release.Namespace }}.svc:{{ include "mimir.serverHttpListenPort" . }}
-          {{ end }}
-          ruler:
-            url: http://{{ template "mimir.fullname" . }}-ruler.{{ .Release.Namespace }}.svc:{{ include "mimir.serverHttpListenPort" . }}
-          store_gateway:
-            url: http://{{ template "mimir.fullname" . }}-store-gateway-headless.{{ .Release.Namespace }}.svc:{{ include "mimir.serverHttpListenPort" . }}
-          {{- if and .Values.enterprise.enabled .Values.graphite.enabled }}
-          graphite_write_proxy:
-            url: http://{{ template "mimir.fullname" . }}-graphite-write-proxy.{{ .Release.Namespace }}.svc:{{ include "mimir.serverHttpListenPort" . }}
-          graphite_querier:
-            url: http://{{ template "mimir.fullname" . }}-graphite-querier.{{ .Release.Namespace }}.svc:{{ include "mimir.serverHttpListenPort" . }}
-          {{- end}}
-      {{- end }}
-      
-      ingester:
-        ring:
-          final_sleep: 0s
-          num_tokens: 512
-          tokens_file_path: /data/tokens
-          unregister_on_shutdown: false
-          heartbeat_period: 2m
-          heartbeat_timeout: 10m
-          {{- if .Values.ingester.zoneAwareReplication.enabled }}
-          zone_awareness_enabled: true
-          {{- end }}
-      
-      ingester_client:
-        grpc_client_config:
-          max_recv_msg_size: 104857600
-          max_send_msg_size: 104857600
-      
-      {{- if .Values.enterprise.enabled }}
-      instrumentation:
-        enabled: {{ and .Values.distributor.enabled (not .Values.federation_frontend.disableOtherComponents) }}
-      {{- if and .Values.distributor.enabled (not .Values.federation_frontend.disableOtherComponents) }}
-        distributor_client:
-          address: dns:///{{ template "mimir.fullname" . }}-distributor-headless.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }}:{{ include "mimir.serverGrpcListenPort" . }}
-      {{- end }}
-      
-      license:
-        path: "/license/license.jwt"
-      {{- end }}
-      
-      limits:
-        # Limit queries to 500 days. You can override this on a per-tenant basis.
-        max_total_query_length: 12000h
-        # Adjust max query parallelism to 16x sharding, without sharding we can run 15d queries fully in parallel.
-        # With sharding we can further shard each day another 16 times. 15 days * 16 shards = 240 subqueries.
-        max_query_parallelism: 240
-        # Avoid caching results newer than 10m because some samples can be delayed
-        # This presents caching incomplete results
-        max_cache_freshness: 10m
-      
-      memberlist:
-        cluster_label: "mimir_simple"
-        cluster_label_verification_disabled: true
-        abort_if_cluster_join_fails: false
-        compression_enabled: false
-        join_members:
-        - dns+{{ include "mimir.fullname" . }}-gossip-ring.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }}:{{ include "mimir.memberlistBindPort" . }}
-      
-      querier:
-        # With query sharding we run more but smaller queries. We must strike a balance
-        # which allows us to process more sharded queries in parallel when requested, but not overload
-        # queriers during non-sharded queries.
-        max_concurrent: 16
-      
-      query_scheduler:
-        # Increase from default of 100 to account for queries created by query sharding
-        max_outstanding_requests_per_tenant: 800
-      
-      ruler:
-        alertmanager_url: dnssrvnoa+http://_http-metrics._tcp.{{ template "mimir.fullname" . }}-alertmanager-headless.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }}/alertmanager
-        enable_api: true
-        rule_path: /data
-        {{- if .Values.ruler.remoteEvaluationDedicatedQueryPath }}
-        query_frontend:
-          address: dns:///{{ template "mimir.fullname" . }}-ruler-query-frontend.{{ .Release.Namespace }}.svc:{{ include "mimir.serverGrpcListenPort" .  }}
-        {{- end }}
-      
-      {{- if or (.Values.minio.enabled) (index .Values "metadata-cache" "enabled") }}
-      ruler_storage:
-        {{- if .Values.minio.enabled }}
-        backend: s3
-        s3:
-          endpoint: {{ template "minio.fullname" .Subcharts.minio }}.{{ .Release.Namespace }}.svc:{{ .Values.minio.service.port }}
-          bucket_name: {{ include "mimir.minioBucketPrefix" . }}-ruler
-          access_key_id: {{ .Values.minio.rootUser }}
-          secret_access_key: {{ .Values.minio.rootPassword }}
-          insecure: true
-        {{- end }}
-        {{- if index .Values "metadata-cache" "enabled" }}
-        cache:
-          backend: memcached
-          memcached:
-            addresses: {{ include "mimir.metadataCacheAddress" . }}
-            max_item_size: {{ mul (index .Values "metadata-cache").maxItemMemory 1024 1024 }}
-        {{- end }}
-      {{- end }}
-      
-      {{- if not .Values.federation_frontend.disableOtherComponents }}
-      runtime_config:
-        file: /var/{{ include "mimir.name" . }}/runtime.yaml
-      {{- end }}
-      
-      store_gateway:
-        sharding_ring:
-          heartbeat_period: 1m
-          heartbeat_timeout: 10m
-          wait_stability_min_duration: 1m
-          {{- if .Values.store_gateway.zoneAwareReplication.enabled }}
-          kvstore:
-            prefix: multi-zone/
-          {{- end }}
-          tokens_file_path: /data/tokens
-          unregister_on_shutdown: false
-          {{- if .Values.store_gateway.zoneAwareReplication.enabled }}
-          zone_awareness_enabled: true
-          {{- end }}
-      
-      {{- if and .Values.enterprise.enabled .Values.graphite.enabled }}
-      graphite:
-        enabled: true
-      
-        write_proxy:
-          distributor_client:
-            address: dns:///{{ template "mimir.fullname" . }}-distributor.{{ .Release.Namespace }}.svc:{{ include "mimir.serverGrpcListenPort" .  }}
-      
-        querier:
-          remote_read:
-            query_address: http://{{ template "mimir.fullname" . }}-query-frontend.{{ .Release.Namespace }}.svc:{{ include "mimir.serverHttpListenPort" .  }}/prometheus
-          proxy_bad_requests: false
-      
-          schemas:
-            default_storage_schemas_file: /etc/graphite-proxy/storage-schemas.conf
-            default_storage_aggregations_file: /etc/graphite-proxy/storage-aggregations.conf
-          aggregation_cache:
-            memcached:
-              addresses: dnssrvnoa+{{ template "mimir.fullname" . }}-gr-aggr-cache.{{ .Release.Namespace}}.svc:11211
-              timeout: 1s
-          metric_name_cache:
-            memcached:
-              addresses: dnssrvnoa+{{ template "mimir.fullname" . }}-gr-metricname-cache.{{ .Release.Namespace}}.svc:11211
-              timeout: 1s
-      {{- end}}
-
-    structuredConfig:
-      alertmanager_storage:
-        s3:
-          bucket_name: monitoring-mimir-alertmanager
-      blocks_storage:
-        backend: s3
-        s3:
-          bucket_name: monitoring-mimir-blocs
-      ruler_storage:
-        s3:
-          bucket_name: monitoring-mimir-ruler
-      common:
-        storage:
-          backend: s3
-          s3:
-            bucket_name: monitoring-mimir
-            endpoint: "base-minio.base.svc.cluster.local:9000"
-            access_key_id: "${rootUser}"
-            secret_access_key: "${rootPassword}"
-            insecure: true
-      limits:
-        compactor_blocks_retention_period: 30d
-
-grafana:
-  fullnameOverride: grafana
-  enabled: true
-  resources:
-    requests:
-      cpu: '100m'
-      memory: '400Mi'
-    limits:
-      cpu: '200m'
-      memory: '800Mi'
-  ingress:
-    enabled: true
-    annotations:
-      cert-manager.io/cluster-issuer: self-signed-ca
-    ingressClassName: traefik
-    hosts:
-      - "grafana.{{ .Values.global.domain }}"
-    tls:
-      - secretName: "grafana-{{ .Values.global.domain }}-tls"
-        hosts:
-          - "grafana.{{ .Values.global.domain }}"
-  sidecar:
-    resources:
-      limits:
-        cpu: 100m
-        memory: 100Mi
-      requests:
-        cpu: 50m
-        memory: 50Mi
-    enableUniqueFilenames: true
-    alerts:
-      enabled: true
-      label: grafana_alert
-      labelValue: "1"
-      searchNamespace: "ALL"
-      initAlerts: true
-    dashboards:
-      enabled: true
-      label: grafana_dashboard
-      labelValue: "1"
-      searchNamespace: "ALL"
-    datasources:
-      enabled: true
-      label: grafana_datasource
-      labelValue: "1"
-      searchNamespace: "ALL"
-      initDatasources: true
-  plugins:
-    - grafana-piechart-panel
-    - grafana-clock-panel
-    - digrich-bubblechart-panel
-    - grafana-llm-app
-  adminUser: home
-  adminPassword: strongpassword
-  envFromSecrets:
-    - name: keycloak-conf
-  grafana.ini:
-    server:
-      root_url: "https://grafana.{{ .Values.global.domain }}"
-      enable_gzip: true
-    auth:
-      disable_login_form: true
-    auth.anonymous:
-      enabled: "false"
-      org_role: "Admin"
-    auth.basic:
-      enabled: "false"
-    auth.generic_oauth:
-      enabled: "true"
-      name: "SSegning Account"
-      auto_login: "true"
-      allow_sign_up: "true"
-      client_id: '$__env{KEYCLOAK_CLIENT_ID}'
-      client_secret: '$__env{KEYCLOAK_CLIENT_SECRET}'
-      scopes: "openid email profile offline_access roles"
-      email_attribute_path: "email"
-      login_attribute_path: "username"
-      name_attribute_path: "full_name"
-      auth_url: "$__env{KEYCLOAK_ISSUER}/protocol/openid-connect/auth"
-      token_url: "$__env{KEYCLOAK_ISSUER}/protocol/openid-connect/token"
-      api_url: "$__env{KEYCLOAK_ISSUER}/protocol/openid-connect/userinfo"
-      signout_redirect_url: "$__env{KEYCLOAK_ISSUER}/protocol/openid-connect/logout?post_logout_redirect_uri=https%3A%2F%2Fgrafana.{{ .Values.global.domain }}%2Flogin"
-      role_attribute_path: "contains(grafana_roles[*], 'grafanaadmin') && 'GrafanaAdmin' || contains(grafana_roles[*], 'admin') && 'Admin' || contains(grafana_roles[*], 'editor') && 'Editor' || contains(grafana_roles[*], 'viewer') && 'Viewer' || 'None'"
-      allow_assign_grafana_admin: "true"
-      use_refresh_token: "true"
-      use_pkce: "true"
-  serviceAccount:
-    automountServiceAccountToken: true
-  rbac:
-    create: true
-    pspEnabled: false
 
 prom-stack:
   enabled: true
@@ -986,6 +205,92 @@ prom-stack:
   crds:
     upgradeJob:
       enabled: true
+      
+  grafana:
+    enabled: true
+    resources:
+      requests:
+        cpu: '100m'
+        memory: '400Mi'
+      limits:
+        cpu: '200m'
+        memory: '800Mi'
+    ingress:
+      enabled: true
+      annotations:
+        cert-manager.io/cluster-issuer: self-signed-ca
+      ingressClassName: traefik
+      hosts:
+        - "grafana.home.ssegning"
+      tls:
+        - secretName: "grafana-home.ssegning-tls"
+          hosts:
+            - "grafana.home.ssegning"
+    sidecar:
+      resources:
+        limits:
+          cpu: 100m
+          memory: 100Mi
+        requests:
+          cpu: 50m
+          memory: 50Mi
+      enableUniqueFilenames: true
+      alerts:
+        enabled: true
+        label: grafana_alert
+        labelValue: "1"
+        searchNamespace: "ALL"
+        initAlerts: true
+      dashboards:
+        enabled: true
+        label: grafana_dashboard
+        labelValue: "1"
+        searchNamespace: "ALL"
+      datasources:
+        enabled: true
+        label: grafana_datasource
+        labelValue: "1"
+        searchNamespace: "ALL"
+        initDatasources: true
+        isDefaultDatasource: false
+        defaultDatasourceEnabled: false
+    plugins:
+      - grafana-piechart-panel
+      - grafana-clock-panel
+      - digrich-bubblechart-panel
+      - grafana-llm-app
+    envFromSecrets:
+      - name: keycloak-conf
+    grafana.ini:
+      server:
+        root_url: "https://grafana.home.ssegning"
+        enable_gzip: true
+      auth:
+        disable_login_form: true
+      auth.anonymous:
+        enabled: "false"
+        org_role: "Admin"
+      auth.basic:
+        enabled: "false"
+      auth.generic_oauth:
+        enabled: "true"
+        name: "SSegning Account"
+        auto_login: "true"
+        allow_sign_up: "true"
+        client_id: '$__env{KEYCLOAK_CLIENT_ID}'
+        client_secret: '$__env{KEYCLOAK_CLIENT_SECRET}'
+        scopes: "openid email profile offline_access roles"
+        email_attribute_path: "email"
+        login_attribute_path: "username"
+        name_attribute_path: "full_name"
+        auth_url: "$__env{KEYCLOAK_ISSUER}/protocol/openid-connect/auth"
+        token_url: "$__env{KEYCLOAK_ISSUER}/protocol/openid-connect/token"
+        api_url: "$__env{KEYCLOAK_ISSUER}/protocol/openid-connect/userinfo"
+        signout_redirect_url: "$__env{KEYCLOAK_ISSUER}/protocol/openid-connect/logout?post_logout_redirect_uri=https%3A%2F%2Fgrafana.home.ssegning%2Flogin"
+        role_attribute_path: "contains(grafana_roles[*], 'grafanaadmin') && 'GrafanaAdmin' || contains(grafana_roles[*], 'admin') && 'Admin' || contains(grafana_roles[*], 'editor') && 'Editor' || contains(grafana_roles[*], 'viewer') && 'Viewer' || 'None'"
+        allow_assign_grafana_admin: "true"
+        use_refresh_token: "true"
+        use_pkce: "true"
   
   alertmanager:
     ingress:
@@ -994,54 +299,69 @@ prom-stack:
         cert-manager.io/cluster-issuer: self-signed-ca
       ingressClassName: traefik
       hosts:
-        - "alertmanager.{{ .Values.global.domain }}"
+        - "alertmanager.home.ssegning"
       tls:
-        - secretName: "alertmanager-{{ .Values.global.domain }}-tls"
+        - secretName: "alertmanager-home.ssegning-tls"
           hosts:
-            - "alertmanager.{{ .Values.global.domain }}"
+            - "alertmanager.home.ssegning"
     alertmanagerSpec:
       logLevel: error
       storage:
         volumeClaimTemplate:
           spec:
-            storageClassName: nfs-ssd
+            storageClassName: longhorn
+            accessModes: [ "ReadWriteOnce" ]
+            resources:
+              requests:
+                storage: 5Gi
+    tplConfig: true
+    config:
+      route:
+        receiver: "discord"
+        group_by:
+          - namespace
+        continue: false
+        routes:
+          - receiver: "discord"
+            matchers:
+              - alertname="Watchdog"
+            continue: false
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 12h
+      receivers:
+        - name: discord
+          discord_configs:
+            - webhook_url: "https://discord.com/api/webhooks/1384830588711600170/LBFfxTTABz5vR-Cyv25mXiZD-RXx4wqWWtmMAeAiKjvGypCtvoBTQkELg1q696G8ybwr"
+
+  prometheus:
+    ingress:
+      enabled: true
+      annotations:
+        cert-manager.io/cluster-issuer: self-signed-ca
+      ingressClassName: traefik
+      hosts:
+        - "prometheus.home.ssegning"
+      tls:
+        - secretName: "prometheus-home.ssegning-tls"
+          hosts:
+            - "prometheus.home.ssegning"
+    prometheusSpec:
+      logLevel: error
+      retention: 10d
+      resources:
+        requests:
+          memory: 400Mi
+        limits:
+          memory: 800Mi
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            storageClassName: longhorn
             accessModes: [ "ReadWriteOnce" ]
             resources:
               requests:
                 storage: 5Gi
 
-  prometheus:
-    enabled: false
-  
-  grafana:
-    enabled: false
-  
-  nodeExporter:
-    enabled: false
-  
-  prometheus-node-exporter:
-    enabled: false
-  
-  prometheusOperator:
-    enabled: false
-  
-  prometheus-windows-exporter:
-    enabled: false
-  
-  kubeApiServer:
-    enabled: false
-
-  kubeStateMetrics:
-    enabled: false
-
-  kubeScheduler:
-    enabled: true
-  
   kubeProxy:
-    enabled: false
-  
-  kubeEtcd:
-    enabled: false
-  
-  coreDns:
     enabled: false

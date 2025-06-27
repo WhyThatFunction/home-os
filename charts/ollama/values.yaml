@@ -1,0 +1,98 @@
+ga2000:
+  enabled: false
+  fullnameOverride: ollama-g2000
+  runtimeClassName: nvidia
+  persistentVolume:
+    enabled: true
+    storageClass: nfs-off-topic
+  extraEnv:
+    - name: PATH
+      value: "/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    - name: NVIDIA_DRIVER_CAPABILITIES
+      value: "all"
+    - name: NVIDIA_VISIBLE_DEVICES
+      value: "all"
+  tolerations:
+    - key: "gpu-block"
+      operator: "Equal"
+      value: "a2000"
+      effect: "NoSchedule"
+  ollama:
+    models:
+      pull:
+        - llama3.2:3b
+        - snowflake-arctic-embed2:568m
+        - granite3.3:8b
+        - gemma3:4b
+        - cogito:8b
+        - qwen2.5vl:3b
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 4Gi
+    limits:
+      cpu: 2000m
+      memory: 8Gi
+  ingress:
+    enabled: true
+    className: traefik
+    annotations:
+      cert-manager.io/cluster-issuer: cert-home-cert-self-signed-ca
+    hosts:
+      - host: ollama-g2000.ssg.home
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: ollama-g2000-ssg-home-tls
+        hosts:
+          - ollama-g2000.ssg.home
+
+
+g4070:
+  enabled: false
+  fullnameOverride: ollama-g4070
+  runtimeClassName: nvidia
+  tolerations:
+    - key: "gpu-block"
+      operator: "Equal"
+      value: "g4070"
+      effect: "NoSchedule"
+  persistentVolume:
+    enabled: true
+    storageClass: nfs-off-topic
+  extraEnv:
+    - name: PATH
+      value: /usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    - name: NVIDIA_DRIVER_CAPABILITIES
+      value: "all"
+    - name: NVIDIA_VISIBLE_DEVICES
+      value: "all"
+  ollama:
+    models:
+      pull:
+        - starcoder2:7b
+        - gemma3:4b-it-qat
+        - llama3-groq-tool-use:8b
+        - granite3.2-vision:2b
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 4Gi
+    limits:
+      cpu: 2000m
+      memory: 8Gi
+  ingress:
+    enabled: true
+    className: traefik
+    annotations:
+      cert-manager.io/cluster-issuer: cert-home-cert-self-signed-ca
+    hosts:
+      - host: ollama-g4070.ssg.home
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: ollama-g4070-ssg-home-tls
+        hosts:
+          - ollama-g4070.ssg.home

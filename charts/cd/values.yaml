@@ -285,6 +285,23 @@ applications:
                 - web
                 - websecure
               matchRule: Host(`traefik.home.ssegning`)
+              tls:
+                secretName: traefik.home.ssegning-tls
+                
+          extraObjects:
+            - |
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: traefik-certificate
+              spec:
+                secretName: traefik.home.ssegning-tls
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: self-signed-ca
+                  group: cert-manager.io
+                commonName: traefik.home.ssegning
+                dnsNames: traefik.home.ssegning
     destination:
       server: https://kubernetes.default.svc
       namespace: traefik
@@ -377,6 +394,8 @@ applications:
           auth:
             enabled: false
           architecture: replication
+          metrics:
+            enabled: true
           replica:
             replicaCount: 2
     destination:

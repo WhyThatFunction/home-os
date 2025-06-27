@@ -39,13 +39,9 @@ dependencies:
     tags:
       - alertmanager
       - alerts
-
-  - condition: grafana.enabled
-    name: grafana
-    repository: https://grafana.github.io/helm-charts
-    version: "*"
-    tags:
       - grafana
+      - prometheus
+
   - name: loki
     condition: loki.enabled
     repository: https://grafana.github.io/helm-charts
@@ -53,6 +49,7 @@ dependencies:
     tags:
       - loki
       - logs
+
   - name: tempo
     condition: tempo.enabled
     repository: https://grafana.github.io/helm-charts
@@ -60,26 +57,4 @@ dependencies:
     tags:
       - tempo
       - traces
-  - name: alloy
-    condition: alloy.enabled
-    repository: https://grafana.github.io/helm-charts
-    version: "*"
-    tags:
-      - alloy
-      - collector
-  - condition: mimir.enabled
-    name: mimir-distributed
-    repository: https://grafana.github.io/helm-charts
-    version: '*'
-    alias: mimir
-    tags:
-      - mimir
-      - metrics
-        
-  - name: meta-monitoring
-    alias: meta
-    condition: meta.enabled
-    repository: https://grafana.github.io/helm-charts
-    version: "*"
-    tags:
-      - ignored
+      - jaeger

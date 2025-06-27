@@ -1,0 +1,17 @@
+# This should be installed by default by the loki helm chart
+# But it is here just for reference
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ include "common.names.fullname" . }}-postgres-dashboard
+  namespace: {{ include "common.names.namespace" $ | quote }}
+  labels:
+    {{ include "common.labels.standard" $ | nindent 4 }}
+    grafana_dashboard: "1"
+
+data:
+  "postgres.json": |
+    {{ $.Files.Get "src/dashboards/postgres.json" | fromJson | toJson }}
+  "cloudnative-pg.json": |
+    {{ $.Files.Get "src/dashboards/cloudnative-pg.json" | fromJson | toJson }}
+    

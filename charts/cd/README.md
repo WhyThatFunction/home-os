@@ -3,5 +3,5 @@
 ## Usage
 
 ```shell
-helm upgrade -i --create-namespace cd ./cd-tools -n plugin-cd
+helm upgrade -i -n argocd cd ./charts/cd
 ```

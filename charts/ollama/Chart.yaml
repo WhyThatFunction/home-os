@@ -1,5 +1,5 @@
 apiVersion: v2
-name: storage
+name: ollama
 description: A Helm chart for Kubernetes
 
 # A chart can be either an 'application' or a 'library' chart.
@@ -23,21 +23,26 @@ version: 0.1.0
 # It is recommended to use it with quotes.
 appVersion: "1.16.0"
 
+
 dependencies:
-  - name: longhorn
-    version: 1.9.0
-    repository: https://charts.longhorn.io
+  - condition: g4070.enabled
+    import-values:
+      - child: service
+        parent: g4070.service
+    name: ollama
+    repository: https://otwld.github.io/ollama-helm/
+    version: '>=0.24.0'
+    alias: g4070
+    
+  - condition: ga2000.enabled
+    import-values:
+      - child: service
+        parent: ga2000.service
+    name: ollama
+    repository: https://otwld.github.io/ollama-helm/
+    version: '>=0.24.0'
+    alias: ga2000
     
   - name: common
-    version: 2.31.3
+    version: '*'
     repository: https://charts.bitnami.com/bitnami
-
-  - name: nfs-subdir-external-provisioner
-    version: '*'
-    repository: https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner
-    alias: nfs-ssd
-    
-  - name: nfs-subdir-external-provisioner
-    version: '*'
-    repository: https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner
-    alias: nfs-off-topic
