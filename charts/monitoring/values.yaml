@@ -161,6 +161,8 @@ loki:
     extraEnvFrom:
       - secretRef:
           name: "minio"
+    persistence:
+      storageClass: longhorn
 
 tempo:
   fullnameOverride: tempo
@@ -183,7 +185,7 @@ tempo:
     overrides:
       defaults:
         memberlist:
-          cluster_label: "tempo-{{ .Release.Name }}-{{ .Release.Namespace }}"
+          cluster_label: "tempo-monitoring"
         metrics_generator:
           processors:
             - service-graphs
