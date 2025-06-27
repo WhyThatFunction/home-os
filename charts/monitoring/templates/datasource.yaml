@@ -20,22 +20,25 @@ data:
         url: http://loki-gateway:80
         basicAuth: false
         uid: loki_ds
+      
       - name: alertmanager
         type: alertmanager
         orgId: 1
-        access: proxy
+    #    access: proxy
         url: http://mtor-alertmanager:9093
         basicAuth: false
         uid: alertmanager_ds
         jsonData:
           implementation: prometheus
-      - name: mimir
+
+      - name: prometheus
         type: prometheus
         orgId: 1
         #access: proxy
-        url: http://mimir-nginx:80/prometheus
+        url: http://mtor-prometheus:9090
         basicAuth: false
-        uid: mimir_ds
+        uid: prometheus_ds
+      
       - name: tempo
         type: tempo
         orgId: 1

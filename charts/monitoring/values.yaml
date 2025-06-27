@@ -214,11 +214,11 @@ prom-stack:
     enabled: true
     resources:
       requests:
-        cpu: '100m'
-        memory: '400Mi'
+        cpu: '300m'
+        memory: '1Gi'
       limits:
-        cpu: '200m'
-        memory: '800Mi'
+        cpu: '600m'
+        memory: '2Gi'
     ingress:
       enabled: true
       annotations:
@@ -233,11 +233,11 @@ prom-stack:
     sidecar:
       resources:
         limits:
-          cpu: 100m
-          memory: 100Mi
+          cpu: 200m
+          memory: 200Mi
         requests:
-          cpu: 50m
-          memory: 50Mi
+          cpu: 100m
+          memory: 500Mi
       enableUniqueFilenames: true
       alerts:
         enabled: true
