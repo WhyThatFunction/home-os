@@ -301,7 +301,8 @@ applications:
                   name: self-signed-ca
                   group: cert-manager.io
                 commonName: traefik.home.ssegning
-                dnsNames: traefik.home.ssegning
+                dnsNames: 
+                  - traefik.home.ssegning
     destination:
       server: https://kubernetes.default.svc
       namespace: traefik
@@ -328,24 +329,24 @@ applications:
         prune: true
         selfHeal: true
         
-#  - name: monitoring
-#    finalizers:
-#      - resources-finalizer.argocd.argoproj.io
-#    project: infrastructure
-#    source:
-#      repoURL: https://github.com/whythatfunction/home-os
-#      targetRevision: HEAD
-#      path: charts/monitoring
-#    destination:
-#      server: https://kubernetes.default.svc
-#      namespace: monitoring
-#    syncPolicy:
-#      syncOptions:
-#        - CreateNamespace=true
-#        - ServerSideApply=true
-#      automated:
-#        prune: true
-#        selfHeal: true
+  - name: monitoring
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/monitoring
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: monitoring
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
 
   - name: s3
     finalizers:
