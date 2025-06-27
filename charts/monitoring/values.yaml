@@ -184,8 +184,8 @@ tempo:
         memory: 3Gi
     overrides:
       defaults:
-        memberlist:
-          cluster_label: "tempo-monitoring"
+        #memberlist:
+        #  cluster_label: "tempo-monitoring"
         metrics_generator:
           processors:
             - service-graphs
