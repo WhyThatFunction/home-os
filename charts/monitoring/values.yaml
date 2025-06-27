@@ -46,7 +46,7 @@ loki:
     extraEnvFrom:
       - secretRef:
           name: "minio"
-          
+  
   memcachedExporter:
     enabled: false
   resultsCache:
@@ -166,15 +166,15 @@ loki:
 
 tempo:
   fullnameOverride: tempo
-    
+  
   tempo:
     reportingEnabled: false
     extraArgs:
-      - "-config.expand-env=true"
+      "config.expand-env": "true"
     extraEnvFrom:
       - secretRef:
           name: "minio"
-    metricsGenerator: 
+    metricsGenerator:
       enabled: true
       remoteWriteUrl: "http://mimir-nginx:80/api/v1/push"
     resources:
@@ -209,7 +209,7 @@ prom-stack:
   crds:
     upgradeJob:
       enabled: true
-      
+  
   grafana:
     enabled: true
     resources:
