@@ -53,11 +53,10 @@ dependencies:
     tags:
       - loki
       - logs
-  - name: tempo-distributed
+  - name: tempo
     condition: tempo.enabled
     repository: https://grafana.github.io/helm-charts
     version: "*"
-    alias: tempo
     tags:
       - tempo
       - traces

@@ -441,83 +441,36 @@ alloy:
 
 tempo:
   fullnameOverride: tempo
-  memberlist:
-    cluster_label: "tempo-{{ .Release.Name }}-{{ .Release.Namespace }}"
+    
   tempo:
-    structuredConfig:
-      storage:
-        trace:
-          backend: s3
-          s3:
-            bucket: "monitoring-tempo" # store traces in this bucket
-            endpoint: "base-minio.base.svc.cluster.local:9000"
-            access_key: "${rootUser}"
-            secret_key: "${rootPassword}"
-            insecure: true
-  memcached:
+    reportingEnabled: false
+    metricsGenerator: 
+      enabled: true
+      remoteWriteUrl: "http://mimir-nginx:80/api/v1/push"
     resources:
       requests:
         cpu: 100m
-        memory: 512Mi
+        memory: 2Gi
       limits:
-        cpu: 200m
-        memory: 1024Mi
-  minio:
-    enabled: false
-  querier:
-    replicas: 1
-    extraArgs:
-      - "-config.expand-env=true"
-    extraEnvFrom:
-      - secretRef:
-          name: "minio"
-  rollout_operator:
-    enabled: false
-  gateway:
-    enabled: false
-  distributor:
-    extraArgs:
-      - "-config.expand-env=true"
-    extraEnvFrom:
-      - secretRef:
-          name: "minio"
-  ingester:
-    replicas: 1
-    extraArgs:
-      - "-config.expand-env=true"
-    extraEnvFrom:
-      - secretRef:
-          name: "minio"
-  compactor:
-    replicas: 1
-    extraArgs:
-      - "-config.expand-env=true"
-    extraEnvFrom:
-      - secretRef:
-          name: "minio"
-  queryFrontend:
-    replicas: 1
-    extraArgs:
-      - "-config.expand-env=true"
-    extraEnvFrom:
-      - secretRef:
-          name: "minio"
-  ingress:
-    enabled: true
-    annotations:
-      cert-manager.io/cluster-issuer: self-signed-ca
-    hosts:
-      - tempo.home.ssegning
-    tls:
-      - secretName: tempo.home.ssegning-tls
-        hosts:
-          - tempo.home.ssegning
-  traces:
-    otlp:
-      http:
-        enabled: true
-      grpc:
-        enabled: true
+        cpu: 500m
+        memory: 3Gi
+    overrides:
+      defaults:
+        memberlist:
+          cluster_label: "tempo-{{ .Release.Name }}-{{ .Release.Namespace }}"
+        metrics_generator:
+          processors:
+            - service-graphs
+            - span-metrics
+    storage:
+      trace:
+        backend: s3
+        s3:
+          bucket: "monitoring-tempo" # store traces in this bucket
+          endpoint: "base-minio.base.svc.cluster.local:9000"
+          access_key: "${rootUser}"
+          secret_key: "${rootPassword}"
+          insecure: true
 
 mimir:
   fullnameOverride: mimir

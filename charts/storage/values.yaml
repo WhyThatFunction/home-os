@@ -4,3 +4,9 @@ longhorn:
     defaultClassReplicaCount: 2
   defaultSettings:
     defaultDataPath: "/var/mnt/longhorn"
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    host: longhorn.home.ssegning
+    tls: true
+    tlsSecret: longhorn.home.ssegning-tls
