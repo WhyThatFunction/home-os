@@ -214,10 +214,10 @@ prom-stack:
     enabled: true
     resources:
       requests:
-        cpu: '300m'
+        cpu: '500m'
         memory: '1Gi'
       limits:
-        cpu: '600m'
+        cpu: '1000m'
         memory: '2Gi'
     ingress:
       enabled: true

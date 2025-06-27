@@ -43,7 +43,7 @@ data:
         type: tempo
         orgId: 1
         #access: proxy
-        url: http://tempo-query-frontend:3200
+        url: http://tempo:3200
         basicAuth: false
         uid: tempo_ds
 
