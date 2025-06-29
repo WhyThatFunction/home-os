@@ -18,6 +18,10 @@ applications:
       path: charts/serverless
       helm:
         valuesObject:
+          db:
+            storage:
+              size: 5Gi
+              storageClass: longhorn
           env:
             AUTH_SECRET:
               secretKeyRef:
