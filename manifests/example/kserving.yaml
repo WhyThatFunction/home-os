@@ -1,0 +1,26 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: my-nginx
+spec:
+  template:
+    spec:
+      containers:
+        - image: nginx
+          ports:
+            - containerPort: 80
+---
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: hello
+spec:
+  template:
+    spec:
+      containers:
+        - image: ghcr.io/knative/helloworld-go:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: TARGET
+              value: "World"

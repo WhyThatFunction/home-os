@@ -351,7 +351,7 @@ applications:
   - name: s3
     finalizers:
       - resources-finalizer.argocd.argoproj.io
-    project: infrastructure
+    project: base-apps
     source:
       repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD
@@ -402,6 +402,25 @@ applications:
     destination:
       server: https://kubernetes.default.svc
       namespace: database
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+  
+  - name: knative-operator
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://knative.github.io/operator
+      targetRevision: v1.18.1
+      chart: knative-operator
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: knative-operator
     syncPolicy:
       syncOptions:
         - CreateNamespace=true

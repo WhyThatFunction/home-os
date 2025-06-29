@@ -1,0 +1,109 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: knative-serving
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: privileged
+    pod-security.kubernetes.io/warn-version: latest
+---
+apiVersion: operator.knative.dev/v1beta1
+kind: KnativeServing
+metadata:
+  name: knative-serving
+  namespace: knative-serving
+spec:
+  ingress:
+    kourier:
+      enabled: true
+      service-type: ClusterIP
+  config:
+    domain:
+      "sls.home.ssegning": |
+      "sls.ssegning.com": |
+        selector:
+          environment: prod
+    network:
+      domain-template: "{{.Name}}--{{.Namespace}}.{{.Domain}}"
+      ingress-class: "kourier.ingress.networking.knative.dev"
+      default-external-scheme: "https"
+      autocreate-cluster-domain-claims: "true"
+---
+---
+# Local routing
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: knative-kourier
+  namespace: knative-serving
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`sls.ssegning.com`) || HostRegexp(`^.+\.sls\.ssegning\.com$`)
+      kind: Rule
+      services:
+        - name: kourier
+          port: 80
+  # If you have a wildcard TLS cert in a k8s Secret:
+  tls:
+    secretName: sls.ssegning.com-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kprod-certificate
+  namespace: knative-serving
+spec:
+  secretName: sls.ssegning.com-tls
+  issuerRef:
+    kind: ClusterIssuer
+    name: cert-cloudflare
+    group: cert-manager.io
+  commonName: sls.ssegning.com
+  dnsNames:
+    - "sls.ssegning.com"
+    - "*.sls.ssegning.com"
+---
+---
+# Local routing
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: knative-kourier-local
+  namespace: knative-serving
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`sls.home.ssegning`) || HostRegexp(`^.+\.sls\.home\.ssegning`)
+      kind: Rule
+      services:
+        - name: kourier
+          port: 80
+  # If you have a wildcard TLS cert in a k8s Secret:
+  tls:
+    secretName: sls.home.ssegning-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: klocal-certificate
+  namespace: knative-serving
+spec:
+  secretName: sls.home.ssegning-tls
+  issuerRef:
+    kind: ClusterIssuer
+    name: self-signed-ca
+    group: cert-manager.io
+  commonName: sls.home.ssegning
+  dnsNames:
+    - "sls.home.ssegning"
+    - "*.sls.home.ssegning"
