@@ -19,11 +19,10 @@ applications:
       helm:
         valuesObject:
           global:
-            tag: main-a84f6bf
             imagePullSecrets:
               - ghcr-login-secret
           image:
-            tag: "{{ .Values.global.tag }}"
+            tag: "main-a84f6bf"
           db:
             storage:
               size: 5Gi
@@ -88,7 +87,7 @@ applications:
                 
           migration:
             image:
-              tag: "{{ .Values.global.tag }}"
+              tag: "main-a84f6bf"
     destination:
       server: https://kubernetes.default.svc
       namespace: ext-vaam-eat
