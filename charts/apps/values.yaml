@@ -82,6 +82,10 @@ applications:
               configMapKeyRef:
                 name: 'vaam-eat-config'
                 key: emgr-url
+                
+          migration:
+            image:
+              tag: main-a84f6bf
     destination:
       server: https://kubernetes.default.svc
       namespace: ext-vaam-eat
