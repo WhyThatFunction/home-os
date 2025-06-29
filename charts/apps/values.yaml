@@ -18,6 +18,9 @@ applications:
       path: charts/serverless
       helm:
         valuesObject:
+          global:
+            imagePullSecrets:
+              - ghcr-login-secret
           db:
             storage:
               size: 5Gi
