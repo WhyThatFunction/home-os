@@ -40,7 +40,7 @@ applications:
               secretKeyRef:
                 name: 'vaam-eat-config'
                 key: minio-password
-            S3_PORT: '{{ "9000" | quote }}'
+            S3_PORT: 9000
             S3_SCHEME: http
             S3_BUCKET: vaam-eat
             S3_CDN_URL:
@@ -60,11 +60,13 @@ applications:
 
             REDIS_URL: 'redis://redis-master.database.svc.cluster.local:6379'
             REDIS_PREFIX: 'eat_vaam_store_'
+            
+            SKIP_ENV_VALIDATION: 1
 
             EMAIL_SERVER_HOST: 'mail.mail.svc.cluster.local'
-            EMAIL_SERVER_PORT: '{{ "587" | quote }}'
-            EMAIL_SERVER_USER: ~
-            EMAIL_SERVER_PASSWORD: ~
+            EMAIL_SERVER_PORT: 587
+            EMAIL_SERVER_USER: ""
+            EMAIL_SERVER_PASSWORD: ""
             EMAIL_FROM: 'no-reply@mail.vaam.store'
 
             APP_URL:
