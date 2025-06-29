@@ -22,7 +22,7 @@ applications:
             imagePullSecrets:
               - ghcr-login-secret
           image:
-            tag: "main-a84f6bf"
+            tag: "main-3a6afca"
           db:
             storage:
               size: 5Gi
@@ -87,7 +87,7 @@ applications:
                 
           migration:
             image:
-              tag: "main-a84f6bf"
+              tag: "main-3a6afca"
     destination:
       server: https://kubernetes.default.svc
       namespace: ext-vaam-eat
