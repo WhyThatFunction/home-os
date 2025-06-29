@@ -1,0 +1,15 @@
+{{- range $k, $v := .Values.argoCdConfigs.secretMap }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "common.names.fullname" $ }}-{{ include "common.tplvalues.render" ( dict "value" $k "context" $ ) }}
+  namespace: {{ include "common.names.namespace" $ }}
+  labels:
+    {{- include "common.labels.standard" $ | nindent 4 }}
+    argocd.argoproj.io/secret-type: {{ $v.type | quote }}
+data:
+  {{- range $key, $value := $v.data }}
+  {{ $key | quote }}: {{ include "common.tplvalues.render" ( dict "value" $value "context" $ ) | b64enc | quote }}
+  {{- end }}
+---
+{{- end }}

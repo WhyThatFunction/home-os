@@ -1,0 +1,82 @@
+argoCdConfigs:
+  secretMap:
+    vaam-eat-aio-repo:
+      type: repository
+      data:
+        url: "https://github.com/vaam-store/vaam-eat-aio"
+        name: vaam-eat-aio
+        type: git
+
+applications:
+  - name: vaam-eat-aio
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/vaam-store/vaam-eat-aio
+      targetRevision: HEAD
+      path: charts/serverless
+      helm:
+        valuesObject:
+          env:
+            AUTH_SECRET:
+              secretKeyRef:
+                name: 'vaam-eat-config'
+                key: secret
+
+            S3_ENDPOINT: s3-minio.s3.svc.cluster.local
+            S3_ACCESS_KEY:
+              secretKeyRef:
+                name: 'vaam-eat-config'
+                key: minio-user
+            S3_SECRET_KEY:
+              secretKeyRef:
+                name: 'vaam-eat-config'
+                key: minio-password
+            S3_PORT: 9000
+            S3_SCHEME: http
+            S3_BUCKET: vaam-eat
+            S3_CDN_URL:
+              configMapKeyRef:
+                name: 'vaam-eat-config'
+                key: s3-cdn
+
+            NEXT_PUBLIC_MAPS_PMTILES_MINIO_BASE_URL:
+              configMapKeyRef:
+                name: 'vaam-eat-config'
+                key: s3-cdn
+                
+            NEXT_PUBLIC_MAPS_PMTILES_MINIO_BUCKET: 'vaam-eat'
+
+            OTEL_EXPORTER_OTLP_ENDPOINT: 'http://tempo.monitoring.svc.cluster.local:4318'
+            OTEL_EXPORTER_OTLP_PROTOCOL: 'http'
+
+            REDIS_URL: 'redis://redis-master.database.svc.cluster.local:6379'
+            REDIS_PREFIX: 'eat_vaam_store_'
+
+            EMAIL_SERVER_HOST: 'mail.mail.svc.cluster.local'
+            EMAIL_SERVER_PORT: '587'
+            EMAIL_SERVER_USER: ~
+            EMAIL_SERVER_PASSWORD: ~
+            EMAIL_FROM: 'no-reply@mail.vaam.store'
+
+            APP_URL:
+              configMapKeyRef:
+                name: 'vaam-eat-config'
+                key: public-url
+            NEXTAUTH_URL:
+              configMapKeyRef:
+                name: 'vaam-eat-config'
+                key: public-url
+                
+            EMGR_CDN:
+              configMapKeyRef:
+                name: 'vaam-eat-config'
+                key: emgr-url
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: ext-vaam-eat
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true

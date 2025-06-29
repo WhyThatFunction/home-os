@@ -364,21 +364,21 @@ applications:
         prune: true
         selfHeal: true
 
-#  - name: s3
-#    finalizers:
-#      - resources-finalizer.argocd.argoproj.io
-#    project: default
-#    source:
-#      repoURL: https://github.com/whythatfunction/home-os
-#      targetRevision: HEAD
-#      path: charts/s3
-#    destination:
-#      server: https://kubernetes.default.svc
-#      namespace: s3
-#    syncPolicy:
-#      automated:
-#        prune: true
-#        selfHeal: true
+  - name: apps
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: base-apps
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/apps
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: argocd
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
   
   - name: redis
     finalizers:
@@ -421,6 +421,35 @@ applications:
     destination:
       server: https://kubernetes.default.svc
       namespace: knative-operator
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+        
+  - name: mail
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://bokysan.github.io/docker-postfix
+      targetRevision: 4.4.0
+      chart: mail
+      helm:
+        valuesObject:
+          existingSecret: mail-config
+          config:
+            general:
+              TZ: "Europe/Berlin"
+              ANONYMIZE_EMAILS: "smart"
+          persistence:
+            enabled: true
+            storageClass: longhorn
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: mail
     syncPolicy:
       syncOptions:
         - CreateNamespace=true
