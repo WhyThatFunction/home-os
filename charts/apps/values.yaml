@@ -24,8 +24,7 @@ applications:
           image:
             tag: "main-5522dcf"
           annotations:
-            selector:
-              environment: prod
+            environment: prod
           db:
             storage:
               size: 5Gi
