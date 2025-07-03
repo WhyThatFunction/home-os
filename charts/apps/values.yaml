@@ -23,7 +23,7 @@ applications:
               - ghcr-login-secret
           image:
             tag: "main-5522dcf"
-          annotations:
+          labels:
             environment: prod
           db:
             storage:
