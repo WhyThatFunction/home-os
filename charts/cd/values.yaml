@@ -423,7 +423,6 @@ applications:
       namespace: knative-operator
     syncPolicy:
       syncOptions:
-        - CreateNamespace=true
         - ServerSideApply=true
       automated:
         prune: true

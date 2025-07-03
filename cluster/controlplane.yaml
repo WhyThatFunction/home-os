@@ -72,6 +72,13 @@ cluster:
         kind: Namespace
         metadata:
           name: monitoring
+          labels:
+            pod-security.kubernetes.io/enforce: privileged
+            pod-security.kubernetes.io/enforce-version: latest
+            pod-security.kubernetes.io/audit: privileged
+            pod-security.kubernetes.io/audit-version: latest
+            pod-security.kubernetes.io/warn: privileged
+            pod-security.kubernetes.io/warn-version: latest
 
     - name: cloudnative-pg-ci # Name of the manifest.
       contents: |- # Manifest contents as a string.
@@ -80,19 +87,27 @@ cluster:
         metadata:
           name: cloudnative-pg
 
-    - name: cert-ci # Name of the manifest.
-      contents: |- # Manifest contents as a string.
-        apiVersion: v1
-        kind: Namespace
-        metadata:
-          name: cert
-
     - name: s3-ci # Name of the manifest.
       contents: |- # Manifest contents as a string.
         apiVersion: v1
         kind: Namespace
         metadata:
           name: s3
+        
+    - name: knative-operator-ci # Name of the manifest.
+      contents: |- # Manifest contents as a string.
+        ---
+        apiVersion: v1
+        kind: Namespace
+        metadata:
+          name: knative-operator
+          labels:
+            pod-security.kubernetes.io/enforce: privileged
+            pod-security.kubernetes.io/enforce-version: latest
+            pod-security.kubernetes.io/audit: privileged
+            pod-security.kubernetes.io/audit-version: latest
+            pod-security.kubernetes.io/warn: privileged
+            pod-security.kubernetes.io/warn-version: latest
 
     - name: metal-ci # Name of the manifest.
       contents: |- # Manifest contents as a string.
