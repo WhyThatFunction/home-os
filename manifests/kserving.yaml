@@ -23,7 +23,7 @@ spec:
   config:
     domain:
       "sls.home.ssegning": |
-      "sls.ssegning.com": |
+      "segning.pro": |
         selector:
           environment: prod
     network:
@@ -45,14 +45,14 @@ spec:
     - web
     - websecure
   routes:
-    - match: Host(`sls.ssegning.com`) || HostRegexp(`^.+\.sls\.ssegning\.com$`)
+    - match: Host(`segning.pro`) || HostRegexp(`^.+\.segning\.pro$`)
       kind: Rule
       services:
         - name: kourier
           port: 80
   # If you have a wildcard TLS cert in a k8s Secret:
   tls:
-    secretName: sls.ssegning.com-tls
+    secretName: segning.pro-tls
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -60,15 +60,15 @@ metadata:
   name: kprod-certificate
   namespace: knative-serving
 spec:
-  secretName: sls.ssegning.com-tls
+  secretName: segning.pro-tls
   issuerRef:
     kind: ClusterIssuer
     name: cert-cloudflare
     group: cert-manager.io
-  commonName: sls.ssegning.com
+  commonName: segning.pro
   dnsNames:
-    - "sls.ssegning.com"
-    - "*.sls.ssegning.com"
+    - "segning.pro"
+    - "*.segning.pro"
 ---
 ---
 # Local routing
