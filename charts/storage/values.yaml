@@ -12,7 +12,7 @@ longhorn:
     tls: true
     tlsSecret: longhorn.home.ssegning-tls
   defaultBackupStore:
-    backupTarget: NFS
+    backupTarget: nfs://10.10.0.36:/volume1/k8s/backup
     
 sstorage:
   fullnameOverride: sstorage
