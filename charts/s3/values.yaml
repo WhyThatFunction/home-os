@@ -63,14 +63,6 @@ minio:
               - "arn:aws:s3:::monitoring-loki-chunks"
               - "arn:aws:s3:::monitoring-tempo/*"
               - "arn:aws:s3:::monitoring-tempo"
-              - "arn:aws:s3:::monitoring-mimir/*"
-              - "arn:aws:s3:::monitoring-mimir"
-              - "arn:aws:s3:::monitoring-mimir-alertmanager/*"
-              - "arn:aws:s3:::monitoring-mimir-alertmanager"
-              - "arn:aws:s3:::monitoring-mimir-blocs/*"
-              - "arn:aws:s3:::monitoring-mimir-blocs"
-              - "arn:aws:s3:::monitoring-mimir-ruler/*"
-              - "arn:aws:s3:::monitoring-mimir-ruler"
       - name: sschool-policy
         statements:
           - actions:
@@ -102,19 +94,11 @@ minio:
         withLock: false
       - name: monitoring
         withLock: false
-      - name: monitoring-mimir
-        withLock: false
       - name: monitoring-loki-chunks
         withLock: false
       - name: monitoring-loki-ruler
         withLock: false
       - name: monitoring-tempo
-        withLock: false
-      - name: monitoring-mimir-alertmanager
-        withLock: false
-      - name: monitoring-mimir-blocs
-        withLock: false
-      - name: monitoring-mimir-ruler
         withLock: false
 
 provision_minio_buckets_policies:

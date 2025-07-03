@@ -176,7 +176,7 @@ tempo:
           name: "minio"
     metricsGenerator:
       enabled: true
-      remoteWriteUrl: "http://mimir-nginx:80/api/v1/push"
+      remoteWriteUrl: "http://mtor-prometheus:9090/api/v1/write"
     resources:
       requests:
         cpu: 100m

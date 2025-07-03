@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: alloy-otel
+  name: tempo-otlp
   namespace: {{ include "common.names.namespace" $ }}
   labels:
     {{ include "common.labels.standard" $ | nindent 4 }}
@@ -9,25 +9,25 @@ metadata:
     cert-manager.io/cluster-issuer: cert-cloudflare
 spec:
   rules:
-    - host: otel.ssegning.com
+    - host: otlp.ssegning.com
       http:
         paths:
           - backend:
               service:
-                name: alloy
+                name: tempo
                 port:
-                  name: otel-http
+                  name: tempo-otlp-http
             path: /
             pathType: Prefix
   tls:
-    - secretName: otel.ssegning.com-tls
+    - secretName: otlp.ssegning.com-tls
       hosts:
-        - otel.ssegning.com
+        - otlp.ssegning.com
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: alloy-12345
+  name: tempo-local
   namespace: {{ include "common.names.namespace" $ }}
   labels:
     {{ include "common.labels.standard" $ | nindent 4 }}
@@ -35,17 +35,17 @@ metadata:
     cert-manager.io/cluster-issuer: self-signed-ca
 spec:
   rules:
-    - host: alloy.home.ssegning
+    - host: tempo.home.ssegning
       http:
         paths:
           - backend:
               service:
-                name: alloy
+                name: tempo
                 port:
-                  number: 12345
+                  name: tempo-otlp-http
             path: /
             pathType: Prefix
   tls:
-    - secretName: alloy.home.ssegning-tls
+    - secretName: otlp.home.ssegning-tls
       hosts:
-        - alloy.home.ssegning
+        - tempo.home.ssegning
