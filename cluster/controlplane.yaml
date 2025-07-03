@@ -50,20 +50,6 @@ cluster:
   
   # A list of inline Kubernetes manifests.
   inlineManifests:
-    - name: storage-ci # Name of the manifest.
-      contents: |- # Manifest contents as a string.
-        apiVersion: v1
-        kind: Namespace
-        metadata:
-          name: storage
-          labels:
-            pod-security.kubernetes.io/enforce: privileged
-            pod-security.kubernetes.io/enforce-version: latest
-            pod-security.kubernetes.io/audit: privileged
-            pod-security.kubernetes.io/audit-version: latest
-            pod-security.kubernetes.io/warn: privileged
-            pod-security.kubernetes.io/warn-version: latest
-
     - name: nvidia-ci # Name of the manifest.
       contents: |- # Manifest contents as a string.
         ---
@@ -117,7 +103,7 @@ cluster:
           namespace: metallb-system
         spec:
           addresses:
-            - 10.10.0.130-10.10.0.140
+            - 10.10.0.140-10.10.0.150
         ---
         apiVersion: metallb.io/v1beta1
         kind: L2Advertisement
@@ -223,5 +209,3 @@ cluster:
                   - k8sServiceHost=localhost
                   - --set
                   - k8sServicePort=7445
-  
-  #allowSchedulingOnControlPlanes: true

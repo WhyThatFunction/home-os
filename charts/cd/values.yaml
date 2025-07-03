@@ -178,7 +178,7 @@ applications:
       path: charts/storage
     destination:
       server: https://kubernetes.default.svc
-      namespace: storage
+      namespace: kube-system
     syncPolicy:
       automated:
         prune: true
@@ -255,7 +255,7 @@ applications:
             access:
               enabled: false
           service:
-            loadBalancerIP: 10.10.0.130
+            loadBalancerIP: 10.10.0.140
           ports:
             web:
               forwardedHeaders:
@@ -305,7 +305,7 @@ applications:
                   - traefik.home.ssegning
     destination:
       server: https://kubernetes.default.svc
-      namespace: traefik
+      namespace: kube-system
     syncPolicy:
       syncOptions:
         - CreateNamespace=true
@@ -323,7 +323,7 @@ applications:
       path: charts/cert
     destination:
       server: https://kubernetes.default.svc
-      namespace: cert
+      namespace: kube-system
     syncPolicy:
       automated:
         prune: true

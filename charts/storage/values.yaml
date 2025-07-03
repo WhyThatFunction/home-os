@@ -1,4 +1,5 @@
 longhorn:
+  nameOverride: longhorn 
   persistence:
     defaultClass: false
     defaultClassReplicaCount: 2
@@ -11,23 +12,13 @@ longhorn:
     tls: true
     tlsSecret: longhorn.home.ssegning-tls
     
-    
-nfs-ssd:
-  storageClass:
-    defaultClass: false
-    pathPattern: 'home-apps/${.PVC.namespace}/${.PVC.name}'
-    name: nfs-ssd
-    reclaimPolicy: Retain
-  nfs:
-    server: "10.10.0.227"
-    path: "/ssd_pool"
-
-nfs-off-topic:
+sstorage:
+  fullnameOverride: sstorage
   storageClass:
     defaultClass: false
     pathPattern: 'pvcs/${.PVC.namespace}/${.PVC.name}'
-    name: nfs-off-topic
+    name: sstorage
     reclaimPolicy: Retain
   nfs:
-    server: "10.10.0.227"
-    path: "/backup_pool"
+    server: "10.10.0.36"
+    path: "/volume1/k8s"

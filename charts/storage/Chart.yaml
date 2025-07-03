@@ -25,19 +25,15 @@ appVersion: "1.16.0"
 
 dependencies:
   - name: longhorn
-    version: 1.9.0
+    version: '1.9.*'
     repository: https://charts.longhorn.io
     
   - name: common
-    version: 2.31.3
+    version: '*'
     repository: https://charts.bitnami.com/bitnami
 
   - name: nfs-subdir-external-provisioner
     version: '*'
     repository: https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner
-    alias: nfs-ssd
+    alias: sstorage
     
-  - name: nfs-subdir-external-provisioner
-    version: '*'
-    repository: https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner
-    alias: nfs-off-topic
