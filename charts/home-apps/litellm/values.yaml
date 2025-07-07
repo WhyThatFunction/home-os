@@ -235,9 +235,12 @@ litellm:
 
   db:
     useExisting: "true"
-    endpoint: "postgresql.database.svc.cluster.local"
+    endpoint: "litellm-pg-rw"
+    database: app
     secret:
-      name: postgres-secrets
+      name: litellm-pg-app
+      usernameKey: username
+      passwordKey: password
     deployStandalone: false
 
   ingress:
