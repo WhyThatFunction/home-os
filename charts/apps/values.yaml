@@ -97,3 +97,19 @@ applications:
       automated:
         prune: true
         selfHeal: true
+        
+  - name: litellm
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/litellm
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: litellm
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
