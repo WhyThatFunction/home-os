@@ -225,9 +225,6 @@ litellm:
         model_info:
           author: SSegning
 
-  image:
-    tag: main-v1.72.6-stable
-
   resources:
     limits:
       cpu: 2000m
