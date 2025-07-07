@@ -21,6 +21,9 @@ litellm:
     OLLAMA_MAC_MINI_16G_BASE_URL: "http://10.10.0.229:11434/v1",
   }
   
+  environmentSecrets: 
+    - env-litellm-secret
+  
   # if set, use this secret for the master key; otherwise, autogenerate a new one
   masterkeySecretName: "env-litellm-master-key"
   
