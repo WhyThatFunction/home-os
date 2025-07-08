@@ -139,7 +139,7 @@ applications:
             OTLP_SERVICE_NAME: vaam-emgr
             ENABLE_HTTP2: false
             PERFORMANCE_PROFILE: high_throughput
-            MAX_CONCURRENT_PROCESSING: 4
+            MAX_CONCURRENT_PROCESSING: 12
                 
           domain:
             enabled: true
