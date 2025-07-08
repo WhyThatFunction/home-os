@@ -137,9 +137,9 @@ applications:
             OTLP_SPAN_ENDPOINT: http://tempo.monitoring.svc.cluster.local:4317
             OTLP_METRIC_ENDPOINT: http://tempo.monitoring.svc.cluster.local:4318/v1/metrics
             OTLP_SERVICE_NAME: vaam-emgr
-            ENABLE_HTTP2: false
+            ENABLE_HTTP2: "false"
             PERFORMANCE_PROFILE: high_throughput
-            MAX_CONCURRENT_PROCESSING: 12
+            MAX_CONCURRENT_PROCESSING: 8
                 
           domain:
             enabled: true
