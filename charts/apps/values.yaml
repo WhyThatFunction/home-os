@@ -82,10 +82,7 @@ applications:
                 name: 'vaam-eat-config'
                 key: public-url
                 
-            EMGR_CDN:
-              configMapKeyRef:
-                name: 'vaam-eat-config'
-                key: emgr-url
+            EMGR_CDN: "https://emgr.vaam.store/api/images/resize"
                 
           migration:
             image:
