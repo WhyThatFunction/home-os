@@ -107,3 +107,41 @@ spec:
   dnsNames:
     - "sls.home.ssegning"
     - "*.sls.home.ssegning"
+---
+---
+# "Vaam.store" routing
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: knative-kourier-vaam.store
+  namespace: knative-serving
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`vaam.store`) || HostRegexp(`^.+\.vaam\.store`)
+      kind: Rule
+      services:
+        - name: kourier
+          port: 80
+  # If you have a wildcard TLS cert in a k8s Secret:
+  tls:
+    secretName: vaam.store-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: knative-vaam.store-certificate
+  namespace: knative-serving
+spec:
+  secretName: vaam.store-tls
+  issuerRef:
+    kind: ClusterIssuer
+    name: self-signed-ca
+    group: cert-manager.io
+  commonName: vaam.store
+  dnsNames:
+    - "vaam.store"
+    - "*.vaam.store"
