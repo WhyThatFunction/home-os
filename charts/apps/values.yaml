@@ -133,7 +133,7 @@ applications:
             
             CDN_BASE_URL: https://s3.ssegning.me/vaam-eat
             
-            LOG_LEVEL: info
+            LOG_LEVEL: debug
             OTLP_SPAN_ENDPOINT: http://tempo.monitoring.svc.cluster.local:4317
             OTLP_METRIC_ENDPOINT: http://tempo.monitoring.svc.cluster.local:4318/v1/metrics
             OTLP_SERVICE_NAME: vaam-emgr
