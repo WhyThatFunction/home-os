@@ -22,7 +22,7 @@ applications:
             imagePullSecrets:
               - ghcr-login-secret
           image:
-            tag: "main-3a6afca"
+            tag: "main-181639c"
           labels:
             environment: prod
           db:
@@ -89,7 +89,15 @@ applications:
                 
           migration:
             image:
-              tag: "main-3a6afca"
+              tag: "main-181639c"
+          domain:
+            enabled: true
+            name: eat.vaam.store
+            tls:
+              issuerRef:
+                kind: ClusterIssuer
+                name: cert-cloudflare
+                group: cert-manager.io
     destination:
       server: https://kubernetes.default.svc
       namespace: ext-vaam-eat
