@@ -129,7 +129,7 @@ applications:
             MINIO_ENDPOINT_URL: http://s3-minio.s3.svc.cluster.local:9000
             MINIO_BUCKET: vaam-eat
           
-            STORAGE_SUB_PATH: 'files/gen/'
+            STORAGE_SUB_PATH: 'images/gen/'
             
             CDN_BASE_URL: https://s3.ssegning.me/vaam-eat
             
