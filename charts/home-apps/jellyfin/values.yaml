@@ -181,7 +181,7 @@ jellyfin:
       enabled: true
       type: persistentVolumeClaim
       accessMode: ReadWriteMany
-      storageClass: nfs-ssd
+      storageClass: sstorage
       size: 1Ti
       advancedMounts:
         jellyfin:
