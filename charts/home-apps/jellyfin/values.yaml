@@ -1,0 +1,200 @@
+jellyfin:
+  ingress:
+    jellyfin:
+      enabled: true
+      annotations:
+        cert-manager.io/cluster-issuer: cert-cloudflare
+      className: traefik
+      hosts:
+        - host: tv.ssegning.me
+          paths:
+            - path: /
+              pathType: Prefix
+              service:
+                identifier: jellyfin
+                port: http
+      tls:
+        - secretName: tv.ssegning.me-tls
+          hosts:
+            - tv.ssegning.me
+    jellyfin-local:
+      enabled: true
+      annotations:
+        cert-manager.io/cluster-issuer: self-signed-ca
+      className: traefik
+      hosts:
+        - host: tv.home.ssegning
+          paths:
+            - path: /
+              pathType: Prefix
+              service:
+                identifier: jellyfin
+                port: http
+      tls:
+        - secretName: tv.home.ssegning-tls
+          hosts:
+            - tv.home.ssegning
+    jackett:
+      enabled: true
+      annotations:
+        cert-manager.io/cluster-issuer: self-signed-ca
+      className: traefik
+      hosts:
+        - host: jackett.home.ssegning
+          paths:
+            - path: /
+              pathType: Prefix
+              service:
+                identifier: jackett
+                port: http
+      tls:
+        - secretName: jackett.home.ssegning-tls
+          hosts:
+            - jackett.home.ssegning
+  service:
+    jellyfin:
+      enabled: true
+      annotations: { }
+      type: LoadBalancer
+      controller: jellyfin
+      ports:
+        http:
+          enabled: true
+          port: 8096
+          targetPort: 8096
+        https:
+          enabled: true
+          port: 8920
+          targetPort: 8920
+        p7359:
+          enabled: true
+          port: 7359
+          targetPort: 7359
+        p1900:
+          enabled: true
+          port: 1900
+          targetPort: 1900
+    jackett:
+      enabled: true
+      annotations: { }
+      type: ClusterIP
+      controller: jackett
+      ports:
+        http:
+          enabled: true
+          port: 9117
+          targetPort: 9117
+  controllers:
+    jellyfin:
+      type: deployment
+      strategy: RollingUpdate
+      replicas: 1
+      pod:
+        labels:
+          app: jellyfin-app
+        nodeSelector:
+          gpu-node: "true"
+
+        runtimeClassName: nvidia
+      containers:
+        jellyfin:
+          image:
+            repository: linuxserver/jellyfin
+            tag: "latest"
+            pullPolicy: Always
+          env:
+            PUID: "1000"
+            PGID: "1000"
+            TZ: "Europe/Berlin"
+            NVIDIA_DRIVER_CAPABILITIES: "all"
+            NVIDIA_VISIBLE_DEVICES: "all"
+          resources:
+            requests:
+              cpu: 400m
+              memory: 2Gi
+            limits:
+              cpu: 800m
+              memory: 4Gi
+          probes:
+            liveness:
+              enabled: true
+              path: /health
+              type: HTTP
+              spec:
+                httpGet:
+                  port: http
+            readiness:
+              enabled: true
+              path: /health
+              type: HTTP
+              spec:
+                httpGet:
+                  port: http
+            startup:
+              enabled: true
+              path: /health
+              type: HTTP
+              spec:
+                httpGet:
+                  port: http
+                #failureThreshold: 30
+                #periodSeconds: 5
+
+    jackett:
+      type: deployment
+      strategy: RollingUpdate
+      replicas: 1
+      pod:
+        labels:
+          app: jackett-app
+      containers:
+        jellyfin:
+          image:
+            repository: lscr.io/linuxserver/jackett
+            tag: "latest"
+            pullPolicy: Always
+          env:
+            PUID: "1000"
+            PGID: "1000"
+            TZ: "Europe/Berlin"
+          resources:
+            requests:
+              cpu: 200m
+              memory: 1Gi
+            limits:
+              cpu: 500m
+              memory: 2Gi
+
+  persistence:
+    jellyfin-config:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteOnce
+      storageClass: longhorn
+      size: 10Gi
+      advancedMounts:
+        jellyfin:
+          jellyfin:
+            - path: /config
+              
+    jellyfin-media:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteMany
+      storageClass: nfs-ssd
+      size: 1Ti
+      advancedMounts:
+        jellyfin:
+          jellyfin:
+            - path: /data
+              
+    jackett-config:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteOnce
+      storageClass: longhorn
+      size: 5Gi
+      advancedMounts:
+        jackett:
+          jackett:
+            - path: /config

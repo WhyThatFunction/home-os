@@ -1,0 +1,232 @@
+global:
+  version: "git-4758d30"
+  labels:
+    app: mcpo
+    team: ssegning-home
+
+mcpo:
+  controllers:
+    main:
+      type: deployment
+      strategy: RollingUpdate
+      replicas: 1
+      pod:
+        labels:
+          app: main-app
+      containers:
+        mcpo:
+          image:
+            repository: ghcr.io/open-webui/mcpo
+            tag: "{{ .Values.global.version }}"
+            pullPolicy: IfNotPresent
+          
+          command: /bin/sh
+          
+          args:
+            - -c
+            - |
+              set -e
+              mcpo --api-key $API_KEY --config=/tmp/config.json
+          
+          resources:
+            requests:
+              cpu: 400m
+              memory: 2Gi
+            limits:
+              cpu: 800m
+              memory: 4Gi
+          
+          envFrom:
+            - secretRef:
+                identifier: api-key
+    playwright:
+      type: deployment
+      strategy: RollingUpdate
+      replicas: 1
+      pod:
+        labels:
+          app: playwright-app
+      containers:
+        playwright:
+          image:
+            repository: jacoblincool/playwright
+            tag: chromium-server
+          
+          env:
+            BROWSER_PORT: 3000
+            BROWSER_WS_ENDPOINT: /plw
+          
+          command: /bin/sh
+          
+          args:
+            - -c
+            - |
+              set -e
+              
+              npm i -g playwright-core@1.53.0
+              node index.mjs
+          
+          resources:
+            requests:
+              cpu: 250m
+              memory: 2Gi
+            limits:
+              cpu: 600m
+              memory: 4Gi
+  
+  service:
+    mcpo:
+      enabled: true
+      annotations: { }
+      type: ClusterIP
+      controller: main
+      ports:
+        http:
+          enabled: true
+          port: 8000
+          targetPort: 8000
+    playwright:
+      enabled: true
+      annotations: { }
+      type: ClusterIP
+      controller: playwright
+      ports:
+        http:
+          enabled: true
+          port: 3000
+          targetPort: 3000
+  
+  ingress:
+    mcpo:
+      enabled: true
+      annotations:
+        cert-manager.io/cluster-issuer: cert-home-cert-self-signed-ca
+      className: traefik
+      hosts:
+        - host: mcpo.ssg.home
+          paths:
+            - path: /
+              pathType: Prefix
+              service:
+                identifier: mcpo
+                port: http
+      tls:
+        - secretName: mcpo-ssg-home-tls
+          hosts:
+            - mcpo.ssg.home
+  
+  configMaps:
+    config:
+      enabled: true
+      annotations:
+        description: 'Common configuration for the MCPo.'
+      data:
+        "playwright.json": |
+          {
+            "browser": {
+              "remoteEndpoint": "ws://{{ .Release.Name }}-playwright:3000/plw",
+              "launchOptions": {
+                "headless": true
+              }
+            },
+            "vision": true
+          }
+        "config.json": |
+          {
+            "mcpServers": {
+              "memory": {
+                "type": "streamable_http",
+                "command": "npx",
+                "args": [
+                  "-y",
+                  "@modelcontextprotocol/server-memory"
+                ]
+              },
+              "time": {
+                "command": "uvx",
+                "args": [
+                  "mcp-server-time",
+                  "--local-timezone=Europe/Berlin"
+                ]
+              },
+              "fetch": {
+                "command": "uvx",
+                "args": [
+                  "mcp-server-fetch"
+                ]
+              },
+              "puppeteer": {
+                "command": "npx",
+                "args": [
+                  "-y",
+                  "@modelcontextprotocol/server-puppeteer"
+                ]
+              },
+              "sequential-thinking": {
+                "command": "npx",
+                "args": [
+                  "-y",
+                  "@modelcontextprotocol/server-sequential-thinking"
+                ]
+              },
+              "google-maps": {
+                "command": "npx",
+                "args": [
+                  "-y",
+                  "@modelcontextprotocol/server-google-maps"
+                ],
+                "env": {
+                  "GOOGLE_MAPS_API_KEY": "AIzaSyDb2VJs86qm63RhcAgb1W0hryKF8s6ym6E"
+                }
+              },
+              "brave-search": {
+                "command": "npx",
+                "args": [
+                  "-y",
+                  "@modelcontextprotocol/server-brave-search"
+                ],
+                "env": {
+                  "BRAVE_API_KEY": "BSAc_EiRS_VYGkkjSP27NmE5CZrSUQ0"
+                }
+              },
+              "playwright": {
+                "command": "npx",
+                "args": [
+                  "-y",
+                  "@playwright/mcp@latest",
+                  "--config=/tmp/playwright.json"
+                ]
+              },
+              "context7": {
+                "command": "npx",
+                "args": [
+                  "-y",
+                  "@upstash/context7-mcp@latest"
+                ]
+              }
+            }
+          }
+
+  secrets:
+    api-key:
+      enabled: true
+      annotations:
+        description: 'Api-Key configuration for the MCPo.'
+      stringData:
+        API_KEY: "CeufBIuRu7ch5AS5MgHneg7inOsnQw0a"
+  
+  persistence:
+    config:
+      enabled: true
+      type: configMap
+      identifier: config
+      advancedMounts:
+        main:
+          mcpo:
+            - path: /tmp/config.json
+              readOnly: true
+              subPath: config.json
+            - path: /tmp/playwright.json
+              readOnly: true
+              subPath: playwright.json
+  
