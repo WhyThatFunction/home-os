@@ -185,6 +185,8 @@ applications:
       server: https://kubernetes.default.svc
       namespace: jellyfin
     syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
       automated:
         prune: true
         selfHeal: true
