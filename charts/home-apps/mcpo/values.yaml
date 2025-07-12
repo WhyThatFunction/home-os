@@ -38,8 +38,6 @@ mcpo:
           envFrom:
             - secretRef:
                 name: mcpo-api-key-env
-            - secretRef:
-                name: mcpo-env
     playwright:
       type: deployment
       strategy: RollingUpdate
@@ -127,68 +125,6 @@ mcpo:
             },
             "vision": true
           }
-        "config.json": |
-          {
-            "mcpServers": {
-              "memory": {
-                "type": "streamable_http",
-                "command": "npx",
-                "args": [
-                  "-y",
-                  "@modelcontextprotocol/server-memory"
-                ]
-              },
-              "time": {
-                "command": "uvx",
-                "args": [
-                  "mcp-server-time",
-                  "--local-timezone=Europe/Berlin"
-                ]
-              },
-              "fetch": {
-                "command": "uvx",
-                "args": [
-                  "mcp-server-fetch"
-                ]
-              },
-              "sequential-thinking": {
-                "command": "npx",
-                "args": [
-                  "-y",
-                  "@modelcontextprotocol/server-sequential-thinking"
-                ]
-              },
-              "google-maps": {
-                "command": "npx",
-                "args": [
-                  "-y",
-                  "@modelcontextprotocol/server-google-maps"
-                ],
-                "env": {
-                  "GOOGLE_MAPS_API_KEY": "$(GOOGLE_MAPS_API_KEY)"
-                }
-              },
-              "brave-search": {
-                "command": "npx",
-                "args": [
-                  "-y",
-                  "@modelcontextprotocol/server-brave-search"
-                ],
-                "env": {
-                  "BRAVE_API_KEY": "$(BRAVE_API_KEY)"
-                }
-              },
-              "playwright": {
-                "command": "npx",
-                "args": [
-                  "-y",
-                  "@playwright/mcp@latest",
-                  "--config=/tmp/playwright.json"
-                ]
-              }
-            }
-          }
-
   persistence:
     config:
       enabled: true
@@ -197,10 +133,17 @@ mcpo:
       advancedMounts:
         main:
           mcpo:
-            - path: /tmp/config.json
-              readOnly: true
-              subPath: config.json
             - path: /tmp/playwright.json
               readOnly: true
               subPath: playwright.json
+    config-json:
+      enabled: true
+      type: secret
+      name: mcpo-config
+      advancedMounts:
+        main:
+          mcpo:
+            - path: /tmp/config.json
+              readOnly: true
+              subPath: config.json
   
