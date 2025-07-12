@@ -2,5 +2,8 @@ dependencies:
 - name: open-webui
   repository: https://helm.openwebui.com
   version: 6.22.0
-digest: sha256:8da2d06169ce05edc128a0f272a6c3f1c5f47467541a4440f2d30ff28f56e5d2
-generated: "2025-07-07T08:57:16.481238+02:00"
+- name: common
+  repository: https://charts.bitnami.com/bitnami
+  version: 2.31.3
+digest: sha256:cf497432db64c49fce5f4241178bc2564390ee178d0e7396e64e81fa62304363
+generated: "2025-07-12T12:06:51.766538+02:00"

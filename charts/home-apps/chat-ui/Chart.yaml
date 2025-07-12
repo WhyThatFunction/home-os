@@ -29,3 +29,7 @@ dependencies:
     repository: https://helm.openwebui.com
     alias: owu
     condition: owu.enabled
+    
+  - name: common
+    version: 2.31.3
+    repository: https://charts.bitnami.com/bitnami
