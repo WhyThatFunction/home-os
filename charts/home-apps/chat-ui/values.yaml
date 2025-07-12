@@ -12,25 +12,6 @@ db:
       memory: "1Gi"
       cpu: "2"
       
-tools:
-  key: "CeufBIuRu7ch5AS5MgHneg7inOsnQw0a"
-  base_url: http://mcpo.mcpo.svc.cluster.local:8000
-  tools:
-    memory:
-      enable: true
-    time:
-      enable: true
-    fetch:
-      enable: true
-    sequential-thinking:
-      enable: true
-    google-maps:
-      enable: true
-    brave-search:
-      enable: true
-    playwright:
-      enable: true
-
 owu:
   podLabels:
     app.kubernetes.io/name: owui
@@ -124,8 +105,8 @@ owu:
 
     - name: TOOL_SERVER_CONNECTIONS
       valueFrom:
-        configMapKeyRef:
-          name: tools-config
+        secretKeyRef:
+          name: owui-tools
           key: tools.json
 
     - name: ENABLE_WEB_SEARCH
