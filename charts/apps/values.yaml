@@ -206,3 +206,33 @@ applications:
       automated:
         prune: true
         selfHeal: true
+  - name: mcpo
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/mcpo
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: mcpo
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+  - name: chat-ui
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/chat-ui
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: chat-ui
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
