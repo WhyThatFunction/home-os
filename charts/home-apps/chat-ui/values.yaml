@@ -14,7 +14,7 @@ db:
       
 tools:
   key: "CeufBIuRu7ch5AS5MgHneg7inOsnQw0a"
-  base_url: http://mcpo:8000
+  base_url: http://mcpo.mcpo.svc.cluster.local:8000
   tools:
     memory:
       enable: true
@@ -147,7 +147,7 @@ owu:
           key: brave-key
 
     - name: PLAYWRIGHT_WS_URL
-      value: "ws://mcpo-playwright:3000"
+      value: "ws://mcpo-playwright.mcpo.svc.cluster.local:3000"
 
     - name: AUDIO_STT_ENGINE
       value: "openai"
