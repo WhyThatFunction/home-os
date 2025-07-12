@@ -1,3 +1,17 @@
+db:
+  enabled: true
+  instances: 2
+  storage:
+    size: 5Gi
+    storageClass: longhorn
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "1"
+    limits:
+      memory: "1Gi"
+      cpu: "2"
+      
 tools:
   key: "CeufBIuRu7ch5AS5MgHneg7inOsnQw0a"
   base_url: http://mcpo:8000
