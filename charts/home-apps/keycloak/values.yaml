@@ -25,10 +25,6 @@ keycloak:
     minReplicas: 1
     maxReplicas: 2
 
-  extraEnvVars:
-    - name: KC_FEATURES
-      value: "scripts,token-exchange,admin-fine-grained-authz"
-
   ingress:
     enabled: true
     ingressClassName: traefik
@@ -75,7 +71,7 @@ keycloak:
           wget -O /spi/theme-vymalo-02.jar  "https://github.com/vymalo/vymalo-keycloak-theme/releases/download/v8cfdfb2/theme-vymalo-02.jar"
           wget -O /spi/theme-ssegning-tw-01.jar  "https://github.com/vymalo/vymalo-keycloak-theme/releases/download/v8cfdfb2/theme-ssegning-tw-01.jar"
           echo "Downloaded theme";
-          ls -la /spi;
+          ls -lash /spi;
 
   postgresql:
     enabled: false
