@@ -81,7 +81,7 @@ owu:
     - name: DATABASE_URL
       valueFrom:
         secretKeyRef:
-          name: chat-ui-app
+          name: chat-ui-pg-app
           key: uri
 
     - name: ENABLE_PERSISTENT_CONFIG
