@@ -1,0 +1,95 @@
+db:
+  enabled: true
+  instances: 2
+  storage:
+    size: 10Gi
+    storageClass: longhorn
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "1"
+    limits:
+      memory: "1Gi"
+      cpu: "2"
+
+keycloak:
+  fullnameOverride: keycloak
+  global:
+    storageClass: longhorn
+
+  production: true
+  proxy: edge
+
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 2
+
+  extraEnvVars:
+    - name: KC_FEATURES
+      value: "scripts,token-exchange,admin-fine-grained-authz"
+
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hostname: accounts.ssegning.com
+    tls: true
+    annotations:
+      cert-manager.io/cluster-issuer: cert-cloudflare
+
+  extraVolumeMounts:
+    - mountPath: /opt/bitnami/keycloak/providers/theme-vaam-01.jar
+      name: spi
+      readOnly: true
+      subPath: theme-vaam-01.jar
+    - mountPath: /opt/bitnami/keycloak/providers/theme-vymalo-01.jar
+      name: spi
+      readOnly: true
+      subPath: theme-vymalo-01.jar
+    - mountPath: /opt/bitnami/keycloak/providers/theme-vymalo-02.jar
+      name: spi
+      readOnly: true
+      subPath: theme-vymalo-02.jar
+    - mountPath: /opt/bitnami/keycloak/providers/theme-ssegning-tw-01.jar
+      name: spi
+      readOnly: true
+      subPath: theme-ssegning-tw-01.jar
+
+  extraVolumes:
+    - name: spi
+      emptyDir: { }
+
+  initContainers:
+    - name: download-theme
+      image: busybox
+      imagePullPolicy: Always
+      command: [ "/bin/sh", "-c" ]
+      volumeMounts:
+        - mountPath: /spi
+          name: spi
+      args:
+        - |
+          set -ex;
+          wget -O /spi/theme-vaam-01.jar "https://github.com/vymalo/vymalo-keycloak-theme/releases/download/v8cfdfb2/theme-vaam-01.jar"
+          wget -O /spi/theme-vymalo-01.jar  "https://github.com/vymalo/vymalo-keycloak-theme/releases/download/v8cfdfb2/theme-vymalo-01.jar"
+          wget -O /spi/theme-vymalo-02.jar  "https://github.com/vymalo/vymalo-keycloak-theme/releases/download/v8cfdfb2/theme-vymalo-02.jar"
+          wget -O /spi/theme-ssegning-tw-01.jar  "https://github.com/vymalo/vymalo-keycloak-theme/releases/download/v8cfdfb2/theme-ssegning-tw-01.jar"
+          echo "Downloaded theme";
+          ls -la /spi;
+
+  postgresql:
+    enabled: false
+
+  externalDatabase:
+    type: postgresql
+    existingSecret: keycloak-pg-app
+    existingSecretDatabaseKey: dbname
+    existingSecretHostKey: host
+    existingSecretPasswordKey: password
+    existingSecretPortKey: port
+    existingSecretUserKey: user
+
+  auth:
+    adminUser: admin
+    existingSecret: keycloak-auth
+    passwordSecretKey: password
