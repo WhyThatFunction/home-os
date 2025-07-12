@@ -201,7 +201,7 @@ owu:
       accessKey: owui-user
       secretKeyExistingSecret: owui-minio
       secretKeyExistingSecretKey: secretKey
-      endpointUrl: http://base-minio.base.svc.cluster.local:9000
+      endpointUrl: http://s3-minio.s3.svc.cluster.local:9000
       bucket: ai-apps
       keyPrefix: open-web-ui
   websocket:
