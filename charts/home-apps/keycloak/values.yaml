@@ -25,7 +25,13 @@ keycloak:
     minReplicas: 1
     maxReplicas: 2
     
-  resourcesPreset: "large"
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "1"
+    limits:
+      memory: "2Gi"
+      cpu: "1.5"
 
   ingress:
     enabled: true

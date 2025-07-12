@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tools-config
+data:
+  tools.json: |
+    {{ include "tool_server" $ | nindent 4 }}

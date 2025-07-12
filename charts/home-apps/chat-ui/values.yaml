@@ -8,8 +8,6 @@ tools:
       enable: true
     fetch:
       enable: true
-    puppeteer:
-      enable: true
     sequential-thinking:
       enable: true
     google-maps:
@@ -17,12 +15,6 @@ tools:
     brave-search:
       enable: true
     playwright:
-      enable: true
-    scrapeless:
-      enable: true
-    context7:
-      enable: true
-    github:
       enable: true
 
 owu:
@@ -32,7 +24,7 @@ owu:
     enabled: false
   tika:
     enabled: true
-    fullnameOverride: ui-tika
+    fullnameOverride: owu-tika
     resources:
       limits:
         cpu: "800m"
@@ -40,12 +32,11 @@ owu:
       requests:
         cpu: "200m"
         memory: 2000Mi
-  openaiBaseApiUrl: "http://litellm:4000"
-  databaseUrl: "postgresql://home-db:3M0j0ir8o4ZysdehKWpQ6278VZOb01xV@postgresql.database.svc.cluster.local/open-web-ui"
+  openaiBaseApiUrl: "http://litellm.litellm.svc.cluster.local:4000"
   pipelines:
     enabled: true
     persistence:
-      storageClass: nfs-ssd
+      storageClass: longhorn
   sso:
     enabled: true
     enableSignup: true
@@ -54,11 +45,12 @@ owu:
       enabled: true
       providerName: "SSegning Accounts"
       clientId: ssegning-ai
-      clientSecret: JRKDAtUYIXPeVsf0mXfvykWq7GsunL0L
-      providerUrl: https://accounts.ssegning.com/realms/home/.well-known/openid-configuration
+      clientExistingSecret: owui-sso
+      clientExistingSecretKey: clientSecret
+      providerUrl: https://accounts.ssegning.com/realms/dev/.well-known/openid-configuration
   extraEnvFrom:
-    - configMapRef:
-        name: tools-config
+    - secretRef:
+        name: owui-env
   extraEnvVars:
     - name: WEBUI_URL
       value: "https://ai.ssegning.me"
@@ -66,10 +58,17 @@ owu:
     - name: S3_ADDRESSING_STYLE
       value: "path"
 
-    - name: OPENAI_API_KEYS
-      value: "0p3n-w3bu!;sk-Wo0CXzGRj7Qwbq5evtpauQRm1xSf2TL6"
     - name: IMAGES_OPENAI_API_KEY
-      value: "sk-Wo0CXzGRj7Qwbq5evtpauQRm1xSf2TL6"
+      valueFrom:
+        secretKeyRef:
+          name: owui-litellm
+          key: master-key
+          
+    - name: DATABASE_URL
+      valueFrom:
+        secretKeyRef:
+          name: chat-ui-app
+          key: uri
 
     - name: ENABLE_PERSISTENT_CONFIG
       value: "False"
@@ -91,9 +90,9 @@ owu:
     - name: DEFAULT_USER_ROLE
       value: "user"
     - name: TASK_MODEL
-      value: "gemini-2.0-flash-lite"
+      value: "gemini-2.5-flash-preview"
     - name: TASK_MODEL_EXTERNAL
-      value: "gemini-2.0-flash-lite"
+      value: "gemini-2.5-flash-preview"
     - name: ENABLE_AUTOCOMPLETE_GENERATION
       value: "False"
     - name: AUTOCOMPLETE_GENERATION_INPUT_MAX_LENGTH
@@ -128,28 +127,37 @@ owu:
     - name: WEB_SEARCH_ENGINE
       value: "brave"
     - name: BRAVE_SEARCH_API_KEY
-      value: "BSANwjGlraxhj0g-7gF06XzV5W0Sfm4"
+      valueFrom:
+        secretKeyRef:
+          name: owui-brave
+          key: brave-key
 
     - name: PLAYWRIGHT_WS_URL
-      value: "ws://mcpo-playwright:3000/plw"
+      value: "ws://mcpo-playwright:3000"
 
     - name: AUDIO_STT_ENGINE
       value: "openai"
     - name: AUDIO_STT_OPENAI_API_KEY
-      value: "sk-Wo0CXzGRj7Qwbq5evtpauQRm1xSf2TL6"
+      valueFrom:
+        secretKeyRef:
+          name: owui-litellm
+          key: master-key
     - name: AUDIO_STT_MODEL
       value: "whisper-1"
     - name: AUDIO_STT_OPENAI_API_BASE_URL
-      value: "http://litellm:4000"
+      value: "http://litellm.litellm.svc.cluster.local:4000"
 
     - name: AUDIO_TTS_ENGINE
       value: "openai"
     - name: AUDIO_TTS_OPENAI_API_KEY
-      value: "sk-Wo0CXzGRj7Qwbq5evtpauQRm1xSf2TL6"
+      valueFrom:
+        secretKeyRef:
+          name: owui-litellm
+          key: master-key
     - name: AUDIO_TTS_MODEL
       value: "tts-1"
     - name: AUDIO_TTS_OPENAI_API_BASE_URL
-      value: "http://litellm:4000"
+      value: "http://litellm.litellm.svc.cluster.local:4000"
 
     - name: ENABLE_IMAGE_GENERATION
       value: "True"
@@ -160,7 +168,7 @@ owu:
     - name: IMAGE_SIZE
       value: "1024x1024"
     - name: IMAGES_OPENAI_API_BASE_URL
-      value: "http://litellm:4000"
+      value: "http://litellm.litellm.svc.cluster.local:4000"
 
     - name: DATABASE_POOL_SIZE
       value: "5"
@@ -169,15 +177,16 @@ owu:
     enabled: true
     class: traefik
     annotations:
-      cert-manager.io/cluster-issuer: cert-home-cert-cloudflare
+      cert-manager.io/cluster-issuer: cert-cloudflare
     host: ai.ssegning.me
     tls: true
   persistence:
     enabled: true
     provider: s3
     s3:
-      accessKey: ai-apps-user
-      secretKey: oNVrVdctFMfgq3clyPYkFq97d46QyFZJD3tjO66KtFg9B2rf
+      accessKey: owui-user
+      secretKeyExistingSecret: owui-minio
+      secretKeyExistingSecretKey: secretKey
       endpointUrl: http://base-minio.base.svc.cluster.local:9000
       bucket: ai-apps
       keyPrefix: open-web-ui

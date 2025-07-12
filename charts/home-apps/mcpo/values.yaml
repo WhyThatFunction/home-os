@@ -1,5 +1,4 @@
 global:
-  version: "git-4758d30"
   labels:
     app: mcpo
     team: ssegning-home
@@ -17,7 +16,7 @@ mcpo:
         mcpo:
           image:
             repository: ghcr.io/open-webui/mcpo
-            tag: "{{ .Values.global.version }}"
+            tag: "git-1986204"
             pullPolicy: IfNotPresent
           
           command: /bin/sh
@@ -38,7 +37,9 @@ mcpo:
           
           envFrom:
             - secretRef:
-                identifier: api-key
+                name: mcpo-api-key-env
+            - secretRef:
+                name: mcpo-env
     playwright:
       type: deployment
       strategy: RollingUpdate
@@ -49,12 +50,8 @@ mcpo:
       containers:
         playwright:
           image:
-            repository: jacoblincool/playwright
-            tag: chromium-server
-          
-          env:
-            BROWSER_PORT: 3000
-            BROWSER_WS_ENDPOINT: /plw
+            repository: mcr.microsoft.com/playwright
+            tag: v1.53.0-noble
           
           command: /bin/sh
           
@@ -63,8 +60,7 @@ mcpo:
             - |
               set -e
               
-              npm i -g playwright-core@1.53.0
-              node index.mjs
+              npx -y playwright@1.53.0 run-server --port 3000 --host 0.0.0.0
           
           resources:
             requests:
@@ -100,10 +96,10 @@ mcpo:
     mcpo:
       enabled: true
       annotations:
-        cert-manager.io/cluster-issuer: cert-home-cert-self-signed-ca
+        cert-manager.io/cluster-issuer: self-signed-ca
       className: traefik
       hosts:
-        - host: mcpo.ssg.home
+        - host: mcpo.home.ssegning
           paths:
             - path: /
               pathType: Prefix
@@ -111,9 +107,9 @@ mcpo:
                 identifier: mcpo
                 port: http
       tls:
-        - secretName: mcpo-ssg-home-tls
+        - secretName: mcpo-home-ssegning-tls
           hosts:
-            - mcpo.ssg.home
+            - mcpo.home.ssegning
   
   configMaps:
     config:
@@ -124,7 +120,7 @@ mcpo:
         "playwright.json": |
           {
             "browser": {
-              "remoteEndpoint": "ws://{{ .Release.Name }}-playwright:3000/plw",
+              "remoteEndpoint": "ws://{{ .Release.Name }}-playwright:3000",
               "launchOptions": {
                 "headless": true
               }
@@ -155,13 +151,6 @@ mcpo:
                   "mcp-server-fetch"
                 ]
               },
-              "puppeteer": {
-                "command": "npx",
-                "args": [
-                  "-y",
-                  "@modelcontextprotocol/server-puppeteer"
-                ]
-              },
               "sequential-thinking": {
                 "command": "npx",
                 "args": [
@@ -176,7 +165,7 @@ mcpo:
                   "@modelcontextprotocol/server-google-maps"
                 ],
                 "env": {
-                  "GOOGLE_MAPS_API_KEY": "AIzaSyDb2VJs86qm63RhcAgb1W0hryKF8s6ym6E"
+                  "GOOGLE_MAPS_API_KEY": "$(GOOGLE_MAPS_API_KEY)"
                 }
               },
               "brave-search": {
@@ -186,7 +175,7 @@ mcpo:
                   "@modelcontextprotocol/server-brave-search"
                 ],
                 "env": {
-                  "BRAVE_API_KEY": "BSAc_EiRS_VYGkkjSP27NmE5CZrSUQ0"
+                  "BRAVE_API_KEY": "$(BRAVE_API_KEY)"
                 }
               },
               "playwright": {
@@ -196,25 +185,10 @@ mcpo:
                   "@playwright/mcp@latest",
                   "--config=/tmp/playwright.json"
                 ]
-              },
-              "context7": {
-                "command": "npx",
-                "args": [
-                  "-y",
-                  "@upstash/context7-mcp@latest"
-                ]
               }
             }
           }
 
-  secrets:
-    api-key:
-      enabled: true
-      annotations:
-        description: 'Api-Key configuration for the MCPo.'
-      stringData:
-        API_KEY: "CeufBIuRu7ch5AS5MgHneg7inOsnQw0a"
-  
   persistence:
     config:
       enabled: true
