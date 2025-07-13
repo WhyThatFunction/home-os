@@ -52,12 +52,6 @@ owu:
 
     - name: S3_ADDRESSING_STYLE
       value: "path"
-
-    - name: IMAGES_OPENAI_API_KEY
-      valueFrom:
-        secretKeyRef:
-          name: owui-litellm
-          key: master-key
           
     - name: DATABASE_URL
       valueFrom:
@@ -76,8 +70,12 @@ owu:
     - name: USER_PERMISSIONS_WORKSPACE_KNOWLEDGE_ACCESS
       value: "True"
 
-    - name: WEBUI_NAME
+    - name: CUSTOM_NAME
       value: "SSegning AI"
+
+    - name: WEBUI_BANNERS
+      value: "[{\"id\": \"1\", \"type\": \"warning\", \"title\": \"Your messages are stored.\", \"content\": \"Your messages are stored and may be reviewed by human people. LLM's are prone to hallucinations, check sources.\", \"dismissible\": true, \"timestamp\": 1000}]"
+      
     - name: ENABLE_REALTIME_CHAT_SAVE
       value: "True"
     - name: ENABLE_CHANNELS
@@ -127,32 +125,34 @@ owu:
           name: owui-brave
           key: brave-key
 
+    - name: WEB_LOADER_ENGINE
+      value: "playwright"
     - name: PLAYWRIGHT_WS_URL
       value: "ws://mcpo-playwright.mcpo.svc.cluster.local:3000"
 
     - name: AUDIO_STT_ENGINE
       value: "openai"
+    - name: AUDIO_STT_MODEL
+      value: "whisper-1"
+    - name: AUDIO_STT_OPENAI_API_BASE_URL
+      value: "http://litellm.litellm.svc.cluster.local:4000"
     - name: AUDIO_STT_OPENAI_API_KEY
       valueFrom:
         secretKeyRef:
           name: owui-litellm
           key: master-key
-    - name: AUDIO_STT_MODEL
-      value: "whisper-1"
-    - name: AUDIO_STT_OPENAI_API_BASE_URL
-      value: "http://litellm.litellm.svc.cluster.local:4000"
 
     - name: AUDIO_TTS_ENGINE
       value: "openai"
+    - name: AUDIO_TTS_MODEL
+      value: "tts-1"
+    - name: AUDIO_TTS_OPENAI_API_BASE_URL
+      value: "http://litellm.litellm.svc.cluster.local:4000"
     - name: AUDIO_TTS_OPENAI_API_KEY
       valueFrom:
         secretKeyRef:
           name: owui-litellm
           key: master-key
-    - name: AUDIO_TTS_MODEL
-      value: "tts-1"
-    - name: AUDIO_TTS_OPENAI_API_BASE_URL
-      value: "http://litellm.litellm.svc.cluster.local:4000"
 
     - name: ENABLE_IMAGE_GENERATION
       value: "True"
@@ -164,9 +164,90 @@ owu:
       value: "1024x1024"
     - name: IMAGES_OPENAI_API_BASE_URL
       value: "http://litellm.litellm.svc.cluster.local:4000"
+    - name: IMAGES_OPENAI_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: owui-litellm
+          key: master-key
 
-    - name: DATABASE_POOL_SIZE
+    - name: RAG_EMBEDDING_ENGINE
+      value: "openai"
+    - name: RAG_EMBEDDING_MODEL
+      value: "voyage-3-large" #text-embedding-3-small
+    - name: ENABLE_RAG_HYBRID_SEARCH
+      value: "True"
+    - name: RAG_TOP_K
       value: "5"
+    - name: RAG_TOP_K_RERANKER
+      value: "5"
+    - name: RAG_RERANKING_MODEL
+      value: "gpt-4o-mini"
+    - name: RAG_FULL_CONTEXT
+      value: "False"
+    - name: RAG_OPENAI_API_BASE_URL
+      value: "http://litellm.litellm.svc.cluster.local:4000"
+    - name: RAG_OPENAI_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: owui-litellm
+          key: master-key
+          
+    - name: TITLE_GENERATION_PROMPT_TEMPLATE
+      value: |
+        ### Task:
+        Generate a concise, 3-5 word title with an emoji summarizing the chat history.
+        
+        ### Guidelines:
+        - The title should clearly represent the main theme or subject of the conversation.
+        - Always use emojis that enhance understanding of the topic, but avoid quotation marks or special formatting.
+        - Write the title in the chat's primary language; default to English if multilingual.
+        - Prioritize accuracy over excessive creativity; keep it clear and simple.
+        - The title should be short and funny
+        
+        ### Output:
+        JSON format: { "title": "<emoji> your concise title here" }
+        ### Examples:
+        - { "title": "📉 Stock Market Trends" },
+        - { "title": "🍪 Perfect Chocolate Chip Recipe" },
+        - { "title": "🎧 Evolution of Music Streaming" },
+        - { "title": "👨🏿‍💻 Remote Work Productivity Tips" },
+        - { "title": "🧠 Artificial Intelligence in Healthcare" },
+        - { "title": "🎮 Video Game Development Insights" }
+        ### Chat History:
+        <chat_history>
+        {{MESSAGES:END:2}}
+        </chat_history>
+    - name: DEFAULT_FOLLOW_UP_GENERATION_PROMPT_TEMPLATE
+      value: |
+        ### Task:
+        Suggest 3-5 relevant follow-up questions or prompts that the user might naturally ask next in this conversation as a **user**, based on the chat history, to help continue or deepen the discussion.
+        ### Guidelines:
+        - Write all follow-up questions from the user’s point of view, directed to the assistant.
+        - Make questions concise, clear, and directly related to the discussed topic(s).
+        - Only suggest follow-ups that make sense given the chat content and do not repeat what was already covered.
+        - If the conversation is very short or not specific, suggest more general (but relevant) follow-ups the user might ask.
+        - Use the conversation's primary language; default to English if multilingual.
+        - Response must be a JSON array of strings, no extra text or formatting.
+        - Always use emojis that enhance understanding of the topic, but avoid quotation marks or special formatting.
+        - Questions should be open minded and funny
+        
+        ### Output:
+        JSON format: { "follow_ups": ["📉 Question 1?", "🎮 Question 2?", "🎧 Question 3?"] }
+        
+        ### Chat History:
+        <chat_history>
+        {{MESSAGES:END:6}}
+        </chat_history>"
+  
+    - name: VECTOR_DB
+      value: chroma
+    - name: CHROMA_HTTP_HOST
+      value: chroma.chroma.svc.cluster.local
+    - name: CHROMA_HTTP_HOST
+      value: chroma.chroma.svc.cluster.local
+      
+    - name: REDIS_URL
+      value: "redis://redis-master.database.svc.cluster.local:6379"
   
   ingress:
     enabled: true
