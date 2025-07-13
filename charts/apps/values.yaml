@@ -248,6 +248,9 @@ applications:
         valuesObject:
           chromadb:
             allowReset: "true"
+            data:
+              storageClass: longhorn
+              volumeSize: 10Gi
     destination:
       server: https://kubernetes.default.svc
       namespace: chromadb
