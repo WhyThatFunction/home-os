@@ -173,7 +173,7 @@ owu:
     - name: RAG_EMBEDDING_ENGINE
       value: "openai"
     - name: RAG_EMBEDDING_MODEL
-      value: "voyage-3-large" #text-embedding-3-small
+      value: "text-embedding-3-small"
     - name: ENABLE_RAG_HYBRID_SEARCH
       value: "True"
     - name: RAG_TOP_K
