@@ -248,6 +248,8 @@ applications:
         valuesObject:
           chromadb:
             allowReset: "true"
+            auth:
+              type: false
             data:
               storageClass: longhorn
               volumeSize: 10Gi
