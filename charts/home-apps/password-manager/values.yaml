@@ -7,7 +7,7 @@ db:
   resources:
     requests:
       memory: "512Mi"
-      cpu: "0.5"
+      cpu: "500m"
     limits:
       memory: "1Gi"
       cpu: "1"
