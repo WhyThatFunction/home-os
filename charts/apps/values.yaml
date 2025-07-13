@@ -236,3 +236,24 @@ applications:
       automated:
         prune: true
         selfHeal: true
+  - name: chromadb
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://amikos-tech.github.io/chromadb-chart
+      targetRevision: 0.1.24
+      chart: chromadb
+      helm:
+        valuesObject:
+          chromadb:
+            allowReset: "true"
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: chromadb
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
