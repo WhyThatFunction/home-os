@@ -240,11 +240,9 @@ owu:
         </chat_history>"
   
     - name: VECTOR_DB
-      value: chroma
+      value: "chroma"
     - name: CHROMA_HTTP_HOST
-      value: chroma.chroma.svc.cluster.local
-    - name: CHROMA_HTTP_HOST
-      value: chroma.chroma.svc.cluster.local
+      value: "chromadb.chromadb.svc.cluster.local"
       
     - name: REDIS_URL
       value: "redis://redis-master.database.svc.cluster.local:6379"
