@@ -180,8 +180,6 @@ owu:
       value: "5"
     - name: RAG_TOP_K_RERANKER
       value: "5"
-    - name: RAG_RERANKING_MODEL
-      value: "gpt-4o-mini"
     - name: RAG_FULL_CONTEXT
       value: "False"
     - name: RAG_OPENAI_API_BASE_URL
