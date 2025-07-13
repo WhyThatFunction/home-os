@@ -5,15 +5,17 @@ longhorn:
     defaultClassReplicaCount: 2
   defaultSettings:
     defaultDataPath: "/var/mnt/longhorn"
+  defaultBackupStore:
+    backupTarget: nfs://10.10.0.36:/volume1/k8s/backup
+    
   ingress:
     enabled: true
     ingressClassName: traefik
     host: longhorn.home.ssegning
+    annotations:
+      cert-manager.io/cluster-issuer: self-signed-ca
     tls: true
     tlsSecret: longhorn.home.ssegning-tls
-  defaultBackupStore:
-    backupTarget: nfs://10.10.0.36:/volume1/k8s/backup
-    
 sstorage:
   fullnameOverride: sstorage
   storageClass:
