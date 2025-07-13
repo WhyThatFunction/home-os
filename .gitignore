@@ -9,3 +9,4 @@ talosconfig
 *.tg*
 
 scripts
+test.yaml

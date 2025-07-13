@@ -1,0 +1,59 @@
+db:
+  enabled: true
+  instances: 1
+  storage:
+    size: 5Gi
+    storageClass: longhorn
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "0.5"
+    limits:
+      memory: "1Gi"
+      cpu: "1"
+
+vaultwarden:
+  env:
+    TZ: Europe/Berlin
+    ADMIN_TOKEN:
+      valueFrom:
+        secretKeyRef:
+          name: password-manager-config
+          key: secret
+          
+    DATABASE_URL:
+      valueFrom:
+        secretKeyRef:
+          name: "password-manager-pg-app"
+          key: uri
+    
+    SMTP_HOST: mail.mail.svc.cluster.local
+    SMTP_FROM: "no-reply@mail.ssegning.com"
+    SMTP_PORT: 587
+    SMTP_SECURITY: "off"
+  service:
+    main:
+      ports:
+        websocket:
+          enabled: true
+  persistence:
+    data:
+      enabled: true
+      type: emptyDir
+  ingress:
+    main:
+      enabled: true
+      className: traefik
+      annotations:
+        cert-manager.io/cluster-issuer: cert-cloudflare
+      hosts:
+        - host: pw.ssegning.me
+          paths:
+            - path: /
+              pathType: Prefix
+              service:
+                port: 8080
+      tls:
+        - secretName: pw.ssegning.me-tls
+          hosts:
+            - pw.ssegning.me

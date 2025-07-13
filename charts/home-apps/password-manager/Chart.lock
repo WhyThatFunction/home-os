@@ -1,0 +1,9 @@
+dependencies:
+- name: vaultwarden
+  repository: https://charts.gabe565.com
+  version: 0.16.1
+- name: common
+  repository: https://charts.bitnami.com/bitnami
+  version: 2.31.3
+digest: sha256:bf3155ab09cd32d4c5e54e5b041e0a39bb76f8f146910460b19ba56e43d3a1f2
+generated: "2025-07-13T13:20:46.201413+02:00"
