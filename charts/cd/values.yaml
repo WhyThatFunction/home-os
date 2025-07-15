@@ -24,25 +24,19 @@ projects:
       - group: "*"
         kind: "*"
     clusterResourceBlacklist: [ ]
-    namespaceResourceBlacklist:
-      - group: ""
-        kind: ResourceQuota
-      - group: ""
-        kind: LimitRange
-      - group: ""
-        kind: NetworkPolicy
+#    namespaceResourceBlacklist:
+#      - group: ""
+#        kind: ResourceQuota
+#      - group: ""
+#        kind: LimitRange
+#      - group: ""
+#        kind: NetworkPolicy
     namespaceResourceWhitelist:
       - group: "*"
         kind: "*"
     orphanedResources: { }
     roles: [ ]
-    syncWindows:
-      - kind: allow
-        schedule: "10 1 * * *"
-        duration: 1h
-        applications:
-          - "*-infra"
-        manualSync: true
+    syncWindows: [ ]
     sourceNamespaces:
       - "*"
   - name: infrastructure
@@ -73,13 +67,7 @@ projects:
         kind: "*"
     orphanedResources: { }
     roles: [ ]
-    syncWindows:
-      - kind: allow
-        schedule: "10 1 * * *"
-        duration: 1h
-        applications:
-          - "*-infra"
-        manualSync: true
+    syncWindows: [ ]
     sourceNamespaces:
       - "*"
   - name: ai
@@ -111,12 +99,6 @@ projects:
     orphanedResources: { }
     roles: [ ]
     syncWindows: [ ]
-    #      - kind: allow
-    #        schedule: "10 1 * * *"
-    #        duration: 1h
-    #        applications:
-    #          - "*"
-    #        manualSync: true
     sourceNamespaces:
       - "*"
   - name: base-apps
