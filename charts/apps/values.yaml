@@ -251,6 +251,21 @@ applications:
       automated:
         prune: true
         selfHeal: true
+  - name: endpoints
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/endpoints
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: endpoints
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
   - name: chromadb
     finalizers:
       - resources-finalizer.argocd.argoproj.io

@@ -1,0 +1,49 @@
+customServices:
+  #  - name: killer
+  #    ip: 10.10.0.227
+  #    port: 8006
+  #    useHttps: true
+  #    selfSigned: false
+  #    domain: killer.ssegning.me
+  #    usePriority: ~
+  - name: killer-home
+    ip: 10.10.0.227
+    port: 8006
+    useHttps: true
+    selfSigned: true
+    domain: killer.home.ssegning
+    usePriority: ~
+  #  - name: silent
+  #    ip: 10.10.0.50
+  #    port: 8006
+  #    useHttps: true
+  #    domain: quiet.ssegning.me
+  #    usePriority: ~
+  - name: silent-home
+    ip: 10.10.0.50
+    port: 8006
+    useHttps: true
+    selfSigned: true
+    domain: quiet.home.ssegning
+    usePriority: ~
+  - name: adguard
+    ip: 10.10.0.215
+    port: 80
+    useHttps: false
+    selfSigned: true
+    domain: adguard.home.ssegning
+    usePriority: ~
+  - name: ha
+    ip: 10.10.0.54
+    port: 8123
+    useHttps: false
+    selfSigned: true
+    domain: ha.home.ssegning
+    usePriority: ~
+  - name: omada
+    ip: 10.10.0.33
+    port: 443
+    useHttps: true
+    selfSigned: true
+    domain: omada.home.ssegning
+    usePriority: ~
