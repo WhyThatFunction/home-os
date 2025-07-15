@@ -37,7 +37,7 @@ metadata:
     {{ include "common.labels.standard" $ | nindent 4 }}
   annotations:
     {{ if .selfSigned }}
-    cert-manager.io/cluster-issuer: cert-self-signed-ca
+    cert-manager.io/cluster-issuer: self-signed-ca
     {{else}}
     cert-manager.io/cluster-issuer: cert-cloudflare
     {{ end }}
