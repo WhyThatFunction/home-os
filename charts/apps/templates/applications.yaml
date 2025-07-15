@@ -43,6 +43,9 @@ spec:
   ignoreDifferences:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  {{- with .resourceInclusions }}
+  resourceInclusions: {{ . | nindent 4 }}
+  {{- end }}
   {{- with .info }}
   info:
     {{- toYaml . | nindent 4 }}
