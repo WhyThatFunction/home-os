@@ -255,11 +255,6 @@ applications:
     finalizers:
       - resources-finalizer.argocd.argoproj.io
     project: external
-    resourceInclusions: |
-      - apiGroups:
-        - "*"
-        kinds:
-        - Endpoints
     source:
       repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD

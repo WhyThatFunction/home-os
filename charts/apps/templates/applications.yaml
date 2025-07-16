@@ -46,6 +46,9 @@ spec:
   {{- with .resourceInclusions }}
   resourceInclusions: {{ . | toYaml | nindent 4 }}
   {{- end }}
+  {{- with .resourceExclusions }}
+  resourceExclusions: {{ . | toYaml | nindent 4 }}
+  {{- end }}
   {{- with .info }}
   info:
     {{- toYaml . | nindent 4 }}

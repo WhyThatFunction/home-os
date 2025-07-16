@@ -26,6 +26,13 @@ customServices:
     selfSigned: true
     domain: quiet.home.ssegning
     usePriority: ~
+  - name: mini-pc-home
+    ip: 10.10.0.206
+    port: 8006
+    useHttps: true
+    selfSigned: true
+    domain: mini-pc.home.ssegning
+    usePriority: ~
   - name: adguard
     ip: 10.10.0.215
     port: 80

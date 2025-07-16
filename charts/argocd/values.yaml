@@ -28,6 +28,8 @@ configs:
     createSecret: false
   cm:
     url: https://argocd.ssegning.me
+    "resource.exclusions": |
+      [ ]
     "oidc.config": |
       name: SSegning Dev
       issuer: https://euc1.auth.ac/auth/realms/ssegning-home

@@ -24,13 +24,6 @@ projects:
       - group: "*"
         kind: "*"
     clusterResourceBlacklist: [ ]
-#    namespaceResourceBlacklist:
-#      - group: ""
-#        kind: ResourceQuota
-#      - group: ""
-#        kind: LimitRange
-#      - group: ""
-#        kind: NetworkPolicy
     namespaceResourceWhitelist:
       - group: "*"
         kind: "*"
