@@ -70,12 +70,11 @@ owu:
     - name: USER_PERMISSIONS_WORKSPACE_KNOWLEDGE_ACCESS
       value: "True"
 
+    - name: WEBUI_NAME
+      value: "SSegning AI"
     - name: CUSTOM_NAME
       value: "SSegning AI"
 
-    - name: WEBUI_BANNERS
-      value: "[{\"id\": \"1\", \"type\": \"warning\", \"title\": \"Your messages are stored.\", \"content\": \"Your messages are stored and may be reviewed by human people. LLM's are prone to hallucinations, check sources.\", \"dismissible\": true, \"timestamp\": 1000}]"
-      
     - name: ENABLE_REALTIME_CHAT_SAVE
       value: "True"
     - name: ENABLE_CHANNELS
@@ -237,11 +236,6 @@ owu:
         {{MESSAGES:END:6}}
         </chat_history>"
   
-    - name: VECTOR_DB
-      value: "chroma"
-    - name: CHROMA_HTTP_HOST
-      value: "chromadb.chromadb.svc.cluster.local"
-      
     - name: REDIS_URL
       value: "redis://redis-master.database.svc.cluster.local:6379"
   

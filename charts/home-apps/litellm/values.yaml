@@ -15,7 +15,7 @@ db:
 litellm:
   fullnameOverride: litellm
   envVars: {
-    USE_DDTRACE: "true",
+    USE_DDTRACE: "false",
     LITELLM_MODE: "production",
     REDIS_URL: "redis://redis-master.database.svc.cluster.local:6379",
     OLLAMA_MAC_MINI_16G_BASE_URL: "http://10.10.0.229:11434/v1",
