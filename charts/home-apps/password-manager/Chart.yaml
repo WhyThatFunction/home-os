@@ -25,9 +25,9 @@ appVersion: "1.16.0"
 
 dependencies:
   - name: vaultwarden
-    version: 0.16.1
+    version: '*'
     repository: https://charts.gabe565.com
     
   - name: common
-    version: 2.31.3
+    version: '*'
     repository: https://charts.bitnami.com/bitnami
