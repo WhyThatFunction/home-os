@@ -29,9 +29,9 @@ dependencies:
     repository: oci://registry-1.docker.io/bitnamicharts
     tags:
       - bitnami-common
-    version: 2.x.x
+    version: '*'
   - name: litellm-helm
-    version: "*"
+    version: '*'
     repository: oci://ghcr.io/berriai
     alias: litellm
     condition: litellm.enabled
