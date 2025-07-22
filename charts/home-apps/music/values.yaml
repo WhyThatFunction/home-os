@@ -1,0 +1,87 @@
+global:
+  version: "latest"
+  labels:
+    app: navidrome
+    team: ssegning-home
+
+navidrome:
+  controllers:
+    main:
+      type: deployment
+      strategy: RollingUpdate
+      replicas: 1
+      pod:
+        labels:
+          app: main-app
+      containers:
+        navidrome:
+          image:
+            repository: ghcr.io/navidrome/navidrome
+            tag: "{{ .Values.global.version }}"
+            pullPolicy: IfNotPresent
+          
+          resources:
+            requests:
+              cpu: 200m
+              memory: 2Gi
+            limits:
+              cpu: 500m
+              memory: 4Gi
+  
+  service:
+    navidrome:
+      enabled: true
+      annotations: { }
+      type: ClusterIP
+      controller: main
+      ports:
+        http:
+          enabled: true
+          port: 4533
+          targetPort: 4533
+  
+  ingress:
+    navidrome:
+      enabled: true
+      annotations:
+        cert-manager.io/cluster-issuer: self-signed-ca
+      className: traefik
+      hosts:
+        - host: music.home.ssegning
+          paths:
+            - path: /
+              pathType: Prefix
+              service:
+                identifier: navidrome
+                port: http
+      tls:
+        - secretName: music-home-ssegning-tls
+          hosts:
+            - music.home.ssegning
+  
+  persistence:
+    data:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteOnce
+      storageClass: longhorn
+      size: 1Gi
+      advancedMounts:
+        main:
+          navidrome:
+            - path: /data
+              readOnly: false
+              subPath: config
+    music:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteOnce
+      storageClass: sstorage
+      size: 200Gi
+      advancedMounts:
+        main:
+          navidrome:
+            - path: /music
+              readOnly: true
+              subPath: music
+  

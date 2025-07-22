@@ -266,6 +266,23 @@ applications:
       automated:
         prune: true
         selfHeal: true
+  - name: music
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/music
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: music
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
   - name: chromadb
     finalizers:
       - resources-finalizer.argocd.argoproj.io
