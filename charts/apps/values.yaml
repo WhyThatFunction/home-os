@@ -157,22 +157,6 @@ applications:
         prune: true
         selfHeal: true
         
-  - name: litellm
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: external
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: charts/home-apps/litellm
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: litellm
-    syncPolicy:
-      automated:
-        prune: true
-        selfHeal: true
-        
   - name: jellyfin
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -217,36 +201,6 @@ applications:
     destination:
       server: https://kubernetes.default.svc
       namespace: password-manager
-    syncPolicy:
-      automated:
-        prune: true
-        selfHeal: true
-  - name: mcpo
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: external
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: charts/home-apps/mcpo
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: mcpo
-    syncPolicy:
-      automated:
-        prune: true
-        selfHeal: true
-  - name: chat-ui
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: external
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: charts/home-apps/chat-ui
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: chat-ui
     syncPolicy:
       automated:
         prune: true
