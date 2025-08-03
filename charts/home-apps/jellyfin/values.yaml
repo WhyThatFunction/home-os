@@ -177,6 +177,17 @@ jellyfin:
           jellyfin:
             - path: /config
               
+    jellyfin-cache:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteMany
+      storageClass: sstorage
+      size: 10Gi
+      advancedMounts:
+        jellyfin:
+          jellyfin:
+            - path: /config/cache
+              
     jellyfin-media:
       enabled: true
       type: persistentVolumeClaim
