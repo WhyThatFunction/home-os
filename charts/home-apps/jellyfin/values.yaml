@@ -86,7 +86,7 @@ jellyfin:
           targetPort: 9117
   controllers:
     jellyfin:
-      type: deployment
+      type: statefulset
       strategy: RollingUpdate
       replicas: 1
       pod:
@@ -141,7 +141,7 @@ jellyfin:
                 periodSeconds: 5
 
     jackett:
-      type: deployment
+      type: statefulset
       strategy: RollingUpdate
       replicas: 1
       pod:
