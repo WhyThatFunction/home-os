@@ -67,7 +67,7 @@ coder-main:
       annotations:
         cert-manager.io/cluster-issuer: cert-cloudflare
       host: "coder.ssegning.com"
-      wildcardHost: "'*-coder.ssegning.com'"
+      wildcardHost: "*-coder.ssegning.com"
       tls: 
         enable: true
         secretName: coder-ssegning-com
