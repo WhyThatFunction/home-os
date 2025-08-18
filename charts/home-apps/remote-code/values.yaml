@@ -46,7 +46,7 @@ coder-main:
             name: remote-code-oidc
             key: secret
       - name: CODER_OIDC_ISSUER_URL
-        value: "https://accounts.ssegning.com"
+        value: "https://accounts.ssegning.com/realms/dev"
 
       - name: CODER_ACCESS_URL
         value: "https://coder.ssegning.com"
