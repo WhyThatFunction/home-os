@@ -1,0 +1,90 @@
+db:
+  enabled: true
+  instances: 2
+  storage:
+    size: 10Gi
+    storageClass: longhorn
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1"
+
+coder-main:
+  coder:
+    # You can specify any environment variables you'd like to pass to Coder
+    # here. Coder consumes environment variables listed in
+    # `coder server --help`, and these environment variables are also passed
+    # to the workspace provisioner (so you can consume them in your Terraform
+    # templates for auth keys etc.).
+    #
+    # Please keep in mind that you should not set `CODER_HTTP_ADDRESS`,
+    # `CODER_TLS_ENABLE`, `CODER_TLS_CERT_FILE` or `CODER_TLS_KEY_FILE` as
+    # they are already set by the Helm chart and will cause conflicts.
+    env:
+      - name: CODER_PROXY_TRUSTED_HEADERS
+        value: X-Forwarded-For
+      - name: CODER_PROXY_TRUSTED_ORIGINS
+        value: 10.10.0.1/24
+        
+      - name: CODER_PG_CONNECTION_URL
+        valueFrom:
+          secretKeyRef:
+            name: remote-code-pg-app
+            key: uri
+      
+      - name: CODER_OAUTH2_GITHUB_DEFAULT_PROVIDER_ENABLE
+        value: "false"
+
+      - name: CODER_OIDC_CLIENT_ID
+        value: "remote-code"
+      - name: CODER_OIDC_CLIENT_SECRET
+        valueFrom:
+          secretKeyRef:
+            name: remote-code-oidc
+            key: secret
+      - name: CODER_OIDC_ISSUER_URL
+        value: "https://accounts.ssegning.com"
+
+      - name: CODER_ACCESS_URL
+        value: "https://coder.ssegning.com"
+      - name: CODER_WILDCARD_ACCESS_URL
+        value: "https://*-coder.ssegning.com"
+
+      - name: CODER_TELEMETRY_ENABLE
+        value: "false"
+
+      - name: CODER_EMAIL_FROM
+        value: "no-reply+coder@mail.ssegning.com"
+      - name: CODER_EMAIL_HELLO
+        value: "mail.mail.svc.cluster.local:587"
+    
+    ingress: 
+      enable: true
+      className: traefik
+      annotations:
+        cert-manager.io/cluster-issuer: cert-cloudflare
+      host: "coder.ssegning.com"
+      wildcardHost: "*-coder.ssegning.com"
+      tls: 
+        enable: true
+        secretName: coder-ssegning-com
+        wildcardSecretName: all-coder-ssegning-com
+
+    tls:
+      secretNames:
+        - coder-ssegning-com
+          
+    service: 
+      type: ClusterIP
+      
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "2"
+      limits:
+        memory: "6Gi"
+        cpu: "3"
+  

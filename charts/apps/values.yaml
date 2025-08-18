@@ -190,6 +190,25 @@ applications:
       automated:
         prune: true
         selfHeal: true
+        
+  - name: remote-code
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/remote-code
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: remote-code
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+        
   - name: password-manager
     finalizers:
       - resources-finalizer.argocd.argoproj.io

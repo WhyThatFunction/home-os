@@ -1,0 +1,9 @@
+dependencies:
+- name: coder
+  repository: https://helm.coder.com/v2
+  version: 2.25.1
+- name: common
+  repository: https://charts.bitnami.com/bitnami
+  version: 2.31.4
+digest: sha256:ed18170271111144ac475f806b3e4507b498192ff0e04b25b2d7e4b2845a8f1e
+generated: "2025-08-18T21:32:48.126613+02:00"
