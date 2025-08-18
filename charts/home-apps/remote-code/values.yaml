@@ -50,8 +50,8 @@ coder-main:
 
       - name: CODER_ACCESS_URL
         value: "https://coder.ssegning.com"
-      - name: CODER_WILDCARD_ACCESS_URL
-        value: "*-coder.ssegning.com"
+      #- name: CODER_WILDCARD_ACCESS_URL
+      #  value: "*-coder.ssegning.com"
 
       - name: CODER_TELEMETRY_ENABLE
         value: "false"
@@ -67,11 +67,11 @@ coder-main:
       annotations:
         cert-manager.io/cluster-issuer: cert-cloudflare
       host: "coder.ssegning.com"
-      wildcardHost: "*-coder.ssegning.com"
+      #wildcardHost: "*-coder.ssegning.com"
       tls: 
         enable: true
         secretName: coder-ssegning-com
-        wildcardSecretName: all-coder-ssegning-com
+        #wildcardSecretName: all-coder-ssegning-com
 
     tls:
       secretNames:
