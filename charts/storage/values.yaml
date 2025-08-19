@@ -19,7 +19,7 @@ longhorn:
 sstorage:
   fullnameOverride: sstorage
   storageClass:
-    defaultClass: false
+    defaultClass: true
     pathPattern: 'pvcs/${.PVC.namespace}/${.PVC.name}'
     name: sstorage
     reclaimPolicy: Retain
