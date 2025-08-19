@@ -29,6 +29,6 @@ spec:
     kind: ClusterIssuer
     name: cert-cloudflare
     group: cert-manager.io
-  commonName: ssegning.com
+  commonName: "*-coder.ssegning.com"
   dnsNames:
     - "*-coder.ssegning.com"
