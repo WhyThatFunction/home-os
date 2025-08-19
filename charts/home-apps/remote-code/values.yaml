@@ -50,8 +50,8 @@ coder-main:
 
       - name: CODER_ACCESS_URL
         value: "https://coder.ssegning.com"
-      #- name: CODER_WILDCARD_ACCESS_URL
-      #  value: "*-coder.ssegning.com"
+      - name: CODER_WILDCARD_ACCESS_URL
+        value: "*-coder.ssegning.com"
 
       - name: CODER_TELEMETRY_ENABLE
         value: "false"
@@ -66,12 +66,12 @@ coder-main:
       className: traefik
       annotations:
         cert-manager.io/cluster-issuer: cert-cloudflare
-      host: "coder.ssegning.com"
-      #wildcardHost: "*-coder.ssegning.com"
+      host: "coder.home.ssegning"
+      #wildcardHost: "*.coder.home.ssegning"
       tls: 
         enable: true
         secretName: coder-ssegning-com
-        #wildcardSecretName: all-coder-ssegning-com
+        #wildcardSecretName: all-coder-home-ssegning
 
     tls:
       secretNames:
