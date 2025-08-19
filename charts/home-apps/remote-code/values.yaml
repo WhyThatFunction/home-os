@@ -66,7 +66,7 @@ coder-main:
       className: traefik
       annotations:
         cert-manager.io/cluster-issuer: cert-cloudflare
-      host: "coder.home.ssegning"
+      host: "coder.ssegning.com"
       #wildcardHost: "*.coder.home.ssegning"
       tls: 
         enable: true
