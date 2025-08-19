@@ -49,9 +49,9 @@ coder-main:
         value: "https://accounts.ssegning.com/realms/dev"
 
       - name: CODER_ACCESS_URL
-        value: "https://coder.ssegning.com"
+        value: "https://segning.com"
       - name: CODER_WILDCARD_ACCESS_URL
-        value: "*-coder.ssegning.com"
+        value: "*.segning.com"
 
       - name: CODER_TELEMETRY_ENABLE
         value: "false"
@@ -66,16 +66,17 @@ coder-main:
       className: traefik
       annotations:
         cert-manager.io/cluster-issuer: cert-cloudflare
-      host: "coder.ssegning.com"
-      #wildcardHost: "*.coder.home.ssegning"
+      host: "segning.com"
+      wildcardHost: "*.segning.com"
       tls: 
         enable: true
-        secretName: coder-ssegning-com
-        #wildcardSecretName: all-coder-home-ssegning
+        secretName: coder-segning-com
+        wildcardSecretName: all-segning-com
 
     tls:
       secretNames:
-        - coder-ssegning-com
+        - coder-segning-com
+        - all-segning-com
           
     service: 
       type: ClusterIP
