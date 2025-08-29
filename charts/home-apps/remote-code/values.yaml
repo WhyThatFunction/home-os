@@ -46,18 +46,18 @@ coder-main:
             name: remote-code-oidc
             key: secret
       - name: CODER_OIDC_ISSUER_URL
-        value: "https://accounts.ssegning.com/realms/dev"
+        value: "https://accounts.skyunta.com/realms/dev"
 
       - name: CODER_ACCESS_URL
-        value: "https://segning.com"
+        value: "https://kyunta.com"
       - name: CODER_WILDCARD_ACCESS_URL
-        value: "*.segning.com"
+        value: "*.kyunta.com"
 
       - name: CODER_TELEMETRY_ENABLE
         value: "false"
 
       - name: CODER_EMAIL_FROM
-        value: "no-reply+coder@mail.ssegning.com"
+        value: "no-reply+coder@mail.skyunta.com"
       - name: CODER_EMAIL_HELLO
         value: "mail.mail.svc.cluster.local:587"
     
@@ -72,17 +72,17 @@ coder-main:
       className: traefik
       annotations:
         cert-manager.io/cluster-issuer: cert-cloudflare
-      host: "segning.com"
-      wildcardHost: "*.segning.com"
+      host: "kyunta.com"
+      wildcardHost: "*.kyunta.com"
       tls:
         enable: true
-        secretName: coder-segning-com
-        wildcardSecretName: all-segning-com
+        secretName: coder-kyunta.com
+        wildcardSecretName: all-kyunta.com
 
     tls:
       secretNames:
-        - coder-segning-com
-        - all-segning-com
+        - coder-kyunta.com
+        - all-kyunta.com
     
     service:
       type: ClusterIP
