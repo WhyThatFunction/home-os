@@ -46,7 +46,7 @@ coder-main:
             name: remote-code-oidc
             key: secret
       - name: CODER_OIDC_ISSUER_URL
-        value: "https://accounts.skyunta.com/realms/dev"
+        value: "https://accounts.ssegning.com/realms/dev"
 
       - name: CODER_ACCESS_URL
         value: "https://kyunta.com"
@@ -57,7 +57,7 @@ coder-main:
         value: "false"
 
       - name: CODER_EMAIL_FROM
-        value: "no-reply+coder@mail.skyunta.com"
+        value: "no-reply+coder@mail.ssegning.com"
       - name: CODER_EMAIL_HELLO
         value: "mail.mail.svc.cluster.local:587"
     
