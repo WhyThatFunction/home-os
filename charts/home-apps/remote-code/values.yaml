@@ -76,13 +76,13 @@ coder-main:
       wildcardHost: "*.kyunta.com"
       tls:
         enable: true
-        secretName: coder-kyunta.com
-        wildcardSecretName: all-kyunta.com
+        secretName: coder-kyunta-com
+        wildcardSecretName: all-kyunta-com
 
     tls:
       secretNames:
-        - coder-kyunta.com
-        - all-kyunta.com
+        - coder-kyunta-com
+        - all-kyunta-com
     
     service:
       type: ClusterIP
