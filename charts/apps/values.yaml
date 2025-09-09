@@ -127,7 +127,7 @@ applications:
             AHE_BUCKET: apple-health-export
             AHE_PREFIX: "reports/"
             
-            AHE_S3_PATH_STYLE: true
+            AHE_S3_PATH_STYLE: "true"
 
             AHE_BASIC_USER:
               secretKeyRef:
