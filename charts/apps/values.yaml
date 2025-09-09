@@ -123,6 +123,8 @@ applications:
             imagePullSecrets:
               - ghcr-login-secret
           image:
+            registry: ""
+            repository: nginx
             tag: "latest"
           labels:
             environment: prod
