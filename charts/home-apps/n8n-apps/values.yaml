@@ -1,0 +1,103 @@
+n8n: 
+  fullnameOverride: n8n
+  encryptionKey: "aPL#zsXEKxW9SZ$ef.7Ct1q6:7Fg6zAsl-+$EDsgdbYCPGO_"
+  image: 
+    pullPolicy: Always
+  
+  log:
+    level: warn
+  
+  timezone: "Europe/Berlin"
+  
+  db:
+    type: postgresdb
+  
+  externalPostgresql:
+    host: "postgresql.database.svc.cluster.local"
+    username: "home-db"
+    password: "3M0j0ir8o4ZysdehKWpQ6278VZOb01xV"
+    database: "n8n"
+  
+  main:
+    count: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 1Gi
+      limits:
+        cpu: 512m
+        memory: 2Gi
+    volumes: 
+      - name: artifacts
+        persistentVolumeClaim:
+          claimName: artifacts-ssd
+    volumeMounts: 
+      - name: artifacts
+        mountPath: /tmp/artifacts
+  
+  worker:
+    mode: queue
+    count: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 250Mi
+      limits:
+        cpu: 2000m
+        memory: 2Gi
+    volumes:
+      - name: artifacts
+        persistentVolumeClaim:
+          claimName: artifacts-ssd
+    volumeMounts:
+      - name: artifacts
+        mountPath: /tmp/artifacts
+        
+  taskRunners: 
+    mode: external
+    maxConcurrency: 2
+    external: 
+      resources:
+        requests:
+          cpu: 100m
+          memory: 32Mi
+        limits:
+          cpu: 1000m
+          memory: 2Gi
+  
+  externalRedis:
+    host: "redis-master.database.svc.cluster.local"
+    
+  redis: 
+    enabled: false
+  
+  ingress:
+    enabled: true
+    annotations:
+      cert-manager.io/cluster-issuer: cert-home-cert-cloudflare
+    hosts:
+      - host: n8n.ssegning.me
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: n8n-ssegning-me-tls
+        hosts:
+          - n8n.ssegning.me
+  
+  webhook:
+    mode: queue
+    url: "https://webhook.ssegning.me"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        cpu: 512m
+        memory: 1Gi
+  
+  binaryData:
+    availableModes:
+      - filesystem
+    mode: "filesystem"
+    localStoragePath: /tmp/artifacts

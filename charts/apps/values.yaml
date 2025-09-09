@@ -6,6 +6,12 @@ argoCdConfigs:
         url: "https://github.com/vaam-store/vaam-eat-aio"
         name: vaam-eat-aio
         type: git
+    apple-health-export:
+      type: repository
+      data:
+        url: "https://whythatfunction.github.io/apple-health-export"
+        name: apple-health-export
+        type: helm
 
 applications:
   - name: vaam-eat-aio
@@ -98,6 +104,74 @@ applications:
     destination:
       server: https://kubernetes.default.svc
       namespace: ext-vaam-eat
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+        
+  - name: apple-health-export
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/vaam-store/vaam-eat-aio
+      targetRevision: 0.1.3
+      chart: apple-health-export-serverless
+      helm:
+        valuesObject:
+          image:
+            tag: "latest"
+          labels:
+            environment: prod
+          env:
+            AHE_BUCKET: apple-health-export
+            AHE_PREFIX: "reports/"
+            
+            AHE_S3_PATH_STYLE: true
+
+            AHE_BASIC_USER:
+              secretKeyRef:
+                name: apple-health-export-config
+                key: basic-username
+
+            AHE_BASIC_PASS:
+              secretKeyRef:
+                name: apple-health-export-config
+                key: basic-password
+
+            AWS_ENDPOINT_URL: http://s3-minio.s3.svc.cluster.local:9000
+            AWS_ALLOW_HTTP: ~
+            AWS_REGION: ~
+            AWS_ACCESS_KEY_ID:
+              secretKeyRef:
+                name: apple-health-export-config
+                key: minio-user
+
+            AWS_SECRET_ACCESS_KEY:
+              secretKeyRef:
+                name: apple-health-export-config
+                key: minio-password
+          
+            OTEL_EXPORTER_OTLP_TRACES_PROTOCOL: ~
+            OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ~
+            OTEL_EXPORTER_OTLP_METRICS_PROTOCOL: ~
+            OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: ~
+
+            RUST_LOG: "info,aws_config=warn,aws_smithy_runtime=warn,hyper=warn,tower_http=info"
+            OTEL_EXPORTER_OTLP_ENDPOINT: 'http://tempo.monitoring.svc.cluster.local:4317'
+            #OTEL_EXPORTER_OTLP_PROTOCOL: 'grpc'
+            
+          domain:
+            enabled: true
+            name: ahe.home.ssegning
+            tls:
+              issuerRef:
+                kind: ClusterIssuer
+                name: self-signed-ca
+                group: cert-manager.io
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: ext-apple-health-export
     syncPolicy:
       automated:
         prune: true
@@ -256,3 +330,41 @@ applications:
       automated:
         prune: true
         selfHeal: true
+
+#  - name: n8n-apps
+#    finalizers:
+#      - resources-finalizer.argocd.argoproj.io
+#    project: external
+#    source:
+#      repoURL: https://github.com/whythatfunction/home-os
+#      targetRevision: HEAD
+#      path: charts/home-apps/n8n-apps
+#    destination:
+#      server: https://kubernetes.default.svc
+#      namespace: n8n
+#    syncPolicy:
+#      syncOptions:
+#        - CreateNamespace=true
+#        - ServerSideApply=true
+#      automated:
+#        prune: true
+#        selfHeal: true
+#        
+#  - name: nocodb-apps
+#    finalizers:
+#      - resources-finalizer.argocd.argoproj.io
+#    project: external
+#    source:
+#      repoURL: https://github.com/whythatfunction/home-os
+#      targetRevision: HEAD
+#      path: charts/home-apps/nocodb
+#    destination:
+#      server: https://kubernetes.default.svc
+#      namespace: nocodb
+#    syncPolicy:
+#      syncOptions:
+#        - CreateNamespace=true
+#        - ServerSideApply=true
+#      automated:
+#        prune: true
+#        selfHeal: true

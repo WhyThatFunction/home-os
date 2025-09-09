@@ -128,7 +128,7 @@ spec:
           port: 80
   # If you have a wildcard TLS cert in a k8s Secret:
   tls:
-    secretName: vaam.store-tls
+    secretName: vaam-store-tls-real
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -136,10 +136,10 @@ metadata:
   name: knative-vaam.store-certificate
   namespace: knative-serving
 spec:
-  secretName: vaam.store-tls
+  secretName: vaam-store-tls-real
   issuerRef:
     kind: ClusterIssuer
-    name: self-signed-ca
+    name: cert-cloudflare
     group: cert-manager.io
   commonName: vaam.store
   dnsNames:

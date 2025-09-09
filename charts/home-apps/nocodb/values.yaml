@@ -1,0 +1,47 @@
+nocodb: 
+  env: 
+    NC_DB: "pg://postgresql.database.svc.cluster.local:5432?u=home-db&p=3M0j0ir8o4ZysdehKWpQ6278VZOb01xV&d=nocodb"
+    NC_ALLOW_LOCAL_HOOKS: "true"
+    NC_DISABLE_TELE: "true"
+    
+    DB_QUERY_LIMIT_DEFAULT: 12
+    NC_PUBLIC_URL: "https://nocodb.ssegning.me"
+    
+    NC_SMTP_FROM: "no-reply@mail.ssegning.com"
+    NC_SMTP_HOST: mail.mail.svc.cluster.local
+    NC_SMTP_PORT: 587
+    #NC_SMTP_SECURE: "false"
+    #NC_SMTP_IGNORE_TLS: "false"
+    
+#    NC_S3_BUCKET_NAME: nocodb-bucket
+#    NC_S3_ENDPOINT: "https://s3.ssegning.me"
+#    NC_S3_ACCESS_KEY: "nocodb-user"
+#    NC_S3_ACCESS_SECRET: "Tnm7Yxu7W0JLjkAnvs1WRvzwTEXi2bmgf9nBgO4LMmIgvnnG"
+#    NC_S3_FORCE_PATH_STYLE: "true"
+#    NC_ATTACHMENT_FIELD_SIZE: "5242880"
+    NC_SECURE_ATTACHMENTS: "true"
+    NC_ATTACHMENT_EXPIRE_SECONDS: "3600"
+    
+    NC_AUTH_JWT_SECRET: "mRLHZr1oJRb7JyokDLoGnGeW1HW21ybaMNy6uz4wQFAA4usr"
+    NC_CONNECTION_ENCRYPT_KEY: "PRmcaBlkgJEpy4inXUv2CqSKPwzGSrSZkUS20SxyPDwAJurN"
+  
+  ingress: 
+    main: 
+      enabled: true
+      ingressClassName: traefik
+      annotations:
+        cert-manager.io/cluster-issuer: cert-home-cert-cloudflare
+      hosts:
+        - host: nocodb.ssegning.me
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: nocodb-ssegning-me-tls
+          hosts:
+            - nocodb.ssegning.me
+  persistence: 
+    data: 
+      enabled: true
+      type: pvc
+      storageClass: nfs-ssd

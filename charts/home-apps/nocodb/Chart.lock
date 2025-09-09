@@ -1,0 +1,6 @@
+dependencies:
+- name: nocodb
+  repository: https://zekker6.github.io/helm-charts
+  version: 0.68.0
+digest: sha256:e0ab40f4f6821f2ca1a774b3c44a96b7cebfc64526fc5f1f04b9b3683e804039
+generated: "2025-06-08T19:35:41.764946+02:00"

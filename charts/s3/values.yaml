@@ -79,6 +79,14 @@ minio:
             resources:
               - "arn:aws:s3:::vaam-eat/*"
               - "arn:aws:s3:::vaam-eat"
+      - name: apple-health-export-policy
+        statements:
+          - actions:
+              - "s3:*"
+            effect: "Allow"
+            resources:
+              - "arn:aws:s3:::apple-health-export/*"
+              - "arn:aws:s3:::apple-health-export"
     
     usersExistingSecrets:
       - minio-users
@@ -99,6 +107,8 @@ minio:
       - name: monitoring-loki-ruler
         withLock: false
       - name: monitoring-tempo
+        withLock: false
+      - name: apple-health-export
         withLock: false
 
 provision_minio_buckets_policies:
