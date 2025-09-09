@@ -109,18 +109,18 @@ applications:
         prune: true
         selfHeal: true
         
-  - name: apple-health-export-serverless
+  - name: apple-health-export
     finalizers:
       - resources-finalizer.argocd.argoproj.io
     project: external
     source:
       repoURL: https://whythatfunction.github.io/apple-health-export
       targetRevision: 0.1.3
-      chart: apple-health-export-serverless
+      chart: apple-health-export
       helm:
         valuesObject:
           image:
-            tag: "latest"
+            tag: "main3b4852ef4c0b4e157d4ddc4e6f07aa7da7d21096"
           labels:
             environment: prod
           env:
@@ -173,6 +173,9 @@ applications:
       server: https://kubernetes.default.svc
       namespace: ext-apple-health-export
     syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
       automated:
         prune: true
         selfHeal: true
