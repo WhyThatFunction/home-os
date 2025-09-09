@@ -241,7 +241,7 @@ applications:
                 group: cert-manager.io
     destination:
       server: https://kubernetes.default.svc
-      namespace: ext-apple-health-export-serverless
+      namespace: ext-apple-health-export
     syncPolicy:
       syncOptions:
         - ServerSideApply=true
