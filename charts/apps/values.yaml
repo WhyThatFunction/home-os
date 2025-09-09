@@ -119,6 +119,9 @@ applications:
       chart: apple-health-export-serverless
       helm:
         valuesObject:
+          global:
+            imagePullSecrets:
+              - ghcr-login-secret
           image:
             tag: "latest"
           labels:
