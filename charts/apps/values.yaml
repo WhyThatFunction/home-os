@@ -136,7 +136,7 @@ applications:
                 key: basic-password
 
             AWS_ENDPOINT_URL: http://s3-minio.s3.svc.cluster.local:9000
-            AWS_ALLOW_HTTP: true
+            AWS_ALLOW_HTTP: "true"
             AWS_REGION: ~
             AWS_ACCESS_KEY_ID:
               secretKeyRef:
