@@ -272,12 +272,12 @@ prom-stack:
       auth:
         disable_login_form: true
       auth.anonymous:
-        enabled: "false"
+        enabled: "true"
         org_role: "Admin"
       auth.basic:
         enabled: "false"
       auth.generic_oauth:
-        enabled: "true"
+        enabled: "false"
         name: "SSegning Account"
         auto_login: "true"
         allow_sign_up: "true"
