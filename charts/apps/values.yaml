@@ -115,7 +115,7 @@ applications:
     project: external
     source:
       repoURL: https://whythatfunction.github.io/apple-health-export
-      targetRevision: 0.1.3
+      targetRevision: 0.1.8
       chart: apple-health-export
       helm:
         valuesObject:
@@ -174,7 +174,76 @@ applications:
       namespace: ext-apple-health-export
     syncPolicy:
       syncOptions:
-        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+        
+  - name: apple-health-export-serverless
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://whythatfunction.github.io/apple-health-export
+      targetRevision: 0.1.3
+      chart: apple-health-export-serverless
+      helm:
+        valuesObject:
+          image:
+            tag: "main3b4852ef4c0b4e157d4ddc4e6f07aa7da7d21096"
+          labels:
+            environment: prod
+          env:
+            AHE_BUCKET: apple-health-export
+            AHE_PREFIX: "reports/"
+            
+            AHE_S3_PATH_STYLE: "true"
+
+            AHE_BASIC_USER:
+              secretKeyRef:
+                name: apple-health-export-config
+                key: basic-username
+
+            AHE_BASIC_PASS:
+              secretKeyRef:
+                name: apple-health-export-config
+                key: basic-password
+
+            AWS_ENDPOINT_URL: http://s3-minio.s3.svc.cluster.local:9000
+            AWS_ALLOW_HTTP: ~
+            AWS_REGION: ~
+            AWS_ACCESS_KEY_ID:
+              secretKeyRef:
+                name: apple-health-export-config
+                key: minio-user
+
+            AWS_SECRET_ACCESS_KEY:
+              secretKeyRef:
+                name: apple-health-export-config
+                key: minio-password
+          
+            OTEL_EXPORTER_OTLP_TRACES_PROTOCOL: ~
+            OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ~
+            OTEL_EXPORTER_OTLP_METRICS_PROTOCOL: ~
+            OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: ~
+
+            RUST_LOG: "info,aws_config=warn,aws_smithy_runtime=warn,hyper=warn,tower_http=info"
+            OTEL_EXPORTER_OTLP_ENDPOINT: 'http://tempo.monitoring.svc.cluster.local:4317'
+            #OTEL_EXPORTER_OTLP_PROTOCOL: 'grpc'
+            
+          domain:
+            enabled: true
+            name: ahe.home.ssegning
+            tls:
+              issuerRef:
+                kind: ClusterIssuer
+                name: self-signed-ca
+                group: cert-manager.io
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: ext-apple-health-export-serverless
+    syncPolicy:
+      syncOptions:
         - ServerSideApply=true
       automated:
         prune: true
