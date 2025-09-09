@@ -109,7 +109,7 @@ applications:
         prune: true
         selfHeal: true
         
-  - name: apple-health-export
+  - name: apple-health-export-serverless
     finalizers:
       - resources-finalizer.argocd.argoproj.io
     project: external
