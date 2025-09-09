@@ -150,15 +150,6 @@ applications:
           
             RUST_LOG: "info,aws_config=warn,aws_smithy_runtime=warn,hyper=warn,tower_http=info"
             OTEL_EXPORTER_OTLP_ENDPOINT: 'http://tempo.monitoring.svc.cluster.local:4317'
-            
-          domain:
-            enabled: true
-            name: ahe.home.ssegning
-            tls:
-              issuerRef:
-                kind: ClusterIssuer
-                name: self-signed-ca
-                group: cert-manager.io
     destination:
       server: https://kubernetes.default.svc
       namespace: ext-apple-health-export
