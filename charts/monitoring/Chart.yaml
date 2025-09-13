@@ -58,3 +58,10 @@ dependencies:
       - tempo
       - traces
       - jaeger
+
+  - name: alloy
+    condition: alloy.enabled
+    repository: https://grafana.github.io/helm-charts
+    version: "*"
+    tags:
+      - alloy

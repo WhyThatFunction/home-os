@@ -94,4 +94,45 @@ coder-main:
       limits:
         memory: "6Gi"
         cpu: "3"
+
+qdrant:
+  livenessProbe:
+    enabled: true
+
+  readinessProbe:
+    enabled: true
+
+  startupProbe:
+    enabled: true
   
+  ingress:
+    enabled: true
+    ingressClassName: "traefik"
+    annotations:
+      cert-manager.io/cluster-issuer: self-signed-ca
+    hosts:
+      - host: qdrant.home.ssegning
+        paths:
+          - path: /
+            pathType: Prefix
+            servicePort: 6333
+    tls:
+      - secretName: qdrant-home-ssegning-tls
+        hosts:
+          - qdrant.home.ssegning
+  
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  persistence:
+    accessModes: [ "ReadWriteOnce" ]
+    size: 10Gi
+    annotations: { }
+    # storageVolumeName: qdrant-storage
+    # storageSubPath: ""
+    storageClassName: longhorn
