@@ -177,12 +177,12 @@ jellyfin:
           jellyfin:
             - path: /config
               
-    cache:
+    jellyfin-cache:
       enabled: true
       type: persistentVolumeClaim
       accessMode: ReadWriteMany
-      storageClass: longhorn
-      size: 20Gi
+      storageClass: sstorage
+      size: 50Gi
       advancedMounts:
         jellyfin:
           jellyfin:
