@@ -165,6 +165,7 @@ loki:
       storageClass: longhorn
 
 tempo:
+  enabled: true
   fullnameOverride: tempo
   
   tempo:
@@ -203,7 +204,7 @@ tempo:
           insecure: true
 
 prom-stack:
-  enabled: true
+  enabled: false
   fullnameOverride: mtor
   
   crds:
