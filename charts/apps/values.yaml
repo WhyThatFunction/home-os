@@ -313,6 +313,35 @@ applications:
       automated:
         prune: true
         selfHeal: true
+        
+  - name: tigerbeetle
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://vymalo.github.io/tigerbeetle-helm-charts
+      targetRevision: 0.9.2
+      chart: tigerbeetle
+      helm:
+        valuesObject:
+          controllers:
+            main:
+              statefulset:
+                volumeClaimTemplates:
+                  - name: data
+                    mountPath: /data
+                    accessMode: "ReadWriteOnce"
+                    size: 5Gi
+                    storageClass: "longhorn-local"
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: ext-vymalo-tigerbeetle
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
 
 #  - name: n8n-apps
 #    finalizers:
