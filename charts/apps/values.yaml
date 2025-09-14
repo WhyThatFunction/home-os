@@ -337,6 +337,16 @@ applications:
                     runAsNonRoot: true
                     runAsUser: 10001
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      add: [ "IPC_LOCK" ]
+#              containers:
+#                main:
+#                  securityContext:
+#                    runAsNonRoot: true
+#                    runAsUser: 10001
+#                    allowPrivilegeEscalation: false
+#                    capabilities:
+#                      add: [ "IPC_LOCK" ]
               statefulset:
                 volumeClaimTemplates:
                   - name: data
