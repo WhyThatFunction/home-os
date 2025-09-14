@@ -333,6 +333,8 @@ applications:
             main:
               initContainers:
                 format:
+                  image:
+                    tag: debug
                   securityContext:
                     runAsNonRoot: true
                     runAsUser: 10001
