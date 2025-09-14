@@ -336,13 +336,13 @@ applications:
                   image:
                     tag: debug
                   securityContext:
-                    runAsNonRoot: true
-                    runAsUser: 10001
-                    allowPrivilegeEscalation: false
-                    capabilities:
-                      add: [ "IPC_LOCK" ]
-                    seccompProfile: 
-                      type: Unconfined
+                    privileged: true
+#                    runAsUser: 10001
+#                    allowPrivilegeEscalation: false
+#                    capabilities:
+#                      add: [ "IPC_LOCK" ]
+#                    seccompProfile: 
+#                      type: Unconfined
 #              containers:
 #                main:
 #                  securityContext:
