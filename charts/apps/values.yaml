@@ -324,6 +324,11 @@ applications:
       chart: tigerbeetle
       helm:
         valuesObject:
+          secrets:
+            config:
+              enabled: true
+              stringData:
+                CLUSTER_ID: "222519218452505945768636437399044307163"
           controllers:
             main:
               statefulset:
