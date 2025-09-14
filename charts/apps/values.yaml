@@ -330,6 +330,9 @@ applications:
               stringData:
                 CLUSTER_ID: "222519218452505945768636437399044307163"
           controllers:
+            global:
+              labels:
+                pod-security.kubernetes.io/enforce: "privileged"
             main:
               initContainers:
                 format:
@@ -339,6 +342,8 @@ applications:
                     allowPrivilegeEscalation: false
                     capabilities:
                       add: [ "IPC_LOCK" ]
+                    seccompProfile: 
+                      type: Unconfined
 #              containers:
 #                main:
 #                  securityContext:
