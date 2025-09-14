@@ -331,6 +331,14 @@ applications:
                 CLUSTER_ID: "222519218452505945768636437399044307163"
           controllers:
             main:
+              initContainers:
+                format:
+                  securityContext:
+                    runAsNonRoot: true
+                    runAsUser: 10001
+                    allowPrivilegeEscalation: false
+                    seccompProfile:
+                      type: Unconfined
               statefulset:
                 volumeClaimTemplates:
                   - name: data
