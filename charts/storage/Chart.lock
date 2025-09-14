@@ -4,9 +4,9 @@ dependencies:
   version: 1.9.1
 - name: common
   repository: https://charts.bitnami.com/bitnami
-  version: 2.31.3
+  version: 2.31.4
 - name: nfs-subdir-external-provisioner
   repository: https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner
   version: 4.0.18
-digest: sha256:7d75a18be31689ca158db4eb0abd705e1520b9fc92002a241e7b43d593ec8442
-generated: "2025-07-26T00:34:55.526047+02:00"
+digest: sha256:5b642d0e9edcd4efc43c3dec49290214497abaa9b84a46b3e4f7eddcd785b2ba
+generated: "2025-09-15T01:32:10.87582+02:00"

@@ -1,9 +1,0 @@
-dependencies:
-- name: open-webui
-  repository: https://helm.openwebui.com
-  version: 6.27.0
-- name: common
-  repository: https://charts.bitnami.com/bitnami
-  version: 2.31.3
-digest: sha256:05b42a864605df0306e5441f97ce6a868131592c79fe88600287063629c66f38
-generated: "2025-07-21T22:55:45.152944+02:00"
