@@ -62,7 +62,7 @@ applications:
               configMapKeyRef:
                 name: 'vaam-eat-config'
                 key: s3-cdn
-                
+            
             NEXT_PUBLIC_MAPS_PMTILES_MINIO_BUCKET: 'vaam-eat'
 
             OTEL_EXPORTER_OTLP_ENDPOINT: 'http://tempo.monitoring.svc.cluster.local:4318'
@@ -87,9 +87,9 @@ applications:
               configMapKeyRef:
                 name: 'vaam-eat-config'
                 key: public-url
-                
+            
             EMGR_CDN: "https://emgr.vaam.store/api/images/resize"
-                
+          
           migration:
             image:
               tag: "main-181639c"
@@ -108,7 +108,7 @@ applications:
       automated:
         prune: true
         selfHeal: true
-        
+
   - name: apple-health-export-serverless
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -147,7 +147,7 @@ applications:
               secretKeyRef:
                 name: apple-health-export-config
                 key: minio-password
-          
+            
             RUST_LOG: "info,aws_config=warn,aws_smithy_runtime=warn,hyper=warn,tower_http=info"
             OTEL_EXPORTER_OTLP_ENDPOINT: 'http://tempo.monitoring.svc.cluster.local:4317'
     destination:
@@ -159,7 +159,7 @@ applications:
       automated:
         prune: true
         selfHeal: true
-        
+
   - name: vaam-emgr
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -185,7 +185,7 @@ applications:
             
             MINIO_ENDPOINT_URL: http://s3-minio.s3.svc.cluster.local:9000
             MINIO_BUCKET: vaam-eat
-          
+            
             STORAGE_SUB_PATH: 'images/gen/'
             
             CDN_BASE_URL: https://s3.ssegning.me/vaam-eat
@@ -197,7 +197,7 @@ applications:
             ENABLE_HTTP2: "false"
             PERFORMANCE_PROFILE: high_throughput
             MAX_CONCURRENT_PROCESSING: 8
-                
+          
           domain:
             enabled: true
             name: emgr.vaam.store
@@ -213,7 +213,7 @@ applications:
       automated:
         prune: true
         selfHeal: true
-        
+
   - name: jellyfin
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -247,7 +247,7 @@ applications:
       automated:
         prune: true
         selfHeal: true
-        
+
   - name: remote-code
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -265,7 +265,7 @@ applications:
       automated:
         prune: true
         selfHeal: true
-        
+
   - name: password-manager
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -313,14 +313,14 @@ applications:
       automated:
         prune: true
         selfHeal: true
-        
+
   - name: tigerbeetle
     finalizers:
       - resources-finalizer.argocd.argoproj.io
     project: external
     source:
       repoURL: https://vymalo.github.io/tigerbeetle-helm-charts
-      targetRevision: 0.9.3
+      targetRevision: 0.9.4
       chart: tigerbeetle
       helm:
         valuesObject:
@@ -335,22 +335,42 @@ applications:
                 format:
                   image:
                     tag: debug
+                  args:
+                    - |
+                      set -xeuo pipefail
+                      REPLICA_INDEX="${HOSTNAME##*-}"
+                      if [ -f "/data/data.tigerbeetle" ]; then
+                        echo "Data file already exists, skipping format."
+                        exit 0
+                      fi
+                      
+                      echo "Formatting data file for replica index ${REPLICA_INDEX}"
+                      /tigerbeetle format \
+                        --log-debug \
+                        --cluster="${CLUSTER_ID}" \
+                        --replica-count="${REPLICA_COUNT}" \
+                        --replica="${REPLICA_INDEX}" \
+                        "/data/data.tigerbeetle"
+                      
                   securityContext:
                     privileged: true
-#                    runAsUser: 10001
-#                    allowPrivilegeEscalation: false
-#                    capabilities:
-#                      add: [ "IPC_LOCK" ]
-#                    seccompProfile: 
-#                      type: Unconfined
-#              containers:
-#                main:
-#                  securityContext:
-#                    runAsNonRoot: true
-#                    runAsUser: 10001
-#                    allowPrivilegeEscalation: false
-#                    capabilities:
-#                      add: [ "IPC_LOCK" ]
+              #                    runAsUser: 10001
+              #                    allowPrivilegeEscalation: false
+              #                    capabilities:
+              #                      add: [ "IPC_LOCK" ]
+              #                    seccompProfile: 
+              #                      type: Unconfined
+              containers:
+                main:
+                  image:
+                    tag: debug
+                  securityContext:
+                    privileged: true
+              #                    runAsNonRoot: true
+              #                    runAsUser: 10001
+              #                    allowPrivilegeEscalation: false
+              #                    capabilities:
+              #                      add: [ "IPC_LOCK" ]
               statefulset:
                 volumeClaimTemplates:
                   - name: data
