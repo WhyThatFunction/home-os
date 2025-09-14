@@ -41,6 +41,7 @@ meta:
   enabled: false
 
 loki:
+  enabled: false
   fullnameOverride: loki
   global:
     extraEnvFrom:
