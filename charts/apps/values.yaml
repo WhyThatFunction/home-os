@@ -342,49 +342,61 @@ applications:
                     - |
                       #!/usr/bin/env bash
                       set -euo pipefail
-
-                      : "${RAW_ADDRESSES:?must be set (comma-separated host:port)}"
-                      NAMESPACE="${POD_NAMESPACE:-$HOSTNAME_NAMESPACE:-}"  # optional; set via Downward API if you like
-                      CLUSTER_DOMAIN="${CLUSTER_DOMAIN:-svc.cluster.local}" # override if non-default
-
-                      resolve_one() {
+                      
+                      : "${RAW_ADDRESSES:?comma-separated host:port list}"
+                      # namespace of the *service*; defaults to our own ns, but override if needed
+                      SVC_NAMESPACE="${TARGET_NAMESPACE:-${POD_NAMESPACE:-}}"
+                      CLUSTER_DOMAIN="${CLUSTER_DOMAIN:-svc.cluster.local}"
+                      RESOLVE_TIMEOUT_SECS="${RESOLVE_TIMEOUT_SECS:-90}"
+                      SLEEP_SECS="${SLEEP_SECS:-3}"
+                      
+                      fqdn_for() {
                         local host="$1"
-                        # try as-is
-                        if getent hosts "$host" >/dev/null 2>&1; then
-                          getent hosts "$host" | awk '{print $1}' | sort -u
-                          return 0
+                        # If host already looks FQDN-ish, return as is
+                        [[ "$host" == *".svc."* ]] && { echo "$host"; return; }
+                        if [[ -n "$SVC_NAMESPACE" ]]; then
+                          echo "${host}.${SVC_NAMESPACE}.${CLUSTER_DOMAIN}"
+                        else
+                          # fall back to relying on search domains
+                          echo "$host"
                         fi
-                        # try FQDN if namespace provided and host isn’t already FQDN
-                        if [[ -n "$NAMESPACE" && "$host" != *".${NAMESPACE}.svc."* && "$host" != *".svc."* ]]; then
-                          local fqdn="${host}.${NAMESPACE}.${CLUSTER_DOMAIN}"
-                          if getent hosts "$fqdn" >/dev/null 2>&1; then
-                            getent hosts "$fqdn" | awk '{print $1}' | sort -u
+                      }
+                      
+                      resolve_ips_with_retry() {
+                        local name="$1"
+                        local deadline=$(( $(date +%s) + RESOLVE_TIMEOUT_SECS ))
+                        local out=""
+                        while (( $(date +%s) < deadline )); do
+                          # use getent hosts (portable) and dedup
+                          out="$(getent hosts "$name" | awk '{print $1}' | sort -u || true)"
+                          if [[ -n "$out" ]]; then
+                            printf '%s\n' "$out"
                             return 0
                           fi
-                        fi
+                          sleep "$SLEEP_SECS"
+                        done
                         return 1
                       }
-
+                      
                       OUT=""
                       IFS=',' read -r -a ITEMS <<< "$RAW_ADDRESSES"
                       for item in "${ITEMS[@]}"; do
                         host="${item%%:*}"
                         port="${item##*:}"
                         printf 'Looking for %s:%s\n' "$host" "$port"
-
-                        mapfile -t IPS < <(resolve_one "$host" || true)
-
-                        if ((${#IPS[@]}==0)); then
-                          printf 'WARN: could not resolve %s (ns=%s)\n' "$host" "${NAMESPACE:-<unknown>}"
+                      
+                        name="$(fqdn_for "$host")"
+                        if ! mapfile -t IPS < <(resolve_ips_with_retry "$name"); then
+                          printf 'WARN: could not resolve %s (queried: %s; ns=%s)\n' "$host" "$name" "${SVC_NAMESPACE:-<inherit>}"
                           continue
                         fi
-
+                      
                         for ip in "${IPS[@]}"; do
                           printf 'Found %s for %s:%s\n' "$ip" "$host" "$port"
                           OUT="${OUT:+$OUT,}${ip}:${port}"
                         done
                       done
-
+                      
                       printf '%s\n' "$OUT" > /work/addresses.txt
                       printf 'Resolved: %s\n' "$OUT"
 
