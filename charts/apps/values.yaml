@@ -320,7 +320,7 @@ applications:
     project: external
     source:
       repoURL: https://vymalo.github.io/tigerbeetle-helm-charts
-      targetRevision: 0.9.3
+      targetRevision: 0.9.5
       chart: tigerbeetle
       helm:
         valuesObject:
@@ -331,46 +331,6 @@ applications:
                 CLUSTER_ID: "222519218452505945768636437399044307163"
           controllers:
             main:
-              initContainers:
-                format:
-                  image:
-                    tag: latest
-                  args:
-                    - |
-                      set -xeuo pipefail
-                      REPLICA_INDEX="${HOSTNAME##*-}"
-                      if [ -f "/data/data.tigerbeetle" ]; then
-                        echo "Data file already exists, skipping format."
-                        exit 0
-                      fi
-
-                      echo "Formatting data file for replica index ${REPLICA_INDEX}"
-                      /tigerbeetle format \
-                        --log-debug \
-                        --cluster="${CLUSTER_ID}" \
-                        --replica-count="${REPLICA_COUNT}" \
-                        --replica="${REPLICA_INDEX}" \
-                        "/data/data.tigerbeetle"
-
-                  securityContext:
-                    privileged: true
-              #                    runAsUser: 10001
-              #                    allowPrivilegeEscalation: false
-              #                    capabilities:
-              #                      add: [ "IPC_LOCK" ]
-              #                    seccompProfile: 
-              #                      type: Unconfined
-              containers:
-                main:
-                  image:
-                    tag: latest
-                  securityContext:
-                    privileged: true
-              #                    runAsNonRoot: true
-              #                    runAsUser: 10001
-              #                    allowPrivilegeEscalation: false
-              #                    capabilities:
-              #                      add: [ "IPC_LOCK" ]
               statefulset:
                 volumeClaimTemplates:
                   - name: data
