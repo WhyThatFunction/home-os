@@ -331,6 +331,26 @@ applications:
                 CLUSTER_ID: "222519218452505945768636437399044307163"
           controllers:
             main:
+              initContainers:
+                resolve-addresses:
+                  args:
+                    - |
+                      OUT=""
+                      IFS=',' read -r -a ITEMS <<< "$RAW_ADDRESSES"
+                      for item in "${ITEMS[@]}"; do
+                        host="${item%%:*}"
+                        port="${item##*:}"
+                        # Collect all unique IPs for this host (use head -n1 if you only want the first)
+                        printf 'Looking for %s\n' "$host:$port"
+                        mapfile -t IPS < <(getent "$GETENT_DB" "$host" | awk '{print $1}' | sort -u)
+                        for ip in "${IPS[@]}"; do
+                          printf 'Found $ip for %s\n' "$host:$port"
+                          if [[ -n "$OUT" ]]; then OUT+=",${ip}:${port}"; else OUT="${ip}:${port}"; fi
+                        done
+                      done
+
+                      printf '%s\n' "$OUT" > /work/addresses.txt
+                      printf 'Resolved: %s\n' "$OUT"
               statefulset:
                 volumeClaimTemplates:
                   - name: data
