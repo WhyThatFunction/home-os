@@ -333,44 +333,54 @@ applications:
             main:
               initContainers:
                 resolve-addresses:
+                  image:
+                    repository: busybox
+                    tag: 1.36
                   env:
                     POD_NAMESPACE:
                       valueFrom:
                         fieldRef:
                           fieldPath: metadata.namespace
+                    RESOLVE_TIMEOUT_SECS: "60"
+                    SLEEP_SECS: "2"
+                  command: ["/bin/sh","-c"]
                   args:
                     - |
-                      #!/usr/bin/env bash
-                      set -euo pipefail
+                      set -eu
                       
-                      : "${RAW_ADDRESSES:?comma-separated host:port list}"
-                      # namespace of the *service*; defaults to our own ns, but override if needed
-                      SVC_NAMESPACE="${TARGET_NAMESPACE:-${POD_NAMESPACE:-}}"
+                      : "${RAW_ADDRESSES:?comma-separated host:port list required}"
+                      POD_NAMESPACE="${POD_NAMESPACE:-}"
+                      SVC_NAMESPACE="${TARGET_NAMESPACE:-${POD_NAMESPACE}}"
                       CLUSTER_DOMAIN="${CLUSTER_DOMAIN:-svc.cluster.local}"
-                      RESOLVE_TIMEOUT_SECS="${RESOLVE_TIMEOUT_SECS:-90}"
-                      SLEEP_SECS="${SLEEP_SECS:-3}"
+                      RESOLVE_TIMEOUT_SECS="${RESOLVE_TIMEOUT_SECS:-60}"
+                      SLEEP_SECS="${SLEEP_SECS:-2}"
+                      
+                      echo "=== DNS debug ==="
+                      echo "resolv.conf:"; cat /etc/resolv.conf || true
+                      echo "POD_NAMESPACE=${POD_NAMESPACE:-<unset>} TARGET_NAMESPACE=${TARGET_NAMESPACE:-<unset>} CLUSTER_DOMAIN=${CLUSTER_DOMAIN}"
                       
                       fqdn_for() {
-                        local host="$1"
-                        # If host already looks FQDN-ish, return as is
-                        [[ "$host" == *".svc."* ]] && { echo "$host"; return; }
-                        if [[ -n "$SVC_NAMESPACE" ]]; then
-                          echo "${host}.${SVC_NAMESPACE}.${CLUSTER_DOMAIN}"
-                        else
-                          # fall back to relying on search domains
-                          echo "$host"
-                        fi
+                        host="$1"
+                        case "$host" in
+                          *.svc.*)  echo "$host" ;;
+                          *)
+                            if [ -n "$SVC_NAMESPACE" ]; then
+                              echo "${host}.${SVC_NAMESPACE}.${CLUSTER_DOMAIN}"
+                            else
+                              echo "$host"
+                            fi
+                            ;;
+                        esac
                       }
                       
-                      resolve_ips_with_retry() {
-                        local name="$1"
-                        local deadline=$(( $(date +%s) + RESOLVE_TIMEOUT_SECS ))
-                        local out=""
-                        while (( $(date +%s) < deadline )); do
-                          # use getent hosts (portable) and dedup
-                          out="$(getent hosts "$name" | awk '{print $1}' | sort -u || true)"
-                          if [[ -n "$out" ]]; then
-                            printf '%s\n' "$out"
+                      resolve_with_retry() {
+                        name="$1"
+                        # deadline in epoch seconds
+                        now="$(date +%s)"; deadline=$(( now + RESOLVE_TIMEOUT_SECS ))
+                        while [ "$(date +%s)" -lt "$deadline" ]; do
+                          # BusyBox: getent hosts prints "IP name"
+                          if out="$(getent hosts "$name" 2>/tmp/_err)"; then
+                            echo "$out" | awk '{print $1}' | sort -u
                             return 0
                           fi
                           sleep "$SLEEP_SECS"
@@ -379,26 +389,33 @@ applications:
                       }
                       
                       OUT=""
-                      IFS=',' read -r -a ITEMS <<< "$RAW_ADDRESSES"
-                      for item in "${ITEMS[@]}"; do
+                      # Iterate comma-separated list in POSIX sh
+                      OLDIFS="$IFS"; IFS=,
+                      for item in $RAW_ADDRESSES; do
+                        IFS="$OLDIFS"
                         host="${item%%:*}"
                         port="${item##*:}"
                         printf 'Looking for %s:%s\n' "$host" "$port"
                       
                         name="$(fqdn_for "$host")"
-                        if ! mapfile -t IPS < <(resolve_ips_with_retry "$name"); then
-                          printf 'WARN: could not resolve %s (queried: %s; ns=%s)\n' "$host" "$name" "${SVC_NAMESPACE:-<inherit>}"
-                          continue
+                        [ "$name" != "$host" ] && echo "  FQDN candidate: $name"
+                      
+                        IPS="$(resolve_with_retry "$name" || true)"
+                        if [ -z "$IPS" ]; then
+                          echo "WARN: could not resolve '$host' (queried='$name', ns='${SVC_NAMESPACE:-<unknown>}')."
+                        else
+                          for ip in $IPS; do
+                            printf 'Found %s for %s:%s\n' "$ip" "$host" "$port"
+                            if [ -n "$OUT" ]; then OUT="$OUT,$ip:$port"; else OUT="$ip:$port"; fi
+                          done
                         fi
-                      
-                        for ip in "${IPS[@]}"; do
-                          printf 'Found %s for %s:%s\n' "$ip" "$host" "$port"
-                          OUT="${OUT:+$OUT,}${ip}:${port}"
-                        done
+                        IFS=,
                       done
+                      IFS="$OLDIFS"
                       
-                      printf '%s\n' "$OUT" > /work/addresses.txt
-                      printf 'Resolved: %s\n' "$OUT"
+                      printf '%s\n' "${OUT}" > /work/addresses.txt
+                      printf 'Resolved: %s\n' "${OUT}"
+
 
               statefulset:
                 volumeClaimTemplates:
