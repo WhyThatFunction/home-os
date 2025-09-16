@@ -335,6 +335,8 @@ applications:
             main:
               containers:
                 main:
+                  securityContext:
+                    privileged: true
                   command: [ "/bin/sh","-c" ]
                   args:
                     - |
