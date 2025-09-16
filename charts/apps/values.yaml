@@ -333,120 +333,24 @@ applications:
                 CLUSTER_ID: "222519218452505945768636437399044307163"
           controllers:
             main:
-              initContainers:
-                resolve-addresses:
-                  args: |-
-                    set -eu
-                    log(){ printf '%s %s\n' "$(date -Iseconds)" "$*"; }
-                    
-                    : "${NS:?}"; : "${SVC:?}"
-                    RESOLVE_TIMEOUT_SECS="${RESOLVE_TIMEOUT_SECS:-60}"
-                    SLEEP_SECS="${SLEEP_SECS:-2}"
-                    PORT="${PORT:-}"
-                    PORT_NAME="${PORT_NAME:-}"
-                    IP_FAMILY="${IP_FAMILY:-}"
-                    
-                    log "kubectl: $(kubectl version --client=true --short 2>/dev/null || echo n/a)"
-                    log "Namespace=$NS Service=$SVC PORT=${PORT:-<unset>} PORT_NAME=${PORT_NAME:-<unset>} IP_FAMILY=${IP_FAMILY:-both}"
-                    
-                    # Show current service + endpoints for context
-                    kubectl -n "$NS" get svc "$SVC" -o wide || true
-                    kubectl -n "$NS" get endpoints "$SVC" -o wide || true
-                    kubectl -n "$NS" get endpointslices -l "kubernetes.io/service-name=$SVC" || true
-                    
-                    # Optionally resolve port by name
-                    if [ -z "$PORT" ] && [ -n "$PORT_NAME" ]; then
-                      PORT="$(kubectl -n "$NS" get svc "$SVC" -o jsonpath="{.spec.ports[?(@.name=='$PORT_NAME')].port}" || true)"
-                      log "Resolved PORT_NAME='$PORT_NAME' -> PORT='$PORT'"
-                    fi
-                    [ -n "$PORT" ] || { log "ERROR: no PORT or PORT_NAME resolved"; exit 1; }
-                    
-                    end=$(( $(date +%s) + RESOLVE_TIMEOUT_SECS ))
-                    attempt=0
-                    while [ "$(date +%s)" -lt "$end" ]; do
-                      attempt=$((attempt+1))
-                      # Prefer classic Endpoints (includes notReadyAddresses)
-                      EP_IPS="$(kubectl -n "$NS" get endpoints "$SVC" \
-                                 -o jsonpath='{range .subsets[*].addresses[*]}{.ip}{"\n"}{end}{range .subsets[*].notReadyAddresses[*]}{.ip}{"\n"}{end}' 2>/dev/null || true)"
-                      # Fall back to EndpointSlices
-                      if [ -z "$EP_IPS" ]; then
-                        EP_IPS="$(kubectl -n "$NS" get endpointslices -l "kubernetes.io/service-name=$SVC" \
-                                   -o jsonpath='{range .items[*].endpoints[*].addresses[*]}{.}{"\n"}{end}' 2>/dev/null || true)"
-                      fi
-                    
-                      # Normalize
-                      EP_IPS="$(printf '%s\n' "$EP_IPS" | sed '/^$/d' | sort -u)"
-                      case "$IP_FAMILY" in
-                        ipv4) EP_IPS="$(printf '%s\n' "$EP_IPS" | grep -E '^[0-9.]+$' || true)";;
-                        ipv6) EP_IPS="$(printf '%s\n' "$EP_IPS" | grep -E '^[0-9a-fA-F:]+$' || true)";;
-                        *) :;;
-                      esac
-                    
-                      COUNT="$(printf '%s\n' "$EP_IPS" | sed '/^$/d' | wc -l | tr -d ' ')"
-                      log "Attempt #$attempt: found $COUNT IP(s)"
-                      if [ "$COUNT" -gt 0 ]; then
-                        OUT="$(printf '%s\n' "$EP_IPS" | awk -v p="$PORT" 'BEGIN{ORS=""; c=0} NF{if(c++){printf ","}; printf $0 ":" p}')"
-                        printf '%s\n' "$OUT" > /work/addresses.txt
-                        log "Resolved (API): $OUT"
-                        exit 0
-                      fi
-                    
-                      sleep "$SLEEP_SECS"
-                    done
-                    
-                    log "ERROR: no endpoints found for Service '$SVC' in namespace '$NS'"
-                    exit 1
               containers:
-                addresses-watcher:
-                  args: |
-                    set -eux
-                    log(){ printf '%s %s\n' "$(date -Iseconds)" "$*"; }
-                    
-                    : "${NS:?}"; : "${SVC:?}"; : "${PORT:?}"
-                    IP_FAMILY="${IP_FAMILY:-}"
-                    POLL_SECS="${POLL_SECS:-10}"
-                    RELOAD_URL="${RELOAD_URL:-}"
-                    
-                    out=/work/addresses.txt
-                    tmp=/work/.addresses.new
-                    
-                    build(){
-                      EP_IPS="$(kubectl -n "$NS" get endpoints "$SVC" \
-                                 -o jsonpath='{range .subsets[*].addresses[*]}{.ip}{"\n"}{end}{range .subsets[*].notReadyAddresses[*]}{.ip}{"\n"}{end}' 2>/dev/null || true)"
-                      if [ -z "$EP_IPS" ]; then
-                        EP_IPS="$(kubectl -n "$NS" get endpointslices -l "kubernetes.io/service-name=$SVC" \
-                                   -o jsonpath='{range .items[*].endpoints[*].addresses[*]}{.}{"\n"}{end}' 2>/dev/null || true)"
+                main:
+                  command: [ "/bin/sh","-c" ]
+                  args:
+                    - |
+                      set -xeuo pipefail
+                      REPLICA_INDEX="${HOSTNAME##*-}"
+                      if [ ! -f "/data/data.tigerbeetle" ]; then
+                        echo "Data file doesn't exists, should 'format' first."
+                        exit 1
                       fi
-                      EP_IPS="$(printf '%s\n' "$EP_IPS" | sed '/^$/d' | sort -u)"
-                      case "$IP_FAMILY" in
-                        ipv4) EP_IPS="$(printf '%s\n' "$EP_IPS" | grep -E '^[0-9.]+$' || true)";;
-                        ipv6) EP_IPS="$(printf '%s\n' "$EP_IPS" | grep -E '^[0-9a-fA-F:]+$' || true)";;
-                        *) :;;
-                      esac
-                      printf '%s\n' "$EP_IPS" | awk -v p="$PORT" 'BEGIN{ORS=""; c=0} NF{if(c++){printf ","}; printf $0 ":" p}' > "$tmp"
-                    }
-                    
-                    ensure_out(){
-                      [ -f "$out" ] || { echo > "$out"; }
-                    }
-                    
-                    ensure_out
-                    prev="$(cat "$out")"
-                    log "Watcher starting; initial content: ${prev:-<empty>}"
-                    while :; do
-                      build
-                      now="$(cat "$tmp")"
-                      if ! cmp -s "$tmp" "$out"; then
-                        mv -f "$tmp" "$out"
-                        log "Addresses changed -> $now"
-                        if [ -n "$RELOAD_URL" ]; then
-                          # Optional: notify the app if it supports an HTTP reload
-                          wget -qO- --timeout=2 "$RELOAD_URL" >/dev/null 2>&1 || log "Reload notify failed (ignored)"
-                        fi
-                      fi
-                      sleep "$POLL_SECS"
-                    done
+                      
+                      echo "$(cat /work/addresses.txt)"
 
+                      echo "Formatting data file for replica index ${REPLICA_INDEX}"
+                      /tigerbeetle start \
+                        --addresses=$(cat /work/addresses.txt) \
+                        /data/data.tigerbeetle
               statefulset:
                 volumeClaimTemplates:
                   - name: data
