@@ -336,7 +336,8 @@ applications:
               containers:
                 main:
                   securityContext:
-                    privileged: true
+                    runAsNonRoot: false
+                    runAsUser: 0
                   command: [ "/bin/sh","-c" ]
                   args:
                     - |
