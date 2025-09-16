@@ -333,6 +333,11 @@ applications:
             main:
               initContainers:
                 resolve-addresses:
+                  env:
+                    POD_NAMESPACE:
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.namespace
                   args:
                     - |
                       #!/usr/bin/env bash
