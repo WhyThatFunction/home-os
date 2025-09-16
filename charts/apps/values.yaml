@@ -335,22 +335,54 @@ applications:
                 resolve-addresses:
                   args:
                     - |
+                      #!/usr/bin/env bash
+                      set -euo pipefail
+
+                      : "${RAW_ADDRESSES:?must be set (comma-separated host:port)}"
+                      NAMESPACE="${POD_NAMESPACE:-$HOSTNAME_NAMESPACE:-}"  # optional; set via Downward API if you like
+                      CLUSTER_DOMAIN="${CLUSTER_DOMAIN:-svc.cluster.local}" # override if non-default
+
+                      resolve_one() {
+                        local host="$1"
+                        # try as-is
+                        if getent hosts "$host" >/dev/null 2>&1; then
+                          getent hosts "$host" | awk '{print $1}' | sort -u
+                          return 0
+                        fi
+                        # try FQDN if namespace provided and host isn’t already FQDN
+                        if [[ -n "$NAMESPACE" && "$host" != *".${NAMESPACE}.svc."* && "$host" != *".svc."* ]]; then
+                          local fqdn="${host}.${NAMESPACE}.${CLUSTER_DOMAIN}"
+                          if getent hosts "$fqdn" >/dev/null 2>&1; then
+                            getent hosts "$fqdn" | awk '{print $1}' | sort -u
+                            return 0
+                          fi
+                        fi
+                        return 1
+                      }
+
                       OUT=""
                       IFS=',' read -r -a ITEMS <<< "$RAW_ADDRESSES"
                       for item in "${ITEMS[@]}"; do
                         host="${item%%:*}"
                         port="${item##*:}"
-                        # Collect all unique IPs for this host (use head -n1 if you only want the first)
-                        printf 'Looking for %s\n' "$host:$port"
-                        mapfile -t IPS < <(getent "$GETENT_DB" "$host" | awk '{print $1}' | sort -u)
+                        printf 'Looking for %s:%s\n' "$host" "$port"
+
+                        mapfile -t IPS < <(resolve_one "$host" || true)
+
+                        if ((${#IPS[@]}==0)); then
+                          printf 'WARN: could not resolve %s (ns=%s)\n' "$host" "${NAMESPACE:-<unknown>}"
+                          continue
+                        fi
+
                         for ip in "${IPS[@]}"; do
-                          printf 'Found $ip for %s\n' "$host:$port"
-                          if [[ -n "$OUT" ]]; then OUT+=",${ip}:${port}"; else OUT="${ip}:${port}"; fi
+                          printf 'Found %s for %s:%s\n' "$ip" "$host" "$port"
+                          OUT="${OUT:+$OUT,}${ip}:${port}"
                         done
                       done
 
                       printf '%s\n' "$OUT" > /work/addresses.txt
                       printf 'Resolved: %s\n' "$OUT"
+
               statefulset:
                 volumeClaimTemplates:
                   - name: data
