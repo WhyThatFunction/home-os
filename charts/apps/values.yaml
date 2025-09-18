@@ -320,7 +320,7 @@ applications:
     project: external
     source:
       repoURL: https://vymalo.github.io/tigerbeetle-helm-charts
-      targetRevision: 0.9.8
+      targetRevision: 0.9.9
       chart: tigerbeetle
       helm:
         valuesObject:
@@ -333,32 +333,6 @@ applications:
                 CLUSTER_ID: "222519218452505945768636437399044307163"
           controllers:
             main:
-              pod:
-                securityContext:
-                  fsGroup: 10001
-                  fsGroupChangePolicy: OnRootMismatch
-                  seccompProfile:
-                    type: Unconfined
-              initContainers:
-                format:
-                  securityContext:
-                    fsGroup: 10001
-                    fsGroupChangePolicy: OnRootMismatch
-                    runAsGroup: 10001
-                    runAsNonRoot: true
-                    runAsUser: 10001
-                    seccompProfile:
-                      type: Unconfined
-              containers:
-                main:
-                  securityContext:
-                    fsGroup: 10001
-                    fsGroupChangePolicy: OnRootMismatch
-                    runAsGroup: 10001
-                    runAsNonRoot: true
-                    runAsUser: 10001
-                    seccompProfile:
-                      type: Unconfined
               statefulset:
                 volumeClaimTemplates:
                   - name: data
