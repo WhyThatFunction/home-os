@@ -336,6 +336,8 @@ applications:
               initContainers:
                 format:
                   securityContext:
+                    fsGroup: 10001
+                    fsGroupChangePolicy: "OnRootMismatch"  # avoids slow recursive chown when not needed
                     seccompProfile:
                       type: Unconfined
               containers:
