@@ -333,27 +333,16 @@ applications:
                 CLUSTER_ID: "222519218452505945768636437399044307163"
           controllers:
             main:
+              initContainers:
+                format:
+                  securityContext:
+                    seccompProfile:
+                      type: Unconfined
               containers:
                 main:
                   securityContext:
-                    runAsNonRoot: false
-                    runAsUser: 0
-                  command: [ "/bin/sh","-c" ]
-                  args:
-                    - |
-                      set -xeuo pipefail
-                      REPLICA_INDEX="${HOSTNAME##*-}"
-                      if [ ! -f "/data/data.tigerbeetle" ]; then
-                        echo "Data file doesn't exists, should 'format' first."
-                        exit 1
-                      fi
-                      
-                      echo "$(cat /work/addresses.txt)"
-
-                      echo "Formatting data file for replica index ${REPLICA_INDEX}"
-                      /tigerbeetle start \
-                        --addresses=$(cat /work/addresses.txt) \
-                        /data/data.tigerbeetle
+                    seccompProfile:
+                      type: Unconfined
               statefulset:
                 volumeClaimTemplates:
                   - name: data
