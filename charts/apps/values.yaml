@@ -337,6 +337,7 @@ applications:
                 format:
                   securityContext:
                     fsGroup: 10001
+                    fsGroupChangePolicy: OnRootMismatch
                     runAsGroup: 10001
                     runAsNonRoot: true
                     runAsUser: 10001
@@ -345,6 +346,11 @@ applications:
               containers:
                 main:
                   securityContext:
+                    fsGroup: 10001
+                    fsGroupChangePolicy: OnRootMismatch
+                    runAsGroup: 10001
+                    runAsNonRoot: true
+                    runAsUser: 10001
                     seccompProfile:
                       type: Unconfined
               statefulset:
