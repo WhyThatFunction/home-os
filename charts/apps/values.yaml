@@ -349,6 +349,44 @@ applications:
       automated:
         prune: true
         selfHeal: true
+  - name: portainer
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: default
+    source:
+      repoURL: https://portainer.github.io/k8s/
+      targetRevision: 2.33.1
+      chart: portainer
+      helm:
+        valuesObject:
+          persistence:
+            storageClass: longhorn
+
+          service:
+            type: ClusterIP
+
+          ingress:
+            enabled: true
+            ingressClassName: traefik
+            annotations:
+              cert-manager.io/cluster-issuer: self-signed-ca
+            tls:
+              - secretName: portainer-tls
+                hosts:
+                  - portainer.home.ssegning
+            hosts:
+              - host: portainer.home.ssegning
+                paths:
+                  - path: /
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: portainer
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
 
 #  - name: n8n-apps
 #    finalizers:
