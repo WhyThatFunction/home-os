@@ -435,24 +435,6 @@ applications:
         prune: true
         selfHeal: true
   
-  - name: gitea
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: infrastructure
-    source:
-      repoURL: https://dl.gitea.com/charts/
-      targetRevision: 12.3.0
-      chart: gitea
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: gitea
-    syncPolicy:
-      syncOptions:
-        - ServerSideApply=true
-      automated:
-        prune: true
-        selfHeal: true
-        
   - name: mail
     finalizers:
       - resources-finalizer.argocd.argoproj.io
