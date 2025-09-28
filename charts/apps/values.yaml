@@ -414,7 +414,7 @@ applications:
     source:
       repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD
-      path: charts/home-apps/registry
+      path: charts/registry
     destination:
       server: https://kubernetes.default.svc
       namespace: registry
@@ -432,7 +432,7 @@ applications:
     source:
       repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD
-      path: charts/home-apps/vsc
+      path: charts/vsc
     destination:
       server: https://kubernetes.default.svc
       namespace: vsc
