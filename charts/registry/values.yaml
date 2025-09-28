@@ -1,18 +1,30 @@
 harbor:
-  expose: 
-    ingress: 
-      hosts: 
+  expose:
+    ingress:
+      hosts:
         core: container-registry.ssegning.com
       className: "traefik"
       annotations:
         cert-manager.io/cluster-issuer: cert-cloudflare
   externalURL: https://container-registry.ssegning.com
-  persistence: 
-  database: 
+  persistence:
+    persistentVolumeClaim:
+      registry:
+        storageClass: longhorn
+      jobservice:
+        jobLog:
+          storageClass: longhorn
+      database:
+        storageClass: longhorn
+      redis:
+        storageClass: longhorn
+      trivy:
+        storageClass: longhorn
+  database:
     type: "external"
     external:
       existingSecret: registry-harbor-pg-app
-      
+
 verdaccio:
   persistence:
     storageClass: longhorn
@@ -34,7 +46,7 @@ verdaccio:
           - npm-registry.ssegning.com
   cachingNginx:
     enabled: true
-  
+
 chartmuseum:
   persistence:
     enabled: true

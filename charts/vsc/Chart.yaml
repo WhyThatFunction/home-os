@@ -28,8 +28,12 @@ dependencies:
     version: "*"
     repository: https://dl.gitea.com/charts
     condition: gitea.enabled
-    
+
   - name: actions
     version: "*"
     repository: https://dl.gitea.com/charts
     condition: actions.enabled
+
+  - name: common
+    version: "*"
+    repository: https://charts.bitnami.com/bitnami

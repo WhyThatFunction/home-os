@@ -174,7 +174,7 @@ applications:
       automated:
         prune: true
         selfHeal: true
-        
+
   - name: storage
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -190,7 +190,7 @@ applications:
       automated:
         prune: true
         selfHeal: true
-        
+
   - name: nvidia
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -211,7 +211,7 @@ applications:
       automated:
         prune: true
         selfHeal: true
-        
+
   - name: cloudnative-pg
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -294,7 +294,7 @@ applications:
               matchRule: Host(`traefik.home.ssegning`)
               tls:
                 secretName: traefik.home.ssegning-tls
-                
+          
           extraObjects:
             - |
               apiVersion: cert-manager.io/v1
@@ -319,7 +319,7 @@ applications:
       automated:
         prune: true
         selfHeal: true
-        
+
   - name: cert
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -335,25 +335,25 @@ applications:
       automated:
         prune: true
         selfHeal: true
-        
-#  - name: monitoring
-#    finalizers:
-#      - resources-finalizer.argocd.argoproj.io
-#    project: infrastructure
-#    source:
-#      repoURL: https://github.com/whythatfunction/home-os
-#      targetRevision: HEAD
-#      path: charts/monitoring
-#    destination:
-#      server: https://kubernetes.default.svc
-#      namespace: monitoring
-#    syncPolicy:
-#      syncOptions:
-#        - CreateNamespace=true
-#        - ServerSideApply=true
-#      automated:
-#        prune: true
-#        selfHeal: true
+  
+  #  - name: monitoring
+  #    finalizers:
+  #      - resources-finalizer.argocd.argoproj.io
+  #    project: infrastructure
+  #    source:
+  #      repoURL: https://github.com/whythatfunction/home-os
+  #      targetRevision: HEAD
+  #      path: charts/monitoring
+  #    destination:
+  #      server: https://kubernetes.default.svc
+  #      namespace: monitoring
+  #    syncPolicy:
+  #      syncOptions:
+  #        - CreateNamespace=true
+  #        - ServerSideApply=true
+  #      automated:
+  #        prune: true
+  #        selfHeal: true
 
   - name: s3
     finalizers:
@@ -386,7 +386,7 @@ applications:
       automated:
         prune: true
         selfHeal: true
-  
+
   - name: redis
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -416,7 +416,7 @@ applications:
       automated:
         prune: true
         selfHeal: true
-  
+
   - name: knative-operator
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -434,7 +434,7 @@ applications:
       automated:
         prune: true
         selfHeal: true
-  
+
   - name: mail
     finalizers:
       - resources-finalizer.argocd.argoproj.io
