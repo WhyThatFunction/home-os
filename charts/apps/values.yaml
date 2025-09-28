@@ -314,41 +314,41 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: tigerbeetle
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: external
-    source:
-      repoURL: https://vymalo.github.io/tigerbeetle-helm-charts
-      targetRevision: 0.9.10
-      chart: tigerbeetle
-      helm:
-        valuesObject:
-          defaultPodOptions:
-            automountServiceAccountToken: true
-          secrets:
-            config:
-              enabled: true
-              stringData:
-                CLUSTER_ID: "222519218452505945768636437399044307163"
-          controllers:
-            main:
-              statefulset:
-                volumeClaimTemplates:
-                  - name: data
-                    mountPath: /data
-                    accessMode: "ReadWriteOnce"
-                    size: 5Gi
-                    storageClass: "longhorn-local"
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: ext-vymalo-tigerbeetle
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-      automated:
-        prune: true
-        selfHeal: true
+#  - name: tigerbeetle
+#    finalizers:
+#      - resources-finalizer.argocd.argoproj.io
+#    project: external
+#    source:
+#      repoURL: https://vymalo.github.io/tigerbeetle-helm-charts
+#      targetRevision: 0.9.10
+#      chart: tigerbeetle
+#      helm:
+#        valuesObject:
+#          defaultPodOptions:
+#            automountServiceAccountToken: true
+#          secrets:
+#            config:
+#              enabled: true
+#              stringData:
+#                CLUSTER_ID: "222519218452505945768636437399044307163"
+#          controllers:
+#            main:
+#              statefulset:
+#                volumeClaimTemplates:
+#                  - name: data
+#                    mountPath: /data
+#                    accessMode: "ReadWriteOnce"
+#                    size: 5Gi
+#                    storageClass: "longhorn-local"
+#    destination:
+#      server: https://kubernetes.default.svc
+#      namespace: ext-vymalo-tigerbeetle
+#    syncPolicy:
+#      syncOptions:
+#        - CreateNamespace=true
+#      automated:
+#        prune: true
+#        selfHeal: true
   - name: portainer
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -406,22 +406,39 @@ applications:
 #      automated:
 #        prune: true
 #        selfHeal: true
-#        
-#  - name: nocodb-apps
-#    finalizers:
-#      - resources-finalizer.argocd.argoproj.io
-#    project: external
-#    source:
-#      repoURL: https://github.com/whythatfunction/home-os
-#      targetRevision: HEAD
-#      path: charts/home-apps/nocodb
-#    destination:
-#      server: https://kubernetes.default.svc
-#      namespace: nocodb
-#    syncPolicy:
-#      syncOptions:
-#        - CreateNamespace=true
-#        - ServerSideApply=true
-#      automated:
-#        prune: true
-#        selfHeal: true
+
+  - name: registry
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: vaam-store
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/registry
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: registry
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: vsc
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: vaam-store
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/vsc
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: vsc
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true

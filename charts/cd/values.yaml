@@ -126,6 +126,38 @@ projects:
     sourceNamespaces:
       - "*"
 
+  - name: vaam-store
+    additionalLabels: { }
+    additionalAnnotations: { }
+    permitOnlyProjectScopedClusters: false
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    description: Vaam Store
+    sourceRepos:
+      - "*"
+    destinations:
+      - namespace: "*"
+        server: https://kubernetes.default.svc
+    clusterResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    clusterResourceBlacklist: [ ]
+    namespaceResourceBlacklist:
+      - group: ""
+        kind: ResourceQuota
+      - group: ""
+        kind: LimitRange
+      - group: ""
+        kind: NetworkPolicy
+    namespaceResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    orphanedResources: { }
+    roles: [ ]
+    syncWindows: [ ]
+    sourceNamespaces:
+      - "*"
+
 applications:
   - name: cd
     finalizers:
@@ -396,6 +428,24 @@ applications:
     destination:
       server: https://kubernetes.default.svc
       namespace: knative-operator
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+  
+  - name: gitea
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://dl.gitea.com/charts/
+      targetRevision: 12.3.0
+      chart: gitea
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: gitea
     syncPolicy:
       syncOptions:
         - ServerSideApply=true
