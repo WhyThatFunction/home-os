@@ -51,7 +51,8 @@ verdaccio:
     storageClass: longhorn
     size: 10Gi
   existingSecret: "npm-basic-auth"
-  secrets: ~
+  secrets:
+    htpasswd: ~
   ingress:
     enabled: true
     className: "traefik"
