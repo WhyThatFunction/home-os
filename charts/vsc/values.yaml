@@ -11,7 +11,7 @@ db:
     limits:
       memory: "1Gi"
       cpu: "1"
-      
+
 gitea:
   valkey-cluster:
     enabled: false
@@ -21,11 +21,19 @@ gitea:
     enabled: false
   postgresql-ha:
     enabled: false
+  deployment:
+    env:
+      - name: sd
+        valueFrom:
+          secretKeyRef:
+            name: "password-manager-pg-app"
+            key: uri
 
   persistence:
     enabled: false
-    
-  ingress: 
+    storageClass: longhorn
+  
+  ingress:
     enabled: true
     className: traefik
     annotations:
@@ -41,22 +49,40 @@ gitea:
           - vsc.ssegning.me
   
   gitea:
-#    additionalConfigSources:
-#      - secret:
-#          secretName: gitea-app-ini-oauth
-#      - configMap:
-#          name: gitea-app-ini-plaintext
+    additionalConfigFromEnvs:
+      - name: GITEA__DATABASE__HOST
+        valueFrom:
+          secretKeyRef:
+            key: host
+            name: vsc-pg-app
+      - name: GITEA__DATABASE__PASSWD
+        valueFrom:
+          secretKeyRef:
+            key: password
+            name: vsc-pg-app
+      - name: GITEA__DATABASE__NAME
+        valueFrom:
+          secretKeyRef:
+            key: dbname
+            name: vsc-pg-app
+      - name: GITEA__DATABASE__USER
+        valueFrom:
+          secretKeyRef:
+            key: user
+            name: vsc-pg-app
     config:
       database:
-        DB_TYPE: mysql
-        HOST: <mysql HOST>
-        NAME: gitea
-        USER: root
-        PASSWD: gitea
-        SCHEMA: gitea
+        DB_TYPE: postgres
+      
       session:
-        PROVIDER: memory
+        PROVIDER: redis
+        PROVIDER_CONFIG: redis://redis-master.database.svc.cluster.local:6379/0?pool_size=100&idle_timeout=180s&
+      
       cache:
-        ADAPTER: memory
+        ENABLED: true
+        ADAPTER: redis
+        HOST: redis://redis-master.database.svc.cluster.local:6379/0?pool_size=100&idle_timeout=180s&
+      
       queue:
-        TYPE: level
+        TYPE: redis
+        CONN_STR: redis://redis-master.database.svc.cluster.local:6379/0?pool_size=100&idle_timeout=180s&
