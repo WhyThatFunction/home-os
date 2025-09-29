@@ -44,6 +44,7 @@ gitea:
   gitea:
     admin:
       existingSecret: "gitea-admin-secret"
+      email: "vsc@ssegning.com"
     oauth: 
       - name: "SSegning Accounts Dev"
         provider: oauth2
