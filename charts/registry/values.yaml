@@ -50,12 +50,8 @@ verdaccio:
   persistence:
     storageClass: longhorn
     size: 10Gi
-  secrets:
-    htpasswd:
-      - username: "test"
-        password: "test"
-      - username: "blah"
-        password: "blah"
+  existingSecret: "npm-basic-auth"
+  secrets: ~
   ingress:
     enabled: true
     className: "traefik"
@@ -73,28 +69,3 @@ verdaccio:
           - npm-registry.ssegning.com
   cachingNginx:
     enabled: true
-
-chartmuseum:
-  persistence:
-    enabled: true
-    storageClass: sstorage
-  serviceMonitor:
-    enabled: true
-  ingress:
-    enabled: true
-    hosts:
-      - name: helm.ssegning.com
-        tls: true
-    tlsSecret: helm.ssegning.me-tls
-    ingressClassName: traefik
-    annotations:
-      cert-manager.io/cluster-issuer: cert-cloudflare
-  env:
-    open:
-      DISABLE_API: false
-      CACHE: redis
-      CACHE_REDIS_ADDR: redis-master.database.svc.cluster.local:6379
-      CACHE_REDIS_DB: 1
-    secret:
-      BASIC_AUTH_USER: home-docker
-      BASIC_AUTH_PASS: nF0i99icmCTv
