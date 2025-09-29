@@ -21,13 +21,6 @@ gitea:
     enabled: false
   postgresql-ha:
     enabled: false
-  deployment:
-    env:
-      - name: sd
-        valueFrom:
-          secretKeyRef:
-            name: "password-manager-pg-app"
-            key: uri
 
   persistence:
     enabled: false
