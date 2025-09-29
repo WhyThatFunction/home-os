@@ -37,6 +37,8 @@ harbor:
   database:
     type: "external"
     external:
+      host: registry-pg-rw
+      username: app
       existingSecret: registry-pg-app
   redis: 
     type: external    
