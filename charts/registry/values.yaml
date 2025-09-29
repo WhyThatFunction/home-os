@@ -11,7 +11,7 @@ db:
     limits:
       memory: "1Gi"
       cpu: "1"
-      
+
 harbor:
   expose:
     ingress:
@@ -40,8 +40,8 @@ harbor:
       host: registry-pg-rw
       username: app
       existingSecret: registry-pg-app
-  redis: 
-    type: external    
+  redis:
+    type: external
     external:
       addr: "redis-master.database.svc.cluster.local"
 
@@ -49,6 +49,12 @@ verdaccio:
   persistence:
     storageClass: longhorn
     size: 10Gi
+  secrets:
+    htpasswd:
+      - username: "test"
+        password: "test"
+      - username: "blah"
+        password: "blah"
   ingress:
     enabled: true
     className: "traefik"
@@ -70,7 +76,7 @@ verdaccio:
 chartmuseum:
   persistence:
     enabled: true
-    storageClass: nfs-ssd
+    storageClass: sstorage
   serviceMonitor:
     enabled: true
   ingress:

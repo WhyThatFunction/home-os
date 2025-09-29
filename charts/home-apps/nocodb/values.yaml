@@ -44,4 +44,4 @@ nocodb:
     data: 
       enabled: true
       type: pvc
-      storageClass: nfs-ssd
+      storageClass: sstorage

@@ -79,3 +79,10 @@ gitea:
       queue:
         TYPE: redis
         CONN_STR: redis://redis-master.database.svc.cluster.local:6379/0?pool_size=100&idle_timeout=180s&
+
+
+actions: 
+  enabled: true
+  statefulset: 
+    timezone: Europe/Berlin
+  giteaRootURL: "http://vsc-gitea-http:3000"
