@@ -13,7 +13,6 @@ db:
       cpu: "1"
 
 sentry:
-  sentry:
   redis:
     enabled: false
   externalRedis:
@@ -60,6 +59,7 @@ sentry:
       storageClass: longhorn
   kafka:
     controller:
+      replicaCount: 1
       persistence:
         storageClass: longhorn
 

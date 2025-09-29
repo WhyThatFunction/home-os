@@ -1,3 +1,17 @@
+db:
+  enabled: true
+  instances: 2
+  storage:
+    size: 10Gi
+    storageClass: longhorn
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1"
+      
 harbor:
   expose:
     ingress:
