@@ -13,6 +13,9 @@ db:
       cpu: "1"
 
 harbor:
+  existingSecretSecretKey: harbor-secret-key
+  cache: 
+    enabled: true
   expose:
     ingress:
       hosts:
