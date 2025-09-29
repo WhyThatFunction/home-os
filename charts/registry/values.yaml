@@ -40,6 +40,7 @@ harbor:
       host: registry-pg-rw
       username: app
       existingSecret: registry-pg-app
+      coreDatabase: app
   redis:
     type: external
     external:
