@@ -48,8 +48,9 @@ harbor:
 
 verdaccio:
   persistence:
-    storageClass: longhorn
+    storageClass: sstorage
     size: 10Gi
+    accessMode: ReadWriteMany
   existingSecret: "npm-basic-auth"
   secrets:
     htpasswd: ~
