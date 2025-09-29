@@ -439,7 +439,24 @@ applications:
     syncPolicy:
       syncOptions:
         - ServerSideApply=true
-        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: observe
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: vaam-store
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/observe
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: observe
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
       automated:
         prune: true
         selfHeal: true

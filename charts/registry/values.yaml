@@ -23,7 +23,9 @@ harbor:
   database:
     type: "external"
     external:
-      existingSecret: registry-harbor-pg-app
+      existingSecret: registry-pg-app
+  redis: 
+    type: external    
 
 verdaccio:
   persistence:
@@ -60,6 +62,8 @@ chartmuseum:
         tls: true
     tlsSecret: helm.ssegning.me-tls
     ingressClassName: traefik
+    annotations:
+      cert-manager.io/cluster-issuer: cert-cloudflare
   env:
     open:
       DISABLE_API: false
