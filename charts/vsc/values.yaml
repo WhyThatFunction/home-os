@@ -42,6 +42,13 @@ gitea:
           - vsc.ssegning.me
   
   gitea:
+    admin:
+      existingSecret: "gitea-admin-secret"
+    oauth: 
+      - name: "SSegning Accounts Dev"
+        provider: oauth2
+        existingSecret: gitea-oauth2
+        autoDiscoverUrl: https://accounts.ssegning.com/realms/dev 
     additionalConfigFromEnvs:
       - name: GITEA__DATABASE__HOST
         valueFrom:
@@ -86,3 +93,5 @@ actions:
   statefulset: 
     timezone: Europe/Berlin
   giteaRootURL: "http://vsc-gitea-http:3000"
+  existingSecret: "gitea-action-secret"
+  existingSecretKey: "token"
