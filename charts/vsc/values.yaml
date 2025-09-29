@@ -45,11 +45,11 @@ gitea:
     admin:
       existingSecret: "gitea-admin-secret"
       email: "vsc@ssegning.com"
-    oauth: 
-      - name: "SSegning Accounts Dev"
-        provider: oauth2
-        existingSecret: gitea-oauth2
-        autoDiscoverUrl: https://accounts.ssegning.com/realms/dev 
+#    oauth: 
+#      - name: "SSegning Accounts Dev"
+#        provider: oauth2
+#        existingSecret: gitea-oauth2
+#        autoDiscoverUrl: https://accounts.ssegning.com/realms/dev 
     additionalConfigFromEnvs:
       - name: GITEA__DATABASE__HOST
         valueFrom:
