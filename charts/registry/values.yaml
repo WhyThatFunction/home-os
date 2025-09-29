@@ -40,6 +40,8 @@ harbor:
       existingSecret: registry-pg-app
   redis: 
     type: external    
+    external:
+      addr: "redis-master.database.svc.cluster.local"
 
 verdaccio:
   persistence:
