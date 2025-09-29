@@ -41,11 +41,11 @@ gitea:
           - vsc.ssegning.me
   
   gitea:
-    additionalConfigSources:
-      - secret:
-          secretName: gitea-app-ini-oauth
-      - configMap:
-          name: gitea-app-ini-plaintext
+#    additionalConfigSources:
+#      - secret:
+#          secretName: gitea-app-ini-oauth
+#      - configMap:
+#          name: gitea-app-ini-plaintext
     config:
       database:
         DB_TYPE: mysql
