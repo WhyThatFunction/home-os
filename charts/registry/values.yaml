@@ -24,11 +24,11 @@ harbor:
   expose:
     ingress:
       hosts:
-        core: container-registry.ssegning.com
+        core: container-registry.home.ssegning
       className: "traefik"
       annotations:
-        cert-manager.io/cluster-issuer: cert-cloudflare
-  externalURL: https://container-registry.ssegning.com
+        cert-manager.io/cluster-issuer: self-signed-ca
+  externalURL: https://container-registry.home.ssegning
   persistence:
     persistentVolumeClaim:
       registry:
