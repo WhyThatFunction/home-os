@@ -14,7 +14,7 @@ db:
 
 harbor:
   existingSecretAdminPassword: harbor-creds
-  existingSecretAdminPasswordKey: harbor-password
+  existingSecretAdminPasswordKey: HARBOR_ADMIN_PASSWORD
   existingSecretSecretKey: harbor-secret-key
   cache: 
     enabled: true
