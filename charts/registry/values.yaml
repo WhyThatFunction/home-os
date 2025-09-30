@@ -18,9 +18,9 @@ harbor:
   existingSecretSecretKey: harbor-secret-key
   cache: 
     enabled: true
-  registry: 
-    credentials: 
-      existingSecret: harbor-creds
+#  registry: 
+#    credentials: 
+#      existingSecret: harbor-creds
   expose:
     ingress:
       hosts:
