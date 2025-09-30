@@ -93,6 +93,30 @@ actions:
   enabled: true
   statefulset: 
     timezone: Europe/Berlin
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "500m"
+      limits:
+        memory: "4Gi"
+        cpu: "1"
   giteaRootURL: "http://vsc-gitea-http:3000"
   existingSecret: "gitea-action-secret"
   existingSecretKey: "token"
+
+action-pool: 
+  enabled: true
+  statefulset: 
+    timezone: Europe/Berlin
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "500m"
+      limits:
+        memory: "4Gi"
+        cpu: "1"
+      
+  giteaRootURL: "http://vsc-gitea-http:3000"
+  existingSecret: "gitea-action-secret"
+  existingSecretKey: "token"
+  

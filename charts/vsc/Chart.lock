@@ -5,8 +5,11 @@ dependencies:
 - name: actions
   repository: https://dl.gitea.com/charts
   version: 0.0.1
+- name: actions
+  repository: https://dl.gitea.com/charts
+  version: 0.0.1
 - name: common
   repository: https://charts.bitnami.com/bitnami
   version: 2.31.4
-digest: sha256:a4a35a3323c9bddb89dd978732ec40317ce46c7f6da0062b7598d32abeeb25b5
-generated: "2025-09-28T17:02:56.377908+02:00"
+digest: sha256:af9ae8adba7976aef73b0c3b5c1e129ef608f733fc4fa0a20505b11afa1c9ce5
+generated: "2025-09-30T16:45:17.677418+02:00"
