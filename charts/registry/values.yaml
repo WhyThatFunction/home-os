@@ -27,17 +27,15 @@ harbor:
   persistence:
     persistentVolumeClaim:
       registry:
-        storageClass: longhorn
+        storageClass: sstorage
+        accessMode: ReadWriteMany
       jobservice:
         jobLog:
-          storageClass: longhorn
+          storageClass: sstorage
           accessMode: ReadWriteMany
-      database:
-        storageClass: longhorn
-      redis:
-        storageClass: longhorn
       trivy:
-        storageClass: longhorn
+        storageClass: sstorage
+        accessMode: ReadWriteMany
   database:
     type: "external"
     external:
