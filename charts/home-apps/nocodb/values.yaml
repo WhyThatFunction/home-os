@@ -1,6 +1,6 @@
 nocodb: 
   image: 
-    repository: container-registry.home.ssegning/docker/nocodb/nocodb
+    repository: container-registry.ssegning.com/docker/nocodb/nocodb
   env: 
     NC_DB: "pg://postgresql.database.svc.cluster.local:5432?u=home-db&p=3M0j0ir8o4ZysdehKWpQ6278VZOb01xV&d=nocodb"
     NC_ALLOW_LOCAL_HOOKS: "true"

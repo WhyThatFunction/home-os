@@ -1,5 +1,5 @@
 global: 
-  imageRegistry: container-registry.home.ssegning/docker
+  imageRegistry: container-registry.ssegning.com/docker
 
 db:
   enabled: true
@@ -18,22 +18,22 @@ db:
 sentry:
   images:
     sentry:
-      repository: container-registry.home.ssegning/github/getsentry/sentry
+      repository: container-registry.ssegning.com/github/getsentry/sentry
     snuba:
-      repository: container-registry.home.ssegning/github/getsentry/snuba
+      repository: container-registry.ssegning.com/github/getsentry/snuba
     relay:
-      repository: container-registry.home.ssegning/github/getsentry/relay
+      repository: container-registry.ssegning.com/github/getsentry/relay
     symbolicator:
-      repository: container-registry.home.ssegning/github/getsentry/symbolicator
+      repository: container-registry.ssegning.com/github/getsentry/symbolicator
     vroom:
-      repository: container-registry.home.ssegning/github/getsentry/vroom
+      repository: container-registry.ssegning.com/github/getsentry/vroom
     uptimeChecker:
-      repository: container-registry.home.ssegning/github/getsentry/uptime-checker
+      repository: container-registry.ssegning.com/github/getsentry/uptime-checker
   
   snuba:
     cleanup:
       image:
-        repository: container-registry.home.ssegning/docker/clickhouse/clickhouse-server
+        repository: container-registry.ssegning.com/docker/clickhouse/clickhouse-server
   redis:
     enabled: false
   externalRedis:
@@ -41,7 +41,7 @@ sentry:
   hooks:
     dbCheck:
       image:
-        repository: container-registry.home.ssegning/github/subfuzion/netcat
+        repository: container-registry.ssegning.com/github/subfuzion/netcat
   postgresql:
     enabled: true
   externalPostgresql:
@@ -89,10 +89,10 @@ sentry:
         storageClass: longhorn
   metrics:
     image:
-      repository: container-registry.home.ssegning/docker/prom/statsd-exporter
+      repository: container-registry.ssegning.com/docker/prom/statsd-exporter
   pgbouncer:
     image:
-      repository: container-registry.home.ssegning/docker/bitnami/pgbouncer
+      repository: container-registry.ssegning.com/docker/bitnami/pgbouncer
 
 grafana-alloy:
   alloy:

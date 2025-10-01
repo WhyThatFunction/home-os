@@ -99,7 +99,7 @@ jellyfin:
       containers:
         jellyfin:
           image:
-            repository: container-registry.home.ssegning/docker/linuxserver/jellyfin
+            repository: container-registry.ssegning.com/docker/linuxserver/jellyfin
             tag: "latest"
             pullPolicy: Always
           env:
@@ -150,7 +150,7 @@ jellyfin:
       containers:
         jellyfin:
           image:
-            repository: container-registry.home.ssegning/docker/linuxserver/jackett
+            repository: container-registry.ssegning.com/docker/linuxserver/jackett
             tag: "latest"
             pullPolicy: Always
           env:

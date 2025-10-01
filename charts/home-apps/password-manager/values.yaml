@@ -14,7 +14,7 @@ db:
 
 vaultwarden:
   image: 
-    repository: container-registry.home.ssegning/github/dani-garcia/vaultwarden
+    repository: container-registry.ssegning.com/github/dani-garcia/vaultwarden
   env:
     TZ: Europe/Berlin
     ADMIN_TOKEN:

@@ -1,5 +1,5 @@
-global: 
-  imageRegistry: container-registry.home.ssegning/docker
+global:
+  imageRegistry: container-registry.ssegning.com/docker
 
 db:
   enabled: true
@@ -48,11 +48,11 @@ gitea:
     admin:
       existingSecret: "gitea-admin-secret"
       email: "vsc@ssegning.com"
-#    oauth: 
-#      - name: "SSegning Accounts Dev"
-#        provider: oauth2
-#        existingSecret: gitea-oauth2
-#        autoDiscoverUrl: https://accounts.ssegning.com/realms/dev 
+    oauth:
+      - name: "SSegning Accounts Dev"
+        provider: oauth2
+        existingSecret: gitea-oauth2
+        autoDiscoverUrl: https://accounts.ssegning.com/realms/dev
     additionalConfigFromEnvs:
       - name: GITEA__DATABASE__HOST
         valueFrom:
@@ -90,19 +90,19 @@ gitea:
       queue:
         TYPE: redis
         CONN_STR: redis://redis-master.database.svc.cluster.local:6379/0?pool_size=100&idle_timeout=180s&
-  test: 
-    image: 
-      name: container-registry.home.ssegning/docker/busybox
+  test:
+    image:
+      name: container-registry.ssegning.com/docker/busybox
 
 actions:
   enabled: true
   statefulset:
     replicas: 2
     timezone: Europe/Berlin
-    actRunner: 
-      repository: container-registry.home.ssegning/docker/gitea/act_runner
-    dind: 
-      repository: container-registry.home.ssegning/docker/docker
+    actRunner:
+      repository: container-registry.ssegning.com/docker/gitea/act_runner
+    dind:
+      repository: container-registry.ssegning.com/docker/docker
     resources:
       requests:
         memory: "512Mi"
@@ -115,4 +115,4 @@ actions:
   existingSecretKey: "token"
   init:
     image:
-      repository: container-registry.home.ssegning/docker/busybox
+      repository: container-registry.ssegning.com/docker/busybox

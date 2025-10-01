@@ -1,5 +1,5 @@
 global: 
-  imageRegistry: container-registry.home.ssegning/docker
+  imageRegistry: container-registry.ssegning.com/docker
 
 db:
   enabled: true
