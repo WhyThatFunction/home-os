@@ -1,5 +1,7 @@
-global: 
+global:
   imageRegistry: container-registry.ssegning.com/docker
+  security:
+    allowInsecureImages: true
 
 db:
   enabled: true

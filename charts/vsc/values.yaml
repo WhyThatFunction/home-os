@@ -1,5 +1,7 @@
 global:
   imageRegistry: container-registry.ssegning.com/gitea
+  security:
+    allowInsecureImages: true
 
 db:
   enabled: true
