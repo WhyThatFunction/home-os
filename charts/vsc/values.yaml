@@ -44,6 +44,14 @@ gitea:
         hosts:
           - vsc.ssegning.me
   
+  
+  deployment: 
+    env:
+      - name: ENABLE_AUTO_REGISTRATION
+        value: true
+      - name: DISABLE_REGISTRATION
+        value: true
+  
   gitea:
     admin:
       existingSecret: "gitea-admin-secret"
@@ -75,10 +83,6 @@ gitea:
             key: user
             name: vsc-pg-app
     config:
-      oauth2_client:
-        ENABLE_AUTO_REGISTRATION: true
-        DISABLE_REGISTRATION: true
-        
       database:
         DB_TYPE: postgres
       
