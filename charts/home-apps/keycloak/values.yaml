@@ -1,3 +1,6 @@
+global: 
+  imageRegistry: container-registry.home.ssegning/docker
+
 db:
   enabled: true
   instances: 2

@@ -13,6 +13,8 @@ db:
       cpu: "1"
 
 vaultwarden:
+  image: 
+    repository: container-registry.home.ssegning/github/dani-garcia/vaultwarden
   env:
     TZ: Europe/Berlin
     ADMIN_TOKEN:

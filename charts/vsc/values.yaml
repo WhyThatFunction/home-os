@@ -1,3 +1,6 @@
+global: 
+  imageRegistry: container-registry.home.ssegning/docker
+
 db:
   enabled: true
   instances: 2
@@ -87,12 +90,19 @@ gitea:
       queue:
         TYPE: redis
         CONN_STR: redis://redis-master.database.svc.cluster.local:6379/0?pool_size=100&idle_timeout=180s&
+  test: 
+    image: 
+      name: container-registry.home.ssegning/docker/busybox
 
-
-actions: 
+actions:
   enabled: true
-  statefulset: 
+  statefulset:
+    replicas: 2
     timezone: Europe/Berlin
+    actRunner: 
+      repository: container-registry.home.ssegning/docker/gitea/act_runner
+    dind: 
+      repository: container-registry.home.ssegning/docker/docker
     resources:
       requests:
         memory: "512Mi"
@@ -103,20 +113,6 @@ actions:
   giteaRootURL: "http://vsc-gitea-http:3000"
   existingSecret: "gitea-action-secret"
   existingSecretKey: "token"
-
-action-pool: 
-  enabled: true
-  statefulset: 
-    timezone: Europe/Berlin
-    resources:
-      requests:
-        memory: "512Mi"
-        cpu: "500m"
-      limits:
-        memory: "4Gi"
-        cpu: "1"
-      
-  giteaRootURL: "http://vsc-gitea-http:3000"
-  existingSecret: "gitea-action-secret"
-  existingSecretKey: "token"
-  
+  init:
+    image:
+      repository: container-registry.home.ssegning/docker/busybox

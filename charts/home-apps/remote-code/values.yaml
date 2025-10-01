@@ -14,6 +14,8 @@ db:
 
 coder-main:
   coder:
+    image: 
+      repo: container-registry.home.ssegning/github/coder/coder
     # You can specify any environment variables you'd like to pass to Coder
     # here. Coder consumes environment variables listed in
     # `coder server --help`, and these environment variables are also passed

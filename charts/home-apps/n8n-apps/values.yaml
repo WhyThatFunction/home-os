@@ -3,6 +3,7 @@ n8n:
   encryptionKey: "aPL#zsXEKxW9SZ$ef.7Ct1q6:7Fg6zAsl-+$EDsgdbYCPGO_"
   image: 
     pullPolicy: Always
+    repository: container-registry.home.ssegning/docker/n8nio/n8n
   
   log:
     level: warn

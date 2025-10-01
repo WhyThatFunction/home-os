@@ -1,3 +1,6 @@
+global: 
+  imageRegistry: container-registry.home.ssegning/docker
+
 db:
   enabled: true
   instances: 1
@@ -13,10 +16,32 @@ db:
       cpu: "1"
 
 sentry:
+  images:
+    sentry:
+      repository: container-registry.home.ssegning/github/getsentry/sentry
+    snuba:
+      repository: container-registry.home.ssegning/github/getsentry/snuba
+    relay:
+      repository: container-registry.home.ssegning/github/getsentry/relay
+    symbolicator:
+      repository: container-registry.home.ssegning/github/getsentry/symbolicator
+    vroom:
+      repository: container-registry.home.ssegning/github/getsentry/vroom
+    uptimeChecker:
+      repository: container-registry.home.ssegning/github/getsentry/uptime-checker
+  
+  snuba:
+    cleanup:
+      image:
+        repository: container-registry.home.ssegning/docker/clickhouse/clickhouse-server
   redis:
     enabled: false
   externalRedis:
     host: "redis-master.database.svc.cluster.local"
+  hooks:
+    dbCheck:
+      image:
+        repository: container-registry.home.ssegning/github/subfuzion/netcat
   postgresql:
     enabled: true
   externalPostgresql:
@@ -62,6 +87,12 @@ sentry:
       replicaCount: 1
       persistence:
         storageClass: longhorn
+  metrics:
+    image:
+      repository: container-registry.home.ssegning/docker/prom/statsd-exporter
+  pgbouncer:
+    image:
+      repository: container-registry.home.ssegning/docker/bitnami/pgbouncer
 
 grafana-alloy:
   alloy:
@@ -318,7 +349,7 @@ grafana-alloy:
           url = "http://mimir-nginx:80/api/v1/push"
         }
       }
-  ingress: 
+  ingress:
     enabled: true
     annotations:
       cert-manager.io/cluster-issuer: self-signed-ca
