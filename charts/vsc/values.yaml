@@ -1,5 +1,5 @@
 global:
-  imageRegistry: container-registry.ssegning.com/docker
+  imageRegistry: container-registry.ssegning.com/gitea
 
 db:
   enabled: true
@@ -100,9 +100,9 @@ actions:
     replicas: 2
     timezone: Europe/Berlin
     actRunner:
-      repository: container-registry.ssegning.com/docker/gitea/act_runner
+      repository: container-registry.ssegning.com/gitea/gitea/act_runner
     dind:
-      repository: container-registry.ssegning.com/docker/docker
+      repository: container-registry.ssegning.com/gitea/docker
     resources:
       requests:
         memory: "512Mi"
