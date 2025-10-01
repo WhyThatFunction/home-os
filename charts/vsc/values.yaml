@@ -50,9 +50,9 @@ gitea:
       email: "vsc@ssegning.com"
     oauth:
       - name: "SSegning Accounts Dev"
-        provider: oauth2
+        provider: openidConnect
         existingSecret: gitea-oauth2
-        autoDiscoverUrl: https://accounts.ssegning.com/realms/dev
+        autoDiscoverUrl: https://accounts.ssegning.com/realms/dev/.well-known/openid-configuration
     additionalConfigFromEnvs:
       - name: GITEA__DATABASE__HOST
         valueFrom:
