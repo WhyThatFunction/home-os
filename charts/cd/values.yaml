@@ -227,6 +227,8 @@ applications:
             imageRegistry: container-registry.ssegning.com/docker
             security:
               allowInsecureImages: true
+          postgresql:
+            registry: container-registry.ssegning.com/docker
           pluginBarmanCloud:
             enabled: true
     destination:
