@@ -48,9 +48,9 @@ gitea:
   deployment: 
     env:
       - name: ENABLE_AUTO_REGISTRATION
-        value: true
+        value: "true"
       - name: DISABLE_REGISTRATION
-        value: true
+        value: "true"
   
   gitea:
     admin:
