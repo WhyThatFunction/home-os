@@ -76,9 +76,10 @@ gitea:
             key: user
             name: vsc-pg-app
     config:
-      oauth2_client:
-        ENABLE_AUTO_REGISTRATION: false
+      service:
         DISABLE_REGISTRATION: true
+        REQUIRE_SIGNIN_VIEW: true
+        
       database:
         DB_TYPE: postgres
       
