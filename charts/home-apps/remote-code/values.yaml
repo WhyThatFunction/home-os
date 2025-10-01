@@ -98,6 +98,9 @@ coder-main:
         cpu: "3"
 
 qdrant:
+  image: 
+    repository: container-registry.ssegning.com/docker/qdrant/qdrant
+  
   livenessProbe:
     enabled: true
 

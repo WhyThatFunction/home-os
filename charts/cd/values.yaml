@@ -224,6 +224,7 @@ applications:
         valuesObject:
           global:
             defaultStorageClass: longhorn-local
+            imageRegistry: container-registry.ssegning.com/docker
           pluginBarmanCloud:
             enabled: true
     destination:
