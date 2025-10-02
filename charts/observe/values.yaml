@@ -353,3 +353,6 @@ grafana-alloy:
       cert-manager.io/cluster-issuer: self-signed-ca
     hostname: alloy.home.ssegning
     tls: true
+  configReloader: 
+    image: 
+      repository: bitnamilegacy/configmap-reload
