@@ -96,7 +96,7 @@ sentry:
     image:
       repository: container-registry.ssegning.com/docker/bitnami/pgbouncer
   nginx:
-    existingServerBlockConfigmap: '{{ template "sentry.fullname" . }}'
+    existingServerBlockConfigmap: observe-sentry-nginx # this should normally be calculated, but it's not. Hmm, why?
 
 grafana-alloy:
   alloy:
