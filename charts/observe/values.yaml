@@ -45,7 +45,7 @@ sentry:
       image:
         repository: container-registry.ssegning.com/github/subfuzion/netcat
   postgresql:
-    enabled: true
+    enabled: false
   externalPostgresql:
     existingSecret: 'observe-pg-app'
     existingSecretKeys:
@@ -100,13 +100,9 @@ grafana-alloy:
   alloy:
     extraContainerPorts:
       - name: "otel"
-        port: 4317
-        targetPort: 4317
-        protocol: "TCP"
+        containerPort: 4317
       - name: "otel-http"
-        port: 4318
-        targetPort: 4318
-        protocol: "TCP"
+        containerPort: 4318
     configuration: |-
       // ======================= Grafana Alloy ==============================
       logging {
