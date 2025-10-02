@@ -64,6 +64,8 @@ sentry:
     regexPathStyle: traefik
     ingressClassName: traefik
     hostname: sentry.ssegning.com
+    annotations:
+      cert-manager.io/cluster-issuer: cert-cloudflare
     tls:
       - secretName: sentry-ssegning-com-tls
         hosts:
