@@ -95,6 +95,8 @@ sentry:
   pgbouncer:
     image:
       repository: container-registry.ssegning.com/docker/bitnami/pgbouncer
+  nginx:
+    existingServerBlockConfigmap: '{{ template "sentry.fullname" . }}'
 
 grafana-alloy:
   alloy:
@@ -134,11 +136,11 @@ grafana-alloy:
         role = "ingress"
       }
 
-      //loki.write "default" {
-      //  endpoint {
-      //    url = "http://loki-gateway:80/loki/api/v1/push"
-      //  }
-      //}
+      loki.write "default" {
+        endpoint {
+          url = "http://loki-gateway:80/loki/api/v1/push"
+        }
+      }
 
       // ─── Node syslog ───────────────────────────────────────────────────
       // local.file_match discovers files on the local filesystem using glob patterns and the doublestar library. It returns an array of file paths.
@@ -342,11 +344,11 @@ grafana-alloy:
         forward_to = [ prometheus.remote_write.mimir.receiver ]
       }
 
-      //prometheus.remote_write "mimir" {
-      //  endpoint {
-      //    url = "http://mimir-nginx:80/api/v1/push"
-      //  }
-      //}
+      prometheus.remote_write "mimir" {
+        endpoint {
+          url = "https://mimir-nginx:80/api/v1/push"
+        }
+      }
   ingress:
     enabled: true
     annotations:
@@ -354,5 +356,6 @@ grafana-alloy:
     hostname: alloy.home.ssegning
     tls: true
   configReloader: 
+    enabled: false
     image: 
       repository: bitnamilegacy/configmap-reload
