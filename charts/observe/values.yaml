@@ -51,7 +51,7 @@ sentry:
     existingSecretKeys:
       password: password
       username: username
-      database: database
+      database: dbname
       port: port
       host: host
   rabbitmq:
@@ -134,11 +134,11 @@ grafana-alloy:
         role = "ingress"
       }
 
-      loki.write "default" {
-        endpoint {
-          url = "http://loki-gateway:80/loki/api/v1/push"
-        }
-      }
+      //loki.write "default" {
+      //  endpoint {
+      //    url = "http://loki-gateway:80/loki/api/v1/push"
+      //  }
+      //}
 
       // ─── Node syslog ───────────────────────────────────────────────────
       // local.file_match discovers files on the local filesystem using glob patterns and the doublestar library. It returns an array of file paths.
@@ -342,11 +342,11 @@ grafana-alloy:
         forward_to = [ prometheus.remote_write.mimir.receiver ]
       }
 
-      prometheus.remote_write "mimir" {
-        endpoint {
-          url = "http://mimir-nginx:80/api/v1/push"
-        }
-      }
+      //prometheus.remote_write "mimir" {
+      //  endpoint {
+      //    url = "http://mimir-nginx:80/api/v1/push"
+      //  }
+      //}
   ingress:
     enabled: true
     annotations:
