@@ -312,7 +312,7 @@ grafana-alloy:
             action  = "keep"
         }
 
-        # __metrics_path__ from annotation
+        // __metrics_path__ from annotation
         rule {
           source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_path"]
           target_label  = "__metrics_path__"
@@ -320,7 +320,7 @@ grafana-alloy:
           action        = "replace"
         }
 
-        # :port from annotation
+        // :port from annotation
         rule {
           source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_port", "__address__"]
           regex         = "(\\d+);(.+)"
