@@ -1,9 +1,6 @@
 dependencies:
-- name: sentry
-  repository: https://sentry-kubernetes.github.io/charts
-  version: 27.4.0
 - name: grafana-alloy
   repository: https://charts.bitnami.com/bitnami
   version: 1.0.7
-digest: sha256:b0b741661f9f4dac0a96951ddd67f37cf76e1d1be81af9734321ff0ff7101a28
-generated: "2025-09-29T07:37:46.585481+02:00"
+digest: sha256:c1932286ed26aabe11a2c47bc4e081543cd7263724cfcf5da27e46649c41c9fa
+generated: "2025-10-02T09:01:32.589181+02:00"

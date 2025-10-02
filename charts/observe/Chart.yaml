@@ -24,10 +24,6 @@ version: 0.1.0
 appVersion: "1.16.0"
 
 dependencies:
-  - name: sentry
-    version: 27.4.0
-    repository: https://sentry-kubernetes.github.io/charts
-    
   - name: grafana-alloy
     version: 1.0.7
     repository: https://charts.bitnami.com/bitnami
