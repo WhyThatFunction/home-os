@@ -43,7 +43,7 @@ sentry:
   hooks:
     dbCheck:
       image:
-        repository: container-registry.ssegning.com/github/subfuzion/netcat
+        repository: container-registry.ssegning.com/docker/subfuzion/netcat
   postgresql:
     enabled: false
   externalPostgresql:
