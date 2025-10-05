@@ -27,7 +27,7 @@ n8n:
     type: postgresdb
   
   externalPostgresql:
-    host: "n8n-apps-pg"
+    host: "n8n-apps-pg-rw"
     username: "app"
     database: "app"
     existingSecret: "n8n-apps-app"

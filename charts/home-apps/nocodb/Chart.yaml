@@ -27,3 +27,6 @@ dependencies:
   - name: nocodb
     version: '*'
     repository: https://zekker6.github.io/helm-charts
+  - name: common
+    version: 2.31.4
+    repository: https://charts.bitnami.com/bitnami
