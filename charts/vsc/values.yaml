@@ -35,7 +35,7 @@ gitea:
     enabled: true
     className: traefik
     annotations:
-      cert-manager.io/cluster-issuer: cert-home-cert-cloudflare
+      cert-manager.io/cluster-issuer: cert-cloudflare
     hosts:
       - host: vsc.ssegning.me
         paths:

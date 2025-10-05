@@ -1,6 +1,19 @@
+db:
+  enabled: true
+  instances: 2
+  storage:
+    size: 10Gi
+    storageClass: longhorn
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1"
+
 n8n: 
   fullnameOverride: n8n
-  encryptionKey: "aPL#zsXEKxW9SZ$ef.7Ct1q6:7Fg6zAsl-+$EDsgdbYCPGO_"
   image: 
     pullPolicy: Always
     repository: container-registry.ssegning.com/docker/n8nio/n8n
@@ -14,10 +27,10 @@ n8n:
     type: postgresdb
   
   externalPostgresql:
-    host: "postgresql.database.svc.cluster.local"
-    username: "home-db"
-    password: "3M0j0ir8o4ZysdehKWpQ6278VZOb01xV"
-    database: "n8n"
+    host: "n8n-apps-pg"
+    username: "app"
+    database: "app"
+    existingSecret: "n8n-apps-app"
   
   main:
     count: 1
@@ -56,12 +69,12 @@ n8n:
         
   taskRunners: 
     mode: external
-    maxConcurrency: 2
+    maxConcurrency: 5
     external: 
       resources:
         requests:
           cpu: 100m
-          memory: 32Mi
+          memory: 256Mi
         limits:
           cpu: 1000m
           memory: 2Gi
@@ -75,20 +88,24 @@ n8n:
   ingress:
     enabled: true
     annotations:
-      cert-manager.io/cluster-issuer: cert-home-cert-cloudflare
+      cert-manager.io/cluster-issuer: cert-cloudflare
     hosts:
-      - host: n8n.ssegning.me
+      - host: n8n.ssegning.com
         paths:
           - path: /
             pathType: Prefix
     tls:
-      - secretName: n8n-ssegning-me-tls
+      - secretName: n8n-ssegning-com-tls
         hosts:
-          - n8n.ssegning.me
+          - n8n.ssegning.com
   
   webhook:
     mode: queue
-    url: "https://webhook.ssegning.me"
+    url: "https://webhook.ssegning.com"
+    autoscaling: 
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 4
     resources:
       requests:
         cpu: 100m
