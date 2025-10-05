@@ -54,6 +54,7 @@ harbor:
       addr: "redis-master.database.svc.cluster.local"
 
 verdaccio:
+  enabled: false
   persistence:
     storageClass: sstorage
     size: 10Gi
