@@ -20,7 +20,7 @@ nocodb:
       valueFrom:
         secretKeyRef:
           name: nocodb-config
-          key: secret
+          key: nc_db
     NC_ALLOW_LOCAL_HOOKS: "true"
     NC_DISABLE_TELE: "true"
     
@@ -46,13 +46,13 @@ nocodb:
       valueFrom:
         secretKeyRef:
           name: nocodb-config
-          key: secret
+          key: jwt_secret
     
     NC_CONNECTION_ENCRYPT_KEY:
       valueFrom:
         secretKeyRef:
           name: nocodb-config
-          key: secret
+          key: encrypt_key
   
   ingress:
     main:
