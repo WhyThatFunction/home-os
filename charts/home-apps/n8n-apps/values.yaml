@@ -30,7 +30,7 @@ n8n:
     host: "n8n-apps-pg-rw"
     username: "app"
     database: "app"
-    existingSecret: "n8n-apps-app"
+    existingSecret: "n8n-apps-pg-app"
   
   main:
     count: 1
