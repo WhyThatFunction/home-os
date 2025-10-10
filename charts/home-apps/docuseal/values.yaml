@@ -29,7 +29,7 @@ docuseal:
     DATABASE_URL:
       valueFrom:
         secretKeyRef:
-          name: docuseal-app
+          name: docuseal-pg-app
           key: uri
     SMTP_ADDRESS: 'mail.mail.svc.cluster.local'
     SMTP_PORT: '587'
