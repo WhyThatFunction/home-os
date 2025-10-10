@@ -14,7 +14,7 @@ db:
     limits:
       memory: "1Gi"
       cpu: "1"
-      
+
 docuseal:
   resources:
     limits:
@@ -26,6 +26,7 @@ docuseal:
   env:
     TZ: 'Africa/Douala'
     HOST: docuseal.ssegning.com
+    REDIS_URL: redis://redis-master.database.svc.cluster.local:6379
     DATABASE_URL:
       valueFrom:
         secretKeyRef:
