@@ -426,6 +426,25 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: docuseal
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/docuseal
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: docuseal
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: registry
     finalizers:
       - resources-finalizer.argocd.argoproj.io
