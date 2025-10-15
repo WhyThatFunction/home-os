@@ -148,7 +148,7 @@ jellyfin:
         labels:
           app: jackett-app
       containers:
-        jellyfin:
+        jackett:
           image:
             repository: container-registry.ssegning.com/docker/linuxserver/jackett
             tag: "latest"
