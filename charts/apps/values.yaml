@@ -462,6 +462,22 @@ applications:
       automated:
         prune: true
         selfHeal: true
+        
+  - name: mcpo
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/mcpo
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: mcpo
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
   
   #  - name: vsc
   #    finalizers:

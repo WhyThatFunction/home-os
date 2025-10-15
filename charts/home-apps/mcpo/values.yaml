@@ -16,7 +16,7 @@ mcpo:
         mcpo:
           image:
             repository: container-registry.ssegning.com/github/open-webui/mcpo
-            tag: "git-1986204"
+            tag: "git-91e8f94"
             pullPolicy: IfNotPresent
           
           command: /bin/sh
@@ -49,7 +49,7 @@ mcpo:
         playwright:
           image:
             repository: mcr.microsoft.com/playwright
-            tag: v1.53.0-noble
+            tag: v1.56.0-noble
           
           command: /bin/sh
           
@@ -58,7 +58,7 @@ mcpo:
             - |
               set -e
               
-              npx -y playwright@1.53.0 run-server --port 3000 --host 0.0.0.0
+              npx -y playwright@1.56.0 run-server --port 3000 --host 0.0.0.0
           
           resources:
             requests:
