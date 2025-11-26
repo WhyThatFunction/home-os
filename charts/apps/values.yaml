@@ -211,22 +211,3 @@ applications:
       automated:
         prune: true
         selfHeal: true
-
-  - name: registry
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: vaam-store
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: charts/registry
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: registry
-    syncPolicy:
-      syncOptions:
-        - ServerSideApply=true
-      automated:
-        prune: true
-        selfHeal: true
-        

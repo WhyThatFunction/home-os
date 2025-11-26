@@ -24,6 +24,21 @@ machine:
     image: factory.talos.dev/installer/c35d5bd14fd96abc839f9f44f5effd00c48f654edb8a42648f4b2eb6051d1dd6:v1.10.4 # Allows for supplying the image used to perform the installation.
     wipe: true # Indicates if the installation disk should be wiped at installation time.
   
+  registries:
+    mirrors:
+      docker.io:
+        endpoints:
+          - http://10.10.0.36:5100
+      gcr.io:
+        endpoints:
+          - http://10.10.0.36:5101
+      ghcr.io:
+        endpoints:
+          - http://10.10.0.36:5102
+      registry.k8s.io:
+        endpoints:
+          - http://10.10.0.36:5103
+
   # # MachineSysctls usage example.
   sysctls:
     vm.nr_hugepages: "1024"
