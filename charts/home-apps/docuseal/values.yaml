@@ -13,6 +13,8 @@ db:
       cpu: "1"
 
 docuseal:
+  image: 
+    tag: latest
   resources:
     limits:
       cpu: 500m
