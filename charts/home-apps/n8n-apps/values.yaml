@@ -16,7 +16,6 @@ n8n:
   fullnameOverride: n8n
   image: 
     pullPolicy: Always
-    repository: container-registry.ssegning.com/docker/n8nio/n8n
   
   existingEncryptionKeySecret: "n8n-encryption-key-secret"
   
