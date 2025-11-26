@@ -15,7 +15,7 @@ db:
 coder-main:
   coder:
     image: 
-      repo: container-registry.ssegning.com/github/coder/coder
+      repo: ghcr.io/coder/coder
     # You can specify any environment variables you'd like to pass to Coder
     # here. Coder consumes environment variables listed in
     # `coder server --help`, and these environment variables are also passed
@@ -98,9 +98,6 @@ coder-main:
         cpu: "3"
 
 qdrant:
-  image: 
-    repository: container-registry.ssegning.com/docker/qdrant/qdrant
-  
   livenessProbe:
     enabled: true
 

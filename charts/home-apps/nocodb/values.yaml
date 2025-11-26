@@ -13,8 +13,6 @@ db:
       cpu: "1"
 
 nocodb:
-  image:
-    repository: container-registry.ssegning.com/docker/nocodb/nocodb
   env:
     NC_DB: # "pg://postgresql-host:5432?u=user&p=password&d=nocodb"
       valueFrom:

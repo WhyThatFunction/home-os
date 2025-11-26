@@ -15,7 +15,7 @@ mcpo:
       containers:
         mcpo:
           image:
-            repository: container-registry.ssegning.com/github/open-webui/mcpo
+            repository: ghcr.io/open-webui/mcpo
             tag: "git-91e8f94"
             pullPolicy: IfNotPresent
           

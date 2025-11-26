@@ -16,7 +16,7 @@ navidrome:
       containers:
         navidrome:
           image:
-            repository: container-registry.ssegning.com/github/navidrome/navidrome
+            repository: ghcr.io/navidrome/navidrome
             tag: "{{ .Values.global.version }}"
             pullPolicy: IfNotPresent
           

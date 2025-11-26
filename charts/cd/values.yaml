@@ -224,7 +224,6 @@ applications:
         valuesObject:
           global:
             defaultStorageClass: longhorn-local
-            #imageRegistry: container-registry.ssegning.com/docker
             security:
               allowInsecureImages: true
           operator:

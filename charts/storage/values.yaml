@@ -1,6 +1,3 @@
-global: 
-  imageRegistry: container-registry.ssegning.com/docker
-
 longhorn:
   nameOverride: longhorn 
   persistence:

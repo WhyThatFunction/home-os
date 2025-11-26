@@ -11,6 +11,21 @@ machine:
     image: factory.talos.dev/installer/ce4c980550dd2ab1b17bbf2b08801c7eb59418eafe8f279833297925d67c7515:v1.10.4 # Allows for supplying the image used to perform the installation.
     wipe: true # Indicates if the installation disk should be wiped at installation time.
 
+  registries:
+    mirrors:
+      docker.io:
+        endpoints:
+          - http://10.10.0.36:5100
+      gcr.io:
+        endpoints:
+          - http://10.10.0.36:5101
+      ghcr.io:
+        endpoints:
+          - http://10.10.0.36:5102
+      registry.k8s.io:
+        endpoints:
+          - http://10.10.0.36:5103
+            
 # Provides cluster specific configuration options.
 cluster:
   # Provides cluster specific network configuration options.
