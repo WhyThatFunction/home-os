@@ -227,8 +227,17 @@ applications:
             #imageRegistry: container-registry.ssegning.com/docker
             #security:
             #  allowInsecureImages: true
+          operator:
+            image:
+              repository: bitnamilegacy/cloudnative-pg
+            postgresqlImage:
+              repository: bitnamilegacy/postgresql
           pluginBarmanCloud:
             enabled: true
+            image:
+              repository: bitnamilegacy/plugin-barman-cloud
+            sidecarImage:
+              repository: bitnamilegacy/plugin-barman-cloud-sidecar
     destination:
       server: https://kubernetes.default.svc
       namespace: cloudnative-pg
