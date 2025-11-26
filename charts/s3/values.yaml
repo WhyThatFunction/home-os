@@ -15,7 +15,11 @@ minio:
     size: 10Gi
   service:
     type: ClusterIP
+  clientImage:
+    repository: bitnamilegacy/minio-client
   console:
+    image:
+      repository: bitnamilegacy/minio-object-browser
     ingress:
       enabled: true
       ingressClassName: traefik
