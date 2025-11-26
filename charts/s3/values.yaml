@@ -3,13 +3,7 @@ global:
 
 minio:
   enabled: true
-  metrics:
-    enabled: true
   mode: standalone
-  podAnnotations:
-    prometheus.io/scrape: "true"
-    prometheus.io/path: "/minio/v2/metrics/cluster"
-    prometheus.io/port: "9000"
   auth:
     existingSecret: minio-root
   persistence:

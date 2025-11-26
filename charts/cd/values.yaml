@@ -405,8 +405,6 @@ applications:
           auth:
             enabled: false
           architecture: replication
-          metrics:
-            enabled: true
           replica:
             replicaCount: 2
     destination:
