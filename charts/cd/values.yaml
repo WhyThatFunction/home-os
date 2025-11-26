@@ -225,8 +225,8 @@ applications:
           global:
             defaultStorageClass: longhorn-local
             #imageRegistry: container-registry.ssegning.com/docker
-            #security:
-            #  allowInsecureImages: true
+            security:
+              allowInsecureImages: true
           operator:
             image:
               repository: bitnamilegacy/cloudnative-pg
