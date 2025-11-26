@@ -404,7 +404,7 @@ applications:
     project: base-apps
     source:
       repoURL: registry-1.docker.io/bitnamicharts
-      targetRevision: 21.2.5
+      targetRevision: 24.0.0
       chart: redis
       helm:
         valuesObject:
@@ -412,6 +412,8 @@ applications:
             defaultStorageClass: longhorn-local
           auth:
             enabled: false
+          image:
+            repository: bitnamilegacy/redis
           architecture: replication
           replica:
             replicaCount: 2
