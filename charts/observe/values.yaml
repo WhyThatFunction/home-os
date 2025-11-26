@@ -5,6 +5,8 @@ global:
 
 grafana-alloy:
   alloy:
+    image: 
+      repository: bitnamilegacy/grafana-alloy
     extraContainerPorts:
       - name: "otel"
         containerPort: 4317

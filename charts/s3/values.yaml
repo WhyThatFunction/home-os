@@ -1,7 +1,11 @@
 global:
   imageRegistry: container-registry.ssegning.com/docker
+  security:
+    allowInsecureImages: true
 
 minio:
+  image:
+    repository: bitnamilegacy/minio
   enabled: true
   mode: standalone
   auth:
