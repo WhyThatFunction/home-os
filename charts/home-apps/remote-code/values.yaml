@@ -40,16 +40,6 @@ coder-main:
       - name: CODER_OAUTH2_GITHUB_DEFAULT_PROVIDER_ENABLE
         value: "false"
 
-      - name: CODER_OIDC_CLIENT_ID
-        value: "remote-code"
-      - name: CODER_OIDC_CLIENT_SECRET
-        valueFrom:
-          secretKeyRef:
-            name: remote-code-oidc
-            key: secret
-      - name: CODER_OIDC_ISSUER_URL
-        value: "https://accounts.ssegning.com/realms/dev"
-
       - name: CODER_ACCESS_URL
         value: "https://kyunta.com"
       - name: CODER_WILDCARD_ACCESS_URL
