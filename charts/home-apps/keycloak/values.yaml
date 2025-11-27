@@ -18,7 +18,10 @@ keycloak:
     storageClass: longhorn
 
   production: true
-  proxy: edge
+  proxyHeaders: forwarded
+  
+  image:
+    repository: bitnamilegacy/keycloak
 
   autoscaling:
     enabled: true
