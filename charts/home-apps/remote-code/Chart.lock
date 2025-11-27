@@ -1,12 +1,12 @@
 dependencies:
 - name: coder
   repository: https://helm.coder.com/v2
-  version: 2.27.0
+  version: 2.28.3
 - name: common
   repository: https://charts.bitnami.com/bitnami
   version: 2.31.4
 - name: qdrant
   repository: https://qdrant.github.io/qdrant-helm
-  version: 1.15.5
-digest: sha256:e1062031179d4128cb3857faaca502bbcac3b906da3c0cc574aeac249c0dc805
-generated: "2025-10-15T01:14:17.387328+02:00"
+  version: 1.16.1
+digest: sha256:c950ae624fdacf0ee0c68d229f938356ac0932c68b43c8b7e69188f2427b9ddd
+generated: "2025-11-27T07:41:07.815747+01:00"
