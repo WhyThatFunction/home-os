@@ -85,6 +85,7 @@ keycloak:
     enabled: false
 
   externalDatabase:
+    host: dumb
     type: postgresql
     existingSecret: keycloak-pg-app
     existingSecretDatabaseKey: dbname
