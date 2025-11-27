@@ -88,13 +88,11 @@ keycloak:
     enabled: false
 
   externalDatabase:
-    host: dumb
-    type: postgresql
+    host: keycloak-pg-rw
+    user: app
+    database: app
     existingSecret: keycloak-pg-app
-    existingSecretDatabaseKey: dbname
-    existingSecretHostKey: host
     existingSecretPasswordKey: password
-    existingSecretPortKey: port
     existingSecretUserKey: user
 
   auth:
