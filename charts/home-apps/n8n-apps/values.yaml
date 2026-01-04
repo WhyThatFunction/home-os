@@ -296,17 +296,17 @@ n8n:
               subPath: custom
               readOnly: false
           n8n:
-            - path: /home/node/.n8n/custom
+            - path: /home/node/.n8n/nodes
               subPath: custom
               readOnly: true
         worker:
           n8n:
-            - path: /home/node/.n8n/custom
+            - path: /home/node/.n8n/nodes
               subPath: custom
               readOnly: true
         webhook:
           n8n:
-            - path: /home/node/.n8n/custom
+            - path: /home/node/.n8n/nodes
               subPath: custom
               readOnly: true
 
@@ -334,7 +334,7 @@ n8n:
         N8N_DEFAULT_BINARY_DATA_MODE: "database"
 
         #
-        N8N_CUSTOM_EXTENSIONS: "/home/node/.n8n/custom"
+        #N8N_CUSTOM_EXTENSIONS: "/home/node/.n8n/custom"
         N8N_PYTHON_ENABLED: "false"
         NODE_FUNCTION_ALLOW_EXTERNAL: "*"
 
