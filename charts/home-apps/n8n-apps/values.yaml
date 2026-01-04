@@ -1,6 +1,36 @@
+global:
+  n8nVersion: "2.1.5"
+
+x-n8n-secrets: &n8n-secrets
+  DB_POSTGRESDB_DATABASE:
+    valueFrom:
+      secretKeyRef:
+        name: n8n-apps-pg-app
+        key: dbname
+  DB_POSTGRESDB_USER:
+    valueFrom:
+      secretKeyRef:
+        name: n8n-apps-pg-app
+        key: username
+  DB_POSTGRESDB_PASSWORD:
+    valueFrom:
+      secretKeyRef:
+        name: n8n-apps-pg-app
+        key: password
+  N8N_ENCRYPTION_KEY:
+    valueFrom:
+      secretKeyRef:
+        name: n8n-encryption-key-secret
+        key: key
+  N8N_USER_MANAGEMENT_JWT_SECRET:
+    valueFrom:
+      secretKeyRef:
+        name: n8n-jwt-key-secret
+        key: jwt-secret
+
 db:
   enabled: true
-  instances: 2
+  instances: 1
   storage:
     size: 10Gi
     storageClass: longhorn
@@ -13,120 +43,384 @@ db:
       cpu: "1"
 
 n8n:
-  fullnameOverride: n8n
-  image:
-    pullPolicy: Always
-    tag: "1.113.3"
-  
-  existingEncryptionKeySecret: "n8n-encryption-key-secret"
-  
-  log:
-    level: debug
-  
-  timezone: "Europe/Berlin"
-  
-  db:
-    type: postgresdb
-  
-  externalPostgresql:
-    host: "n8n-apps-pg-rw"
-    username: "app"
-    database: "app"
-    existingSecret: "n8n-apps-pg-app-bis"
-  
-  main:
-    count: 1
-    pdb:
-      enabled: false
-    resources:
-      requests:
-        cpu: 100m
-        memory: 1Gi
-      limits:
-        cpu: 512m
-        memory: 2Gi
-    volumes:
-      - name: artifacts
-        persistentVolumeClaim:
-          claimName: artifacts-ssd
-    volumeMounts:
-      - name: artifacts
-        mountPath: /tmp/artifacts
-    persistence:
-      enabled: true
-      storageClass: longhorn
+  controllers:
+    principal:
+      strategy: RollingUpdate
+      replicas: 1
+      initContainers:
+        install-extensions:
+          image:
+            repository: node
+            tag: "20-alpine"
+          command:
+            - sh
+            - -c
+          args:
+            - |
+              set -euo pipefail
+              mkdir -p /ext
+              cd /ext
 
-  worker:
-    mode: queue
-    count: 1
-    forceToUseStatefulset: true
-    pdb:
-      enabled: false
-    resources:
-      requests:
-        cpu: 100m
-        memory: 250Mi
-      limits:
-        cpu: 2000m
-        memory: 2Gi
-    volumes:
-      - name: artifacts
-        persistentVolumeClaim:
-          claimName: artifacts-ssd
-    volumeMounts:
-      - name: artifacts
-        mountPath: /tmp/artifacts
-    persistence:
-      enabled: true
-      storageClass: longhorn
+              # Initialize package.json if it doesn't exist
+              if [ ! -f package.json ]; then
+                 npm init -y >/dev/null 2>&1
+              fi
 
-  taskRunners:
-    mode: external
-    maxConcurrency: 5
-    external:
-      resources:
-        requests:
-          cpu: 100m
-          memory: 256Mi
-        limits:
-          cpu: 1000m
-          memory: 2Gi
-  
-  externalRedis:
-    host: "redis-master.database.svc.cluster.local"
+              npm install \
+                @brave/n8n-nodes-brave@1.0.25 \
+                lodash@4.17.21
 
-  redis:
-    enabled: false
+              echo "npm packages installed"
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      containers:
+        n8n:
+          image:
+            repository: docker.n8n.io/n8nio/n8n
+            tag: "{{ .Values.global.n8nVersion }}"   # pin this in real deployments
+          envFrom:
+            - configMapRef: { identifier: n8n-config-common }
+            - configMapRef: { identifier: n8n-config-queue }
+            - configMapRef: { identifier: n8n-config-executions-prod }
+            - configMapRef: { identifier: n8n-config-logging-prod }
+            - configMapRef: { identifier: n8n-config-security-prod }
+            - configMapRef: { identifier: n8n-config-telemetry-prod }
+            - configMapRef: { identifier: n8n-config-principal }
+          # principal runs the editor/UI + scheduler in queue mode
+          args: [ "n8n", "start" ]
+          env:
+            N8N_DISABLE_PRODUCTION_MAIN_PROCESS: "true"
+            <<: *n8n-secrets
+          ports:
+            - name: http
+              containerPort: 5678
+          probes:
+            liveness:
+              enabled: true
+              custom: true
+              spec:
+                httpGet:
+                  path: /healthz
+                  port: http
+            readiness:
+              enabled: true
+              custom: true
+              spec:
+                httpGet:
+                  path: /healthz/readiness
+                  port: http
+      pod:
+        labels:
+          n8n-role: principal
+
+    webhook:
+      strategy: RollingUpdate
+      replicas: 1
+      containers:
+        n8n:
+          image:
+            repository: docker.n8n.io/n8nio/n8n
+            tag: "{{ .Values.global.n8nVersion }}"
+          envFrom:
+            - configMapRef: { identifier: n8n-config-common }
+            - configMapRef: { identifier: n8n-config-queue }
+            - configMapRef: { identifier: n8n-config-executions-prod }
+            - configMapRef: { identifier: n8n-config-logging-prod }
+            - configMapRef: { identifier: n8n-config-security-prod }
+            - configMapRef: { identifier: n8n-config-telemetry-prod }
+            - configMapRef: { identifier: n8n-config-webhook }
+          env:
+            <<: *n8n-secrets
+          # Webhook processors are optional but recommended for scaling incoming webhooks
+          args: [ "n8n", "webhook" ]
+          ports:
+            - name: http
+              containerPort: 5678
+          probes:
+            liveness:
+              enabled: true
+              custom: true
+              spec:
+                httpGet:
+                  path: /healthz
+                  port: http
+            readiness:
+              enabled: true
+              custom: true
+              spec:
+                httpGet:
+                  path: /healthz/readiness
+                  port: http
+      pod:
+        labels:
+          n8n-role: webhook
+
+    worker:
+      strategy: RollingUpdate
+      replicas: 1
+      containers:
+        n8n:
+          image:
+            repository: docker.n8n.io/n8nio/n8n
+            tag: "{{ .Values.global.n8nVersion }}"
+          envFrom:
+            - configMapRef: { identifier: n8n-config-common }
+            - configMapRef: { identifier: n8n-config-queue }
+            - configMapRef: { identifier: n8n-config-executions-prod }
+            - configMapRef: { identifier: n8n-config-logging-prod }
+            - configMapRef: { identifier: n8n-config-security-prod }
+            - configMapRef: { identifier: n8n-config-telemetry-prod }
+            - configMapRef: { identifier: n8n-config-worker }
+          env:
+            <<: *n8n-secrets
+          # Workers consume executions from Redis in queue mode
+          args: [ "n8n", "worker" ]
+          # No HTTP service needed for workers
+      pod:
+        labels:
+          n8n-role: worker
+
+  service:
+    principal:
+      controller: principal
+      ports:
+        http:
+          port: 5678
+          targetPort: http
+
+    webhook:
+      controller: webhook
+      ports:
+        http:
+          port: 5678
+          targetPort: http
+
+    worker:
+      controller: worker
+      ports:
+        http:
+          port: 5678
+          targetPort: http
 
   ingress:
-    enabled: true
-    annotations:
-      cert-manager.io/cluster-issuer: cert-cloudflare
-    hosts:
-      - host: n8n.ssegning.com
-        paths:
-          - path: /
-            pathType: Prefix
-    tls:
-      - secretName: n8n-ssegning-com-tls
-        hosts:
-          - n8n.ssegning.com
-  
-  webhook:
-    mode: queue
-    url: "https://webhook.ssegning.com"
-    autoscaling:
+    main:
       enabled: true
-      minReplicas: 1
-      maxReplicas: 2
-    resources:
-      requests:
-        cpu: 100m
-        memory: 512Mi
-      limits:
-        cpu: 512m
-        memory: 1Gi
-  
-  binaryData:
-    mode: "filesystem"
-    localStoragePath: /tmp/artifacts
+      className: traefik
+      annotations:
+        cert-manager.io/cluster-issuer: cert-cloudflare
+      tls:
+        - secretName: n8n-ssegning-com-tls
+          hosts:
+            - n8n.ssegning.com
+      hosts:
+        - host: n8n.ssegning.com
+          paths:
+            # Everything else to principal (UI/editor + REST API)
+            - path: /
+              pathType: Prefix
+              service:
+                identifier: principal
+                port: http
+    webhook:
+      enabled: true
+      className: traefik
+      annotations:
+        cert-manager.io/cluster-issuer: cert-cloudflare
+      tls:
+        - secretName: webhook-ssegning-com-tls
+          hosts:
+            - webhook.ssegning.com
+      hosts:
+        - host: webhook.ssegning.com
+          paths:
+            # Route webhook endpoints to webhook processors
+            - path: /webhook
+              pathType: Prefix
+              service:
+                identifier: webhook
+                port: http
+            - path: /webhook-test
+              pathType: Prefix
+              service:
+                identifier: webhook
+                port: http
+            - path: /webhook-waiting
+              pathType: Prefix
+              service:
+                identifier: webhook
+                port: http
+            - path: /form
+              pathType: Prefix
+              service:
+                identifier: webhook
+                port: http
+            - path: /form-test
+              pathType: Prefix
+              service:
+                identifier: webhook
+                port: http
+            - path: /form-waiting
+              pathType: Prefix
+              service:
+                identifier: webhook
+                port: http
+
+  persistence:
+    n8n-extensions:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteMany   # RWX if workers can land on different nodes
+      size: 5Gi
+      advancedMounts:
+        principal:
+          install-extensions:
+            - path: /ext
+              subPath: custom
+              readOnly: false
+          n8n:
+            - path: /home/node/.n8n/custom
+              subPath: custom
+              readOnly: true
+        worker:
+          n8n:
+            - path: /home/node/.n8n/custom
+              subPath: custom
+              readOnly: true
+        webhook:
+          n8n:
+            - path: /home/node/.n8n/custom
+              subPath: custom
+              readOnly: true
+
+  configMaps:
+    n8n-config-common:
+      enabled: true
+      labels: { }
+      annotations: { }
+      data:
+        GENERIC_TIMEZONE: "Europe/Berlin"
+        NODE_ENV: "production"
+
+        # --- Database ---
+        DB_TYPE: "postgresdb"
+        DB_POSTGRESDB_HOST: "n8n-apps-pg-rw"
+        DB_POSTGRESDB_PORT: "5432"
+
+        # --- Redis (queue backend) ---
+        QUEUE_BULL_REDIS_HOST: "redis-master.database.svc.cluster.local"
+        QUEUE_BULL_REDIS_PORT: "6379"
+
+        # --- Binary data mode ---
+        # Keep premium/enterprise features out, so use database storage in queue deployments.
+        # (External/S3 storage is in "External data storage" docs section and is typically tied to paid features.)
+        N8N_DEFAULT_BINARY_DATA_MODE: "database"
+
+        #
+        N8N_CUSTOM_EXTENSIONS: "/home/node/.n8n/custom"
+        N8N_PYTHON_ENABLED: "false"
+        NODE_FUNCTION_ALLOW_EXTERNAL: "*"
+
+    n8n-config-queue:
+      enabled: true
+      labels: { }
+      annotations: { }
+      data:
+        EXECUTIONS_MODE: "queue"
+        QUEUE_HEALTH_CHECK_ACTIVE: "true"
+
+        # Optional queue tuning
+        OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS: "true"
+
+    n8n-config-executions-prod:
+      enabled: true
+      labels: { }
+      annotations: { }
+      data:
+        EXECUTIONS_DATA_SAVE_ON_SUCCESS: "none"  # default is all
+        EXECUTIONS_DATA_SAVE_ON_ERROR: "all"     # keep failures
+        EXECUTIONS_DATA_SAVE_ON_PROGRESS: "false" # default false
+        EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS: "true" # default true
+
+        EXECUTIONS_DATA_PRUNE: "true"
+        EXECUTIONS_DATA_MAX_AGE: "336"              # hours (14 days)
+        EXECUTIONS_DATA_PRUNE_MAX_COUNT: "10000"    # cap executions
+        EXECUTIONS_DATA_HARD_DELETE_BUFFER: "1"     # hours
+        EXECUTIONS_DATA_PRUNE_HARD_DELETE_INTERVAL: "15" # minutes
+        EXECUTIONS_DATA_PRUNE_SOFT_DELETE_INTERVAL: "60" # minutes
+
+        # Optional safety valve: cap concurrent production executions
+        # N8N_CONCURRENCY_PRODUCTION_LIMIT: "50"
+
+    n8n-config-logging-prod:
+      enabled: true
+      labels: { }
+      annotations: { }
+      data:
+        N8N_LOG_LEVEL: "info"
+        N8N_LOG_OUTPUT: "console"
+        N8N_LOG_FORMAT: "json"   # recommended for production monitoring
+        # CODE_ENABLE_STDOUT: "false" # default false; enable only if you want code logs
+
+    n8n-config-security-prod:
+      enabled: true
+      labels: { }
+      annotations: { }
+      data:
+        N8N_SECURE_COOKIE: "true"
+        N8N_SAMESITE_COOKIE: "lax"     # strict can break some flows; lax is documented default
+
+        # Optional hardening if you use Git node
+        N8N_GIT_NODE_DISABLE_BARE_REPOS: "true"
+        N8N_GIT_NODE_ENABLE_HOOKS: "false"
+
+        N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+
+    n8n-config-telemetry-prod:
+      enabled: true
+      labels: { }
+      annotations: { }
+      data:
+        N8N_METRICS: "false"
+
+        N8N_DIAGNOSTICS_ENABLED: "false"
+        N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+        N8N_PERSONALIZATION_ENABLED: "false"
+        N8N_HIRING_BANNER_ENABLED: "false"
+
+    n8n-config-principal:
+      enabled: true
+      labels: { }
+      annotations: { }
+      data:
+        N8N_PROTOCOL: "https"
+        N8N_HOST: "n8n.ssegning.com"
+        N8N_PORT: "5678"
+        N8N_EDITOR_BASE_URL: "https://n8n.ssegning.com"
+        WEBHOOK_URL: "https://webhook.ssegning.com"         # (commonly used; set to your public URL)
+        N8N_PROXY_HOPS: "1"                   # behind one reverse proxy
+
+        # Optional: disable templates in prod (they default to false anyway)
+        N8N_TEMPLATES_ENABLED: "false"
+
+    n8n-config-worker:
+      enabled: true
+      labels: { }
+      annotations: { }
+      data:
+        N8N_DISABLE_UI: "true"
+
+    n8n-config-webhook:
+      enabled: true
+      labels: { }
+      annotations: { }
+      data:
+        N8N_DISABLE_UI: "true"
