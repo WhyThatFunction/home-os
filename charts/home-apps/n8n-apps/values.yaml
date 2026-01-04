@@ -73,7 +73,7 @@ n8n:
         mountPath: /tmp/artifacts
 
   taskRunners:
-    mode: external
+    #mode: external
     maxConcurrency: 5
     external:
       resources:
