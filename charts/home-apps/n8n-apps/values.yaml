@@ -67,7 +67,7 @@ n8n:
               fi
 
               npm install \
-                @brave/n8n-nodes-brave \
+                @brave/n8n-nodes-brave-search \
                 lodash
 
               echo "npm packages installed"
