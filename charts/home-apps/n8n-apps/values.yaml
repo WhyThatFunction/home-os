@@ -107,8 +107,8 @@ n8n:
         - "moment"
         - "lodash"
     initContainer:
-      image:
-        tag: "24"
+      #image:
+      #  tag: "24"
       resources:
         requests:
           cpu: 500m
