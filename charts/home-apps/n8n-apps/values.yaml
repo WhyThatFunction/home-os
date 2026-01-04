@@ -136,7 +136,5 @@ n8n:
         memory: 1Gi
   
   binaryData:
-    availableModes:
-      - filesystem
     mode: "filesystem"
     localStoragePath: /tmp/artifacts
