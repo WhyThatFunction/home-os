@@ -85,7 +85,7 @@ browserless:
             MAX_MEMORY_PERCENT: "90"
             MAX_CPU_PERCENT: "90"
 
-            ENABLE_CORS: "false"
+            CORS: "false"
             ALLOW_GET: "false"
             ALLOW_FILE_PROTOCOL: "false"
 
@@ -157,7 +157,7 @@ browserless:
             MAX_MEMORY_PERCENT: "90"
             MAX_CPU_PERCENT: "90"
 
-            ENABLE_CORS: "false"
+            CORS: "false"
             ALLOW_GET: "false"
             ALLOW_FILE_PROTOCOL: "false"
 
