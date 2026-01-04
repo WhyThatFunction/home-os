@@ -98,11 +98,11 @@ n8n:
       allowAll: true
       reinstallMissingPackages: true
       packages:
-        - "@brave/n8n-nodes-brave-search"
+        #- "@brave/n8n-nodes-brave-search"
         - "@splainez/n8n-nodes-phonenumber-parser"
         - "n8n-nodes-gemini-search"
         - "n8n-nodes-smart-memory"
-        - "n8n-nodes-puppeteer"
+        - "n8n-nodes-puppeteer --ignore-scripts"
         - "@couleetech/n8n-nodes-pandoc"
         - "moment"
         - "lodash"
