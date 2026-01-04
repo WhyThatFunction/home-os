@@ -67,8 +67,8 @@ n8n:
               fi
 
               npm install \
-                @brave/n8n-nodes-brave@1.0.25 \
-                lodash@4.17.21
+                @brave/n8n-nodes-brave \
+                lodash
 
               echo "npm packages installed"
           securityContext:
@@ -141,7 +141,7 @@ n8n:
           env:
             <<: *n8n-secrets
           # Webhook processors are optional but recommended for scaling incoming webhooks
-          args: [ "n8n", "webhook" ]
+          args: [ "webhook" ]
           ports:
             - name: http
               containerPort: 5678
