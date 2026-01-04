@@ -51,7 +51,7 @@ n8n:
         install-extensions:
           image:
             repository: node
-            tag: "20-alpine"
+            tag: "20-slim"
           command:
             - sh
             - -c
@@ -66,8 +66,11 @@ n8n:
                  npm init -y >/dev/null 2>&1
               fi
               
-              npm i -g pnpm
-
+              export PNPM_HOME="/pnpm"
+              export PATH="$PNPM_HOME:$PATH"
+              
+              corepack enable
+  
               #  --ignore-scripts --production
               pnpm add \
                 @brave/n8n-nodes-brave-search \
