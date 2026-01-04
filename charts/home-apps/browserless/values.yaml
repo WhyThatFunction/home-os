@@ -215,7 +215,7 @@ browserless:
           firefox:
             - path: /downloads
               
-    browserless-user_data:
+    browserless-user-data:
       enabled: true
       type: persistentVolumeClaim
       accessMode: ReadWriteMany
