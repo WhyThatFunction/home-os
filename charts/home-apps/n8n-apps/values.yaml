@@ -50,6 +50,9 @@ n8n:
     volumeMounts:
       - name: artifacts
         mountPath: /tmp/artifacts
+    persistence:
+      enabled: true
+      storageClass: longhorn
 
   worker:
     mode: queue
@@ -72,6 +75,9 @@ n8n:
     volumeMounts:
       - name: artifacts
         mountPath: /tmp/artifacts
+    persistence:
+      enabled: true
+      storageClass: longhorn
 
   taskRunners:
     mode: external
@@ -90,32 +96,6 @@ n8n:
 
   redis:
     enabled: false
-
-  nodes:
-    builtin:
-      enabled: true
-    external:
-      allowAll: true
-      reinstallMissingPackages: true
-      packages:
-        - "@brave/n8n-nodes-brave-search --ignore-scripts --production"
-        - "@splainez/n8n-nodes-phonenumber-parser"
-        - "n8n-nodes-gemini-search"
-        - "n8n-nodes-smart-memory"
-        #- "n8n-nodes-puppeteer"
-        - "@couleetech/n8n-nodes-pandoc"
-        - "moment"
-        - "lodash"
-    initContainer:
-      #image:
-      #  tag: "24"
-      resources:
-        requests:
-          cpu: 500m
-          memory: 512Mi
-        limits:
-          cpu: 1000m
-          memory: 1Gi
 
   ingress:
     enabled: true
