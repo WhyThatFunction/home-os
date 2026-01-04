@@ -34,7 +34,7 @@ browserless:
     chrome:
       type: statefulset
       strategy: RollingUpdate
-      replicas: 2
+      replicas: 1
       pod:
         labels:
           app: chrome-app

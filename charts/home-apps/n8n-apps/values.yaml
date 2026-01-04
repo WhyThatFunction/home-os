@@ -19,8 +19,8 @@ n8n:
   
   existingEncryptionKeySecret: "n8n-encryption-key-secret"
   
-  #log:
-  #  level: warn
+  log:
+    level: debug
   
   timezone: "Europe/Berlin"
   
@@ -91,8 +91,8 @@ n8n:
     enabled: false
 
   nodes:
-    #builtin:
-    #  enabled: true
+    builtin:
+      enabled: true
     external:
       allowAll: true
       reinstallMissingPackages: true
@@ -105,6 +105,14 @@ n8n:
         - "@couleetech/n8n-nodes-pandoc"
         - "moment"
         - "lodash"
+    initContainer:
+      resources:
+        requests:
+          cpu: 500m
+          memory: 512Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
 
   ingress:
     enabled: true
@@ -136,5 +144,7 @@ n8n:
         memory: 1Gi
   
   binaryData:
+    availableModes:
+      - filesystem
     mode: "filesystem"
     localStoragePath: /tmp/artifacts
