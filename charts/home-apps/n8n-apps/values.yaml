@@ -98,7 +98,7 @@ n8n:
       allowAll: true
       reinstallMissingPackages: true
       packages:
-        #- "@brave/n8n-nodes-brave-search"
+        - "@brave/n8n-nodes-brave-search --ignore-scripts"
         - "@splainez/n8n-nodes-phonenumber-parser"
         - "n8n-nodes-gemini-search"
         - "n8n-nodes-smart-memory"
@@ -107,6 +107,8 @@ n8n:
         - "moment"
         - "lodash"
     initContainer:
+      image:
+        tag: 24
       resources:
         requests:
           cpu: 500m
