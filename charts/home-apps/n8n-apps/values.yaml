@@ -16,7 +16,7 @@ n8n:
   fullnameOverride: n8n
   image:
     pullPolicy: Always
-    tag: "1" # 1.113.3
+    tag: "1.113.3"
   
   existingEncryptionKeySecret: "n8n-encryption-key-secret"
   
