@@ -183,7 +183,7 @@ n8n:
           env:
             <<: *n8n-secrets
           # Workers consume executions from Redis in queue mode
-          args: [ "n8n", "worker" ]
+          args: [ "worker" ]
           # No HTTP service needed for workers
       pod:
         labels:
@@ -367,7 +367,7 @@ n8n:
       data:
         N8N_LOG_LEVEL: "info"
         N8N_LOG_OUTPUT: "console"
-        N8N_LOG_FORMAT: "json"   # recommended for production monitoring
+        #N8N_LOG_FORMAT: "json"   # recommended for production monitoring
         # CODE_ENABLE_STDOUT: "false" # default false; enable only if you want code logs
 
     n8n-config-security-prod:
