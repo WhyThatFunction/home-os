@@ -73,7 +73,7 @@ n8n:
               export PATH="$PNPM_HOME:$PATH"
   
               #  --ignore-scripts --production
-              npm i --ignore-scripts \
+              npm i \
                 @brave/n8n-nodes-brave-search \
                 n8n-nodes-puppeteer \
                 moment \
