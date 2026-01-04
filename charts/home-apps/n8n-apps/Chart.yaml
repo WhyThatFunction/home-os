@@ -29,5 +29,5 @@ dependencies:
     repository: "file://../common"
   - name: app-template
     version: '*'
-    repository: "file://../app-template"
+    repository: "https://bjw-s-labs.github.io/helm-charts"
     alias: n8n
