@@ -99,13 +99,13 @@ n8n:
       reinstallMissingPackages: true
       packages:
         - "@brave/n8n-nodes-brave-search --ignore-scripts --production"
-        - "@splainez/n8n-nodes-phonenumber-parser"
+        #- "@splainez/n8n-nodes-phonenumber-parser"
         - "n8n-nodes-gemini-search"
         - "n8n-nodes-smart-memory"
         - "n8n-nodes-puppeteer --ignore-scripts --production"
-        - "@couleetech/n8n-nodes-pandoc"
-        - "moment"
-        - "lodash"
+        #- "@couleetech/n8n-nodes-pandoc"
+        #- "moment"
+        #- "lodash"
     initContainer:
       #image:
       #  tag: "24"
