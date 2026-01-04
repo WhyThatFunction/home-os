@@ -65,8 +65,11 @@ n8n:
               if [ ! -f package.json ]; then
                  npm init -y >/dev/null 2>&1
               fi
+              
+              npm i -g pnpm
 
-              npm install \
+              #  --ignore-scripts --production
+              pnpm add \
                 @brave/n8n-nodes-brave-search \
                 n8n-nodes-puppeteer \
                 moment \
