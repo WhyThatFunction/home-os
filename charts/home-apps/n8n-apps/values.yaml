@@ -91,6 +91,8 @@ n8n:
     enabled: false
 
   nodes:
+    builtin:
+      enabled: true
     external:
       allowAll: true
       reinstallMissingPackages: true
