@@ -57,7 +57,7 @@ n8n:
             - -c
           args:
             - |
-              set -euo pipefail
+              set -ex
               mkdir -p /ext
               cd /ext
 
