@@ -96,7 +96,7 @@ n8n:
             - configMapRef: { identifier: n8n-config-telemetry-prod }
             - configMapRef: { identifier: n8n-config-principal }
           # principal runs the editor/UI + scheduler in queue mode
-          args: [ "n8n", "start" ]
+          args: [ "start" ]
           env:
             N8N_DISABLE_PRODUCTION_MAIN_PROCESS: "true"
             <<: *n8n-secrets
