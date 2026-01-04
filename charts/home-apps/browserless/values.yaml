@@ -73,7 +73,7 @@ browserless:
             PUID: "1000"
             PGID: "1000"
             TZ: "Europe/Berlin"
-            #DEBUG: "browserless:*"
+            DEBUG: "browserless:*"
 
             TOKEN:
               valueFrom:
@@ -85,7 +85,7 @@ browserless:
             MAX_MEMORY_PERCENT: "90"
             MAX_CPU_PERCENT: "90"
 
-            #CORS: "false"
+            CORS: "false"
             ALLOW_GET: "false"
             ALLOW_FILE_PROTOCOL: "false"
 
@@ -145,7 +145,7 @@ browserless:
             PUID: "1000"
             PGID: "1000"
             TZ: "Europe/Berlin"
-            #DEBUG: "browserless:*"
+            DEBUG: "browserless:*"
 
             TOKEN:
               valueFrom:
@@ -177,21 +177,21 @@ browserless:
               memory: 4G
           probes:
             liveness:
-              enabled: true
+              enabled: false
               path: /pressure
               type: HTTP
               spec:
                 httpGet:
                   port: http
             readiness:
-              enabled: true
+              enabled: false
               path: /pressure
               type: HTTP
               spec:
                 httpGet:
                   port: http
             startup:
-              enabled: true
+              enabled: false
               path: /pressure
               type: HTTP
               spec:
