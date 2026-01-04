@@ -19,8 +19,8 @@ n8n:
   
   existingEncryptionKeySecret: "n8n-encryption-key-secret"
   
-  log:
-    level: warn
+  #log:
+  #  level: warn
   
   timezone: "Europe/Berlin"
   
@@ -91,8 +91,8 @@ n8n:
     enabled: false
 
   nodes:
-    builtin:
-      enabled: true
+    #builtin:
+    #  enabled: true
     external:
       allowAll: true
       reinstallMissingPackages: true
