@@ -101,9 +101,9 @@ n8n:
         - "@brave/n8n-nodes-brave-search --ignore-scripts --production"
         - "@splainez/n8n-nodes-phonenumber-parser"
         - "n8n-nodes-gemini-search"
-        - "n8n-nodes-smart-memory --ignore-scripts --production"
+        - "n8n-nodes-smart-memory"
         #- "n8n-nodes-puppeteer"
-        #- "@couleetech/n8n-nodes-pandoc"
+        - "@couleetech/n8n-nodes-pandoc"
         - "moment"
         - "lodash"
     initContainer:
