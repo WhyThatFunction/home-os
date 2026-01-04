@@ -68,11 +68,9 @@ n8n:
               
               export PNPM_HOME="/pnpm"
               export PATH="$PNPM_HOME:$PATH"
-              
-              corepack enable
   
               #  --ignore-scripts --production
-              pnpm add \
+              npm i --ignore-scripts \
                 @brave/n8n-nodes-brave-search \
                 n8n-nodes-puppeteer \
                 moment \
