@@ -51,13 +51,16 @@ n8n:
         install-extensions:
           image:
             repository: node
-            tag: "20-slim"
+            tag: "20-alpine"
           command:
             - sh
             - -c
           args:
             - |
-              set -ex
+              set -eux
+
+              apk add --no-cache git ca-certificates
+                
               mkdir -p /ext
               cd /ext
 
@@ -77,10 +80,10 @@ n8n:
                 lodash
 
               echo "npm packages installed"
-          securityContext:
-            runAsUser: 1000
-            runAsGroup: 1000
-            allowPrivilegeEscalation: false
+          #securityContext:
+          #  runAsUser: 1000
+          #  runAsGroup: 1000
+          #  allowPrivilegeEscalation: false
           resources:
             requests:
               cpu: 100m
