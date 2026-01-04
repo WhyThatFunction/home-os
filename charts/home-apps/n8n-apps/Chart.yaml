@@ -25,7 +25,7 @@ appVersion: "1.16.0"
 
 dependencies:
   - name: n8n
-    version: "1.15.12"
+    version: "*"
     repository: https://community-charts.github.io/helm-charts
   - name: common
     version: "*"
