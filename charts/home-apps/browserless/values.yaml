@@ -105,21 +105,21 @@ browserless:
               memory: 4G
           probes:
             liveness:
-              enabled: true
+              enabled: false
               path: /pressure
               type: HTTP
               spec:
                 httpGet:
                   port: http
             readiness:
-              enabled: true
+              enabled: false
               path: /pressure
               type: HTTP
               spec:
                 httpGet:
                   port: http
             startup:
-              enabled: true
+              enabled: false
               path: /pressure
               type: HTTP
               spec:
