@@ -1,9 +1,9 @@
 dependencies:
 - name: n8n
   repository: https://community-charts.github.io/helm-charts
-  version: 1.15.12
+  version: 1.16.15
 - name: common
   repository: https://charts.bitnami.com/bitnami
   version: 2.31.4
-digest: sha256:6c96826650ee1d958c03fe94e27f068a74cd47ba5f4b8aac485beaa45d196548
-generated: "2025-10-05T19:02:12.415265+02:00"
+digest: sha256:a44b121eadb7974b291f7a755307845f07dbe74499deaf888e4785da6440ee37
+generated: "2026-01-04T12:52:09.913164+01:00"

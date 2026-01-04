@@ -12,9 +12,9 @@ db:
       memory: "1Gi"
       cpu: "1"
 
-n8n: 
+n8n:
   fullnameOverride: n8n
-  image: 
+  image:
     pullPolicy: Always
   
   existingEncryptionKeySecret: "n8n-encryption-key-secret"
@@ -42,18 +42,18 @@ n8n:
       limits:
         cpu: 512m
         memory: 2Gi
-    volumes: 
+    volumes:
       - name: artifacts
         persistentVolumeClaim:
           claimName: artifacts-ssd
-    volumeMounts: 
+    volumeMounts:
       - name: artifacts
         mountPath: /tmp/artifacts
-  
+
   worker:
     mode: queue
     count: 1
-    autoscaling: 
+    autoscaling:
       enabled: true
       minReplicas: 1
       maxReplicas: 2
@@ -71,11 +71,11 @@ n8n:
     volumeMounts:
       - name: artifacts
         mountPath: /tmp/artifacts
-        
-  taskRunners: 
+
+  taskRunners:
     mode: external
     maxConcurrency: 5
-    external: 
+    external:
       resources:
         requests:
           cpu: 100m
@@ -86,10 +86,24 @@ n8n:
   
   externalRedis:
     host: "redis-master.database.svc.cluster.local"
-    
-  redis: 
+
+  redis:
     enabled: false
-  
+
+  nodes:
+    external:
+      allowAll: true
+      reinstallMissingPackages: true
+      packages:
+        - "@brave/n8n-nodes-brave-search"
+        - "@splainez/n8n-nodes-phonenumber-parser"
+        - "n8n-nodes-gemini-search"
+        - "n8n-nodes-smart-memory"
+        - "n8n-nodes-puppeteer"
+        - "@couleetech/n8n-nodes-pandoc"
+        - "moment"
+        - "lodash"
+
   ingress:
     enabled: true
     annotations:
@@ -107,7 +121,7 @@ n8n:
   webhook:
     mode: queue
     url: "https://webhook.ssegning.com"
-    autoscaling: 
+    autoscaling:
       enabled: true
       minReplicas: 1
       maxReplicas: 2

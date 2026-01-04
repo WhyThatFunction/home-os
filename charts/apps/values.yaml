@@ -32,6 +32,24 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: browserless
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/browserless
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: browserless
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: keycloak
     finalizers:
       - resources-finalizer.argocd.argoproj.io

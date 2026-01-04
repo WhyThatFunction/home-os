@@ -1,0 +1,258 @@
+browserless:
+  ingress:
+    chrome:
+      enabled: true
+      annotations:
+        cert-manager.io/cluster-issuer: self-signed-ca
+      className: traefik
+      hosts:
+        - host: browserless-chrome.home.ssegning
+          paths:
+            - path: /
+              pathType: Prefix
+              service:
+                identifier: chrome
+                port: http
+      tls:
+        - secretName: browserless-chrome.home.ssegning-tls
+          hosts:
+            - browserless-chrome.home.ssegning
+    firefox:
+      enabled: true
+      annotations:
+        cert-manager.io/cluster-issuer: self-signed-ca
+      className: traefik
+      hosts:
+        - host: browserless-firefox.home.ssegning
+          paths:
+            - path: /
+              pathType: Prefix
+              service:
+                identifier: firefox
+                port: http
+      tls:
+        - secretName: browserless-firefox.home.ssegning-tls
+          hosts:
+            - browserless-firefox.home.ssegning
+  service:
+    chrome:
+      enabled: true
+      annotations: { }
+      type: ClusterIP
+      controller: chrome
+      ports:
+        http:
+          enabled: true
+          port: 3000
+          targetPort: 3000
+    firefox:
+      enabled: true
+      annotations: { }
+      type: ClusterIP
+      controller: firefox
+      ports:
+        http:
+          enabled: true
+          port: 3000
+          targetPort: 3000
+  controllers:
+    chrome:
+      #type: statefulset
+      strategy: RollingUpdate
+      replicas: 1
+      pod:
+        labels:
+          app: chrome-app
+      containers:
+        chrome:
+          image:
+            repository: ghcr.io/browserless/chromium
+            tag: "latest"
+            pullPolicy: Always
+          env:
+            PUID: "1000"
+            PGID: "1000"
+            TZ: "Europe/Berlin"
+            DEBUG: "browserless:*"
+
+            TOKEN:
+              valueFrom:
+                secretKeyRef:
+                  name: browserless-secret
+                  key: token
+
+            HEALTH: "true"
+            MAX_MEMORY_PERCENT: "90"
+            MAX_CPU_PERCENT: "90"
+
+            ENABLE_CORS: "false"
+            ALLOW_GET: "false"
+            ALLOW_FILE_PROTOCOL: "false"
+
+            CONCURRENT: "10"
+            QUEUED: "30"
+            TIMEOUT: "300000"
+
+            DOWNLOAD_DIR: "/downloads"
+            DATA_DIR: "/user_data"
+            METRICS_JSON_PATH: "/metrics/metrics.json"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 2Gi
+            limits:
+              cpu: 200m
+              memory: 4G
+          probes:
+            liveness:
+              enabled: true
+              path: /pressure
+              type: HTTP
+              spec:
+                httpGet:
+                  port: http
+            readiness:
+              enabled: true
+              path: /pressure
+              type: HTTP
+              spec:
+                httpGet:
+                  port: http
+            startup:
+              enabled: true
+              path: /pressure
+              type: HTTP
+              spec:
+                httpGet:
+                  port: http
+                failureThreshold: 30
+                periodSeconds: 5
+
+    firefox:
+      #type: statefulset
+      strategy: RollingUpdate
+      replicas: 1
+      pod:
+        labels:
+          app: firefox-app
+      containers:
+        firefox:
+          image:
+            repository: ghcr.io/browserless/firefox
+            tag: "latest"
+            pullPolicy: Always
+          env:
+            PUID: "1000"
+            PGID: "1000"
+            TZ: "Europe/Berlin"
+            DEBUG: "browserless:*"
+
+            TOKEN:
+              valueFrom:
+                secretKeyRef:
+                  name: browserless-secret
+                  key: token
+
+            HEALTH: "true"
+            MAX_MEMORY_PERCENT: "90"
+            MAX_CPU_PERCENT: "90"
+
+            ENABLE_CORS: "false"
+            ALLOW_GET: "false"
+            ALLOW_FILE_PROTOCOL: "false"
+
+            CONCURRENT: "10"
+            QUEUED: "30"
+            TIMEOUT: "300000"
+
+            DOWNLOAD_DIR: "/downloads"
+            DATA_DIR: "/user_data"
+            METRICS_JSON_PATH: "/metrics/metrics.json"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 2Gi
+            limits:
+              cpu: 200m
+              memory: 4G
+          probes:
+            liveness:
+              enabled: true
+              path: /pressure
+              type: HTTP
+              spec:
+                httpGet:
+                  port: http
+            readiness:
+              enabled: true
+              path: /pressure
+              type: HTTP
+              spec:
+                httpGet:
+                  port: http
+            startup:
+              enabled: true
+              path: /pressure
+              type: HTTP
+              spec:
+                httpGet:
+                  port: http
+                failureThreshold: 30
+                periodSeconds: 5
+
+  persistence:
+    browserless-downloads:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteMany
+      storageClass: longhorn
+      size: 10Gi
+      advancedMounts:
+        chrome:
+          chrome:
+            - path: /downloads
+        firefox:
+          firefox:
+            - path: /downloads
+              
+    browserless-user_data:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteMany
+      storageClass: longhorn
+      size: 10Gi
+      advancedMounts:
+        chrome:
+          chrome:
+            - path: /user_data
+        firefox:
+          firefox:
+            - path: /user_data
+
+    browserless-metrics:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteMany
+      storageClass: longhorn
+      size: 10Gi
+      advancedMounts:
+        chrome:
+          chrome:
+            - path: /metrics
+        firefox:
+          firefox:
+            - path: /metrics
+
+    browserless-fonts:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteMany
+      storageClass: longhorn
+      size: 10Gi
+      advancedMounts:
+        chrome:
+          chrome:
+            - path: /usr/share/fonts/custom
+        firefox:
+          firefox:
+            - path: /usr/share/fonts/custom
