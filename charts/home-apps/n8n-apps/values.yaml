@@ -80,10 +80,10 @@ n8n:
                 lodash
 
               echo "npm packages installed"
-          #securityContext:
-          #  runAsUser: 1000
-          #  runAsGroup: 1000
-          #  allowPrivilegeEscalation: false
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
           resources:
             requests:
               cpu: 100m
