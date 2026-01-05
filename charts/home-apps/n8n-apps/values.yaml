@@ -315,8 +315,6 @@ n8n:
         GENERIC_TIMEZONE: "Europe/Berlin"
         NODE_ENV: "production"
 
-        N8N_COMMUNITY_PACKAGES_ENABLED: "false"
-
         # --- Database ---
         DB_TYPE: "postgresdb"
         DB_POSTGRESDB_HOST: "n8n-apps-pg-rw"
