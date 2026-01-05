@@ -316,6 +316,7 @@ n8n:
         NODE_ENV: "production"
 
         N8N_COMMUNITY_PACKAGES_ENABLED: "false"
+        N8N_REINSTALL_MISSING_PACKAGES: "false"
 
         # --- Database ---
         DB_TYPE: "postgresdb"
