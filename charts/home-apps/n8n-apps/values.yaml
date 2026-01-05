@@ -318,6 +318,8 @@ n8n:
         N8N_COMMUNITY_PACKAGES_ENABLED: "false"
         N8N_REINSTALL_MISSING_PACKAGES: "false"
 
+        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+
         # --- Database ---
         DB_TYPE: "postgresdb"
         DB_POSTGRESDB_HOST: "n8n-apps-pg-rw"
