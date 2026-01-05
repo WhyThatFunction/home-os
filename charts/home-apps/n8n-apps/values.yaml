@@ -30,7 +30,7 @@ x-n8n-secrets: &n8n-secrets
 
 db:
   enabled: true
-  instances: 1
+  instances: 2
   storage:
     size: 10Gi
     storageClass: longhorn
