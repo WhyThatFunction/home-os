@@ -294,17 +294,17 @@ n8n:
           n8n:
             - path: /home/node/.n8n/nodes
               subPath: custom
-              readOnly: true
+              #readOnly: true
         worker:
           n8n:
             - path: /home/node/.n8n/nodes
               subPath: custom
-              readOnly: true
+              #readOnly: true
         webhook:
           n8n:
             - path: /home/node/.n8n/nodes
               subPath: custom
-              readOnly: true
+              #readOnly: true
 
   configMaps:
     n8n-config-common:
