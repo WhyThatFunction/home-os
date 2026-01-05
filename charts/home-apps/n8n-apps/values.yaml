@@ -76,7 +76,6 @@ n8n:
               npm i \
                 @brave/n8n-nodes-brave-search \
                 n8n-nodes-puppeteer \
-                n8n-nodes-playwright \
                 moment \
                 lodash
 
