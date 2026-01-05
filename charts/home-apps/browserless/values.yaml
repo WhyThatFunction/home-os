@@ -32,9 +32,8 @@ browserless:
 
   controllers:
     chrome:
-      type: statefulset
       strategy: RollingUpdate
-      replicas: 1
+      replicas: 2
       pod:
         labels:
           app: chrome-app
@@ -73,10 +72,10 @@ browserless:
             METRICS_JSON_PATH: "/metrics/metrics.json"
           resources:
             requests:
-              cpu: 200m
-              memory: 4Gi
-            limits:
               cpu: 400m
+              memory: 6Gi
+            limits:
+              cpu: 600m
               memory: 8G
           probes:
             liveness:
