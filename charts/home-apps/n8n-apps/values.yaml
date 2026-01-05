@@ -281,10 +281,10 @@ n8n:
 
   persistence:
     n8n-extensions:
-      enabled: false
+      enabled: true
       type: persistentVolumeClaim
       accessMode: ReadWriteMany   # RWX if workers can land on different nodes
-      size: 5Gi
+      size: 10Gi
       advancedMounts:
         principal:
           install-extensions:
