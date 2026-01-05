@@ -176,7 +176,7 @@ n8n:
 
     worker:
       strategy: RollingUpdate
-      replicas: 3
+      replicas: 2
       containers:
         n8n:
           image:
