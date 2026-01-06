@@ -2,7 +2,13 @@ global:
   security:
     allowInsecureImages: true
 
+
 minio:
+  defaultInitContainers:
+    volumePermissions:
+      image:
+        repository: bitnamilegacy/os-shell
+
   image:
     repository: bitnamilegacy/minio
   enabled: true
