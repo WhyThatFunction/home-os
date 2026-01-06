@@ -354,10 +354,10 @@ n8n:
       labels: { }
       annotations: { }
       data:
-        EXECUTIONS_DATA_SAVE_ON_SUCCESS: "none"  # default is all
-        EXECUTIONS_DATA_SAVE_ON_ERROR: "all"     # keep failures
-        EXECUTIONS_DATA_SAVE_ON_PROGRESS: "false" # default false
-        EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS: "true" # default true
+        #EXECUTIONS_DATA_SAVE_ON_SUCCESS: "none"  # default is all
+        #EXECUTIONS_DATA_SAVE_ON_ERROR: "all"     # keep failures
+        #EXECUTIONS_DATA_SAVE_ON_PROGRESS: "false" # default false
+        #EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS: "true" # default true
 
         EXECUTIONS_DATA_PRUNE: "true"
         EXECUTIONS_DATA_MAX_AGE: "336"              # hours (14 days)
