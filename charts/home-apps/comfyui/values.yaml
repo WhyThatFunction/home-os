@@ -119,7 +119,7 @@ comfyui:
 
   persistence:
     # Persist models separately (big RWX volume is typical)
-    comfyui-models:
+    models:
       enabled: true
       type: persistentVolumeClaim
       accessMode: ReadWriteMany
@@ -128,10 +128,10 @@ comfyui:
       advancedMounts:
         comfyui:
           comfyui:
-            - path: /app/models
+            - path: /opt/comfyui/models
 
     # Persist workflows / user data / outputs
-    comfyui-user:
+    user:
       enabled: true
       type: persistentVolumeClaim
       accessMode: ReadWriteOnce
@@ -140,9 +140,9 @@ comfyui:
       advancedMounts:
         comfyui:
           comfyui:
-            - path: /app/user
+            - path: /opt/comfyui/user
 
-    comfyui-custom-nodes:
+    custom-nodes:
       enabled: true
       type: persistentVolumeClaim
       accessMode: ReadWriteOnce
@@ -151,9 +151,9 @@ comfyui:
       advancedMounts:
         comfyui:
           comfyui:
-            - path: /app/custom_nodes
+            - path: /opt/comfyui/custom_nodes
 
-    comfyui-output:
+    output:
       enabled: true
       type: persistentVolumeClaim
       accessMode: ReadWriteMany
@@ -162,10 +162,9 @@ comfyui:
       advancedMounts:
         comfyui:
           comfyui:
-            - path: /app/output
+            - path: /opt/comfyui/output
 
-    # Optional: if you want a separate input folder
-    comfyui-input:
+    input:
       enabled: true
       type: persistentVolumeClaim
       accessMode: ReadWriteMany
@@ -174,4 +173,4 @@ comfyui:
       advancedMounts:
         comfyui:
           comfyui:
-            - path: /app/input
+            - path: /opt/comfyui/input
