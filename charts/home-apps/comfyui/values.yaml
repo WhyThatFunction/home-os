@@ -88,8 +88,8 @@ comfyui:
               cpu: 500m
               memory: 4Gi
             limits:
-              cpu: 2000m
-              memory: 12Gi
+              cpu: 4000m
+              memory: 24Gi
               nvidia.com/gpu: 1
 
           probes:
