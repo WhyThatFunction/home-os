@@ -1,7 +1,7 @@
 comfyui:
   ingress:
     comfyui:
-      enabled: true
+      enabled: false
       annotations:
         cert-manager.io/cluster-issuer: cert-cloudflare
       className: traefik
