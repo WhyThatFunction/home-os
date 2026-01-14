@@ -21,7 +21,7 @@ machine:
   # Used to provide instructions for installations.
   install:
     disk: /dev/sda # The disk used for installations.
-    image: factory.talos.dev/installer/88d1f7a5c4f1d3aba7df787c448c1d3d008ed29cfb34af53fa0df4336a56040b:v1.10.4 # Allows for supplying the image used to perform the installation.
+    image: factory.talos.dev/installer/88d1f7a5c4f1d3aba7df787c448c1d3d008ed29cfb34af53fa0df4336a56040b:v1.12.0 # Allows for supplying the image used to perform the installation.
     wipe: true # Indicates if the installation disk should be wiped at installation time.
   
   registries:

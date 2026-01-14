@@ -8,7 +8,7 @@ machine:
   # Used to provide instructions for installations.
   install:
     disk: /dev/sda # The disk used for installations.
-    image: factory.talos.dev/installer/ce4c980550dd2ab1b17bbf2b08801c7eb59418eafe8f279833297925d67c7515:v1.10.4 # Allows for supplying the image used to perform the installation.
+    image: factory.talos.dev/installer/ce4c980550dd2ab1b17bbf2b08801c7eb59418eafe8f279833297925d67c7515:v1.12.0 # Allows for supplying the image used to perform the installation.
     wipe: true # Indicates if the installation disk should be wiped at installation time.
 
   registries:
@@ -44,7 +44,7 @@ cluster:
   
   # Controller manager server specific configuration options.
   controllerManager:
-    image: registry.k8s.io/kube-controller-manager:v1.33.1 # The container image used in the controller manager manifest.
+    image: registry.k8s.io/kube-controller-manager:v1.35.0 # The container image used in the controller manager manifest.
   # Kube-proxy server-specific configuration options
   proxy:
     # # Disable kube-proxy deployment on cluster bootstrap.

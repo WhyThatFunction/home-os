@@ -6,7 +6,7 @@
 
 - Simple (x86):
   Link
-  [here](https://factory.talos.dev/?arch=amd64&board=undefined&cmdline-set=true&extensions=-&extensions=siderolabs%2Fqemu-guest-agent&platform=metal&secureboot=undefined&target=metal&version=1.10.4)
+  [here](https://factory.talos.dev/?arch=amd64&board=undefined&cmdline-set=true&extensions=-&extensions=siderolabs%2Fqemu-guest-agent&platform=metal&secureboot=undefined&target=metal&version=1.12.0)
 
   ```yaml
   customization:
@@ -20,7 +20,7 @@
 
 - Simple (longhorn ready) (x86):
   Link
-  [here](https://factory.talos.dev/?arch=amd64&board=undefined&cmdline-set=true&extensions=-&extensions=siderolabs%2Fiscsi-tools&extensions=siderolabs%2Fqemu-guest-agent&extensions=siderolabs%2Futil-linux-tools&platform=metal&secureboot=undefined&target=metal&version=1.10.4)
+  [here](https://factory.talos.dev/?arch=amd64&board=undefined&cmdline-set=true&extensions=-&extensions=siderolabs%2Fiscsi-tools&extensions=siderolabs%2Fqemu-guest-agent&extensions=siderolabs%2Futil-linux-tools&platform=metal&secureboot=undefined&target=metal&version=1.12.0)
 
   ```yaml
   customization:
@@ -36,7 +36,7 @@
 
 - Nvidia ready (x86):
   Link
-  [here](https://factory.talos.dev/?arch=amd64&board=undefined&cmdline-set=true&extensions=-&extensions=siderolabs%2Fiscsi-tools&extensions=siderolabs%2Fnvidia-container-toolkit-production&extensions=siderolabs%2Fqemu-guest-agent&extensions=siderolabs%2Futil-linux-tools&extensions=siderolabs%2Fnonfree-kmod-nvidia-production&platform=metal&secureboot=undefined&target=metal&version=1.10.4)
+  [here](https://factory.talos.dev/?arch=amd64&board=undefined&cmdline-set=true&extensions=-&extensions=siderolabs%2Fiscsi-tools&extensions=siderolabs%2Fnvidia-container-toolkit-production&extensions=siderolabs%2Fqemu-guest-agent&extensions=siderolabs%2Futil-linux-tools&extensions=siderolabs%2Fnonfree-kmod-nvidia-production&platform=metal&secureboot=undefined&target=metal&version=1.12.0)
   ```yaml
   customization:
     systemExtensions:
@@ -58,7 +58,7 @@ Managed by ArgoCD.
 
 ## Nvidia
 
-Links [here](https://www.talos.dev/v1.10/talos-guides/configuration/nvidia-gpu). 
+Links [here](https://www.talos.dev/v1.11/talos-guides/configuration/nvidia-gpu). 
 Managed by ArgoCD.
 
 ## CloudNative PG
