@@ -1,0 +1,177 @@
+comfyui:
+  ingress:
+    comfyui:
+      enabled: true
+      annotations:
+        cert-manager.io/cluster-issuer: cert-cloudflare
+      className: traefik
+      hosts:
+        - host: comfy.ssegning.me
+          paths:
+            - path: /
+              pathType: Prefix
+              service:
+                identifier: comfyui
+                port: http
+      tls:
+        - secretName: comfy.ssegning.me-tls
+          hosts:
+            - comfy.ssegning.me
+
+    comfyui-local:
+      enabled: true
+      annotations:
+        cert-manager.io/cluster-issuer: self-signed-ca
+      className: traefik
+      hosts:
+        - host: comfy.home.ssegning
+          paths:
+            - path: /
+              pathType: Prefix
+              service:
+                identifier: comfyui
+                port: http
+      tls:
+        - secretName: comfy.home.ssegning-tls
+          hosts:
+            - comfy.home.ssegning
+
+  service:
+    comfyui:
+      enabled: true
+      annotations: {}
+      type: ClusterIP
+      controller: comfyui
+      ports:
+        http:
+          enabled: true
+          port: 8188
+          targetPort: 8188
+
+  controllers:
+    comfyui:
+      type: statefulset
+      strategy: RollingUpdate
+      replicas: 1
+
+      pod:
+        labels:
+          app: comfyui-app
+        nodeSelector:
+          gpu-node: "true"
+        runtimeClassName: nvidia
+
+      containers:
+        comfyui:
+          image:
+            repository: ghcr.io/lecode-official/comfyui-docker
+            tag: "latest"
+            pullPolicy: Always
+
+          # Ensure it listens on the pod interface, not localhost.
+          # ComfyUI commonly runs on 8188
+          args:
+            - "--listen"
+            - "0.0.0.0"
+            - "--port"
+            - "8188"
+
+          env:
+            TZ: "Europe/Berlin"
+            NVIDIA_DRIVER_CAPABILITIES: "all"
+            NVIDIA_VISIBLE_DEVICES: "all"
+
+          # If your cluster uses device plugin resource requests, add:
+          # resources.limits."nvidia.com/gpu": 1
+          resources:
+            requests:
+              cpu: 500m
+              memory: 4Gi
+            limits:
+              cpu: 2000m
+              memory: 12Gi
+              nvidia.com/gpu: 1
+
+          probes:
+            liveness:
+              enabled: true
+              type: HTTP
+              path: /
+              spec:
+                httpGet:
+                  port: http
+            readiness:
+              enabled: true
+              type: HTTP
+              path: /
+              spec:
+                httpGet:
+                  port: http
+            startup:
+              enabled: true
+              type: HTTP
+              path: /
+              spec:
+                httpGet:
+                  port: http
+                failureThreshold: 60
+                periodSeconds: 5
+
+  persistence:
+    # Persist models separately (big RWX volume is typical)
+    comfyui-models:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteMany
+      storageClass: sstorage
+      size: 200Gi
+      advancedMounts:
+        comfyui:
+          comfyui:
+            - path: /app/models
+
+    # Persist workflows / user data / outputs
+    comfyui-user:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteOnce
+      storageClass: longhorn
+      size: 20Gi
+      advancedMounts:
+        comfyui:
+          comfyui:
+            - path: /app/user
+
+    comfyui-custom-nodes:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteOnce
+      storageClass: longhorn
+      size: 10Gi
+      advancedMounts:
+        comfyui:
+          comfyui:
+            - path: /app/custom_nodes
+
+    comfyui-output:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteMany
+      storageClass: sstorage
+      size: 200Gi
+      advancedMounts:
+        comfyui:
+          comfyui:
+            - path: /app/output
+
+    # Optional: if you want a separate input folder
+    comfyui-input:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteMany
+      storageClass: sstorage
+      size: 50Gi
+      advancedMounts:
+        comfyui:
+          comfyui:
+            - path: /app/input
