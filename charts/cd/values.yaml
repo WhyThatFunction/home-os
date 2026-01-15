@@ -228,8 +228,10 @@ applications:
               allowInsecureImages: true
           operator:
             image:
+              registry: bitnamilegacy
               repository: bitnamilegacy/cloudnative-pg
             postgresqlImage:
+              registry: bitnamilegacy
               repository: bitnamilegacy/postgresql
           pluginBarmanCloud:
             enabled: true
