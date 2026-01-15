@@ -131,7 +131,7 @@ comfyui:
             - path: /opt/comfyui/models
 
     data:
-      enabled: true
+      enabled: false
       type: persistentVolumeClaim
       accessMode: ReadWriteOnce
       storageClass: longhorn-static
