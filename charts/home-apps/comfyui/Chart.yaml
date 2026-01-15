@@ -25,5 +25,5 @@ dependencies:
     alias: comfyui
 
   - name: common
-    version: 2.31.3
-    repository: https://charts.bitnami.com/bitnami
+    version: "*"
+    repository: "file://../common"

@@ -26,8 +26,8 @@ appVersion: "1.16.0"
 
 dependencies:
   - name: common
-    version: '*'
-    repository: https://charts.bitnami.com/bitnami
+    version: "*"
+    repository: "file://../common"
   - version: '*'
     name: docuseal
     repository: https://zekker6.github.io/helm-charts

@@ -3,7 +3,7 @@ dependencies:
   repository: https://charts.gabe565.com
   version: 0.16.1
 - name: common
-  repository: https://charts.bitnami.com/bitnami
+  repository: file://../common
   version: 2.31.4
-digest: sha256:20033fa91e2545005513f61b1cf1c80af2b0e25d1719bfce3e00bb6649b8cdfc
-generated: "2025-09-15T01:33:55.578108+02:00"
+digest: sha256:a7b0aef0c51a3926d7de8e9d34578b0e28ac1434a4d3f4606fe1cf49c1cac7ce
+generated: "2026-01-15T18:26:55.209829+01:00"

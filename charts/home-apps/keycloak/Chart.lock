@@ -1,9 +1,9 @@
 dependencies:
 - name: common
-  repository: https://charts.bitnami.com/bitnami
+  repository: file://../common
   version: 2.31.4
 - name: keycloak
   repository: https://charts.bitnami.com/bitnami
   version: 25.2.0
-digest: sha256:3eeea7a1e12a9084e23eed3104653ed1d1b1cffa48e77a264a03fa09d87795df
-generated: "2025-09-15T01:35:01.65019+02:00"
+digest: sha256:0707999650d3a192674b8172795661c57ee1ded03dbcab6b6f85ad46fa6b92e9
+generated: "2026-01-15T18:24:32.011818+01:00"

@@ -29,5 +29,5 @@ dependencies:
     repository: https://charts.gabe565.com
     
   - name: common
-    version: '*'
-    repository: https://charts.bitnami.com/bitnami
+    version: "*"
+    repository: "file://../common"

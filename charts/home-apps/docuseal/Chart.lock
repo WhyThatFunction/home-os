@@ -1,9 +1,9 @@
 dependencies:
 - name: common
-  repository: https://charts.bitnami.com/bitnami
+  repository: file://../common
   version: 2.31.4
 - name: docuseal
   repository: https://zekker6.github.io/helm-charts
-  version: 1.87.0
-digest: sha256:46830712abf74b908065f57b21c9c013f078e32ad2989c3a1ae6a490c63a5355
-generated: "2025-10-10T10:25:32.868678+02:00"
+  version: 1.97.0
+digest: sha256:47f4952ba40a108992b969fa643790eea48372c4f9d27d3ab350c90f798e631d
+generated: "2026-01-15T18:24:01.025475+01:00"

@@ -31,7 +31,7 @@ dependencies:
     
   - name: common
     version: "*"
-    repository: https://charts.bitnami.com/bitnami
+    repository: "file://../common"
     
   - name: qdrant
     version: "*"
