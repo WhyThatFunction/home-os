@@ -229,10 +229,10 @@ applications:
           operator:
             image:
               registry: bitnamilegacy
-              repository: bitnamilegacy/cloudnative-pg
+              repository: cloudnative-pg
             postgresqlImage:
               registry: bitnamilegacy
-              repository: bitnamilegacy/postgresql
+              repository: postgresql
           pluginBarmanCloud:
             enabled: true
             image:
