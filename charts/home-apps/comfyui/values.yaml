@@ -142,7 +142,7 @@ comfyui:
             - path: /opt/comfyui
 
     custom-nodes:
-      enabled: true
+      enabled: false
       type: persistentVolumeClaim
       accessMode: ReadWriteOnce
       storageClass: sstorage
