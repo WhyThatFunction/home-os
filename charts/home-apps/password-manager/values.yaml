@@ -1,6 +1,6 @@
 db:
   enabled: true
-  instances: 2
+  instances: 3
   storage:
     size: 5Gi
     storageClass: longhorn
