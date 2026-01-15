@@ -1,6 +1,6 @@
 db:
   enabled: true
-  instances: 2
+  instances: 3
   storage:
     size: 10Gi
     storageClass: longhorn
@@ -23,15 +23,21 @@ keycloak:
   image:
     repository: bitnamilegacy/keycloak
 
-  replicaCount: 2
+  #replicaCount: 3
+
+  autoscaling:
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 3
 
   resources:
     requests:
       memory: "1Gi"
-      cpu: "1"
+      cpu: "0.5"
     limits:
       memory: "2Gi"
-      cpu: "1.5"
+      cpu: "1"
 
   ingress:
     enabled: true
