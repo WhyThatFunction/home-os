@@ -130,23 +130,22 @@ comfyui:
           comfyui:
             - path: /opt/comfyui/models
 
-    # Persist workflows / user data / outputs
-    user:
+    data:
       enabled: true
       type: persistentVolumeClaim
       accessMode: ReadWriteOnce
-      storageClass: longhorn
+      storageClass: longhorn-static
       size: 20Gi
       advancedMounts:
         comfyui:
           comfyui:
-            - path: /opt/comfyui/user
+            - path: /opt/comfyui
 
     custom-nodes:
       enabled: true
       type: persistentVolumeClaim
       accessMode: ReadWriteOnce
-      storageClass: longhorn
+      storageClass: sstorage
       size: 10Gi
       advancedMounts:
         comfyui:

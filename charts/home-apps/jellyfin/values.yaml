@@ -17,6 +17,7 @@ jellyfin:
         - secretName: tv.ssegning.me-tls
           hosts:
             - tv.ssegning.me
+
     jellyfin-local:
       enabled: true
       annotations:
@@ -34,6 +35,25 @@ jellyfin:
         - secretName: tv.home.ssegning-tls
           hosts:
             - tv.home.ssegning
+
+    jellyseerr-local:
+      enabled: true
+      annotations:
+        cert-manager.io/cluster-issuer: self-signed-ca
+      className: traefik
+      hosts:
+        - host: tv-requests.home.ssegning
+          paths:
+            - path: /
+              pathType: Prefix
+              service:
+                identifier: jellyseerr
+                port: http
+      tls:
+        - secretName: tv-requests.home.ssegning-tls
+          hosts:
+            - tv-requests.home.ssegning
+
     jackett:
       enabled: true
       annotations:
@@ -74,6 +94,7 @@ jellyfin:
           enabled: true
           port: 1900
           targetPort: 1900
+
     jackett:
       enabled: true
       annotations: { }
@@ -84,6 +105,18 @@ jellyfin:
           enabled: true
           port: 9117
           targetPort: 9117
+
+    jellyseerr:
+      enabled: true
+      annotations: { }
+      type: ClusterIP
+      controller: jellyseerr
+      ports:
+        http:
+          enabled: true
+          port: 5055
+          targetPort: 5055
+
   controllers:
     jellyfin:
       type: statefulset
@@ -165,6 +198,54 @@ jellyfin:
               cpu: 500m
               memory: 2Gi
 
+    jellyseerr:
+      type: statefulset
+      strategy: RollingUpdate
+      replicas: 1
+      pod:
+        labels:
+          app: jellyseerr-app
+      containers:
+        jellyseerr:
+          image:
+            repository: ghcr.io/fallenbagel/jellyseerr
+            tag: latest
+            pullPolicy: Always
+          env:
+            TZ: "Europe/Berlin"
+            PORT: "5055"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          probes:
+            liveness:
+              enabled: true
+              type: HTTP
+              path: /api/v1/status
+              spec:
+                httpGet:
+                  port: http
+            readiness:
+              enabled: true
+              type: HTTP
+              path: /api/v1/status
+              spec:
+                httpGet:
+                  port: http
+            startup:
+              enabled: true
+              type: HTTP
+              path: /api/v1/status
+              spec:
+                httpGet:
+                  port: http
+                failureThreshold: 30
+                periodSeconds: 5
+
   persistence:
     jellyfin-config:
       enabled: true
@@ -176,7 +257,7 @@ jellyfin:
         jellyfin:
           jellyfin:
             - path: /config
-              
+
     jellyfin-cache:
       enabled: true
       type: persistentVolumeClaim
@@ -187,7 +268,7 @@ jellyfin:
         jellyfin:
           jellyfin:
             - path: /config/cache
-              
+
     jellyfin-media:
       enabled: true
       type: persistentVolumeClaim
@@ -198,7 +279,7 @@ jellyfin:
         jellyfin:
           jellyfin:
             - path: /data
-              
+
     jackett-config:
       enabled: true
       type: persistentVolumeClaim
@@ -209,3 +290,14 @@ jellyfin:
         jackett:
           jackett:
             - path: /config
+
+    jellyseerr-config:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteOnce
+      storageClass: longhorn
+      size: 5Gi
+      advancedMounts:
+        jellyseerr:
+          jellyseerr:
+            - path: /app/config
