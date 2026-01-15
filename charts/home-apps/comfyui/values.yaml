@@ -118,7 +118,6 @@ comfyui:
                 periodSeconds: 5
 
   persistence:
-    # Persist models separately (big RWX volume is typical)
     models:
       enabled: true
       type: persistentVolumeClaim
@@ -130,19 +129,19 @@ comfyui:
           comfyui:
             - path: /opt/comfyui/models
 
-    data:
-      enabled: false
+    user:
+      enabled: true
       type: persistentVolumeClaim
       accessMode: ReadWriteOnce
-      storageClass: longhorn-static
+      storageClass: longhorn
       size: 20Gi
       advancedMounts:
         comfyui:
           comfyui:
-            - path: /opt/comfyui
+            - path: /opt/comfyui/user
 
     custom-nodes:
-      enabled: false
+      enabled: true
       type: persistentVolumeClaim
       accessMode: ReadWriteOnce
       storageClass: sstorage
