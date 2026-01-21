@@ -47,6 +47,10 @@ keycloak:
     annotations:
       cert-manager.io/cluster-issuer: cert-cloudflare
 
+    extraHosts:
+      - name: accounts.camer.digital
+        path: /
+
   extraVolumeMounts:
     - mountPath: /opt/bitnami/keycloak/providers/theme-vaam-01.jar
       name: spi
