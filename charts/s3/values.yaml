@@ -41,6 +41,10 @@ minio:
     annotations:
       cert-manager.io/cluster-issuer: cert-cloudflare
     tls: true
+    extraHosts:
+      - name: s3.camer.digital
+        path: /
+
   provisioning:
     enabled: true
     
