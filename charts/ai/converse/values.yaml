@@ -191,21 +191,21 @@ librechat:
           probes:
             liveness:
               enabled: true
-              path: /
+              path: /health
               type: HTTP
               spec:
                 httpGet:
                   port: http
             readiness:
               enabled: true
-              path: /
+              path: /health
               type: HTTP
               spec:
                 httpGet:
                   port: http
             startup:
               enabled: true
-              path: /
+              path: /health
               type: HTTP
               spec:
                 httpGet:
@@ -281,7 +281,7 @@ librechat:
       data:
         librechat: |
           version: 1.4.0
-          cache: true
+          cache: false
           fileStrategy: "s3"
           # Balance settings
           balance:
