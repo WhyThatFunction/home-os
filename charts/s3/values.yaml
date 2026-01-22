@@ -103,6 +103,14 @@ minio:
             resources:
               - "arn:aws:s3:::apple-health-export/*"
               - "arn:aws:s3:::apple-health-export"
+      - name: converse-policy
+        statements:
+          - actions:
+              - "s3:*"
+            effect: "Allow"
+            resources:
+              - "arn:aws:s3:::converse/*"
+              - "arn:aws:s3:::converse"
     
     usersExistingSecrets:
       - minio-users
@@ -125,6 +133,8 @@ minio:
       - name: monitoring-tempo
         withLock: false
       - name: apple-health-export
+        withLock: false
+      - name: converse
         withLock: false
 
 provision_minio_buckets_policies:
