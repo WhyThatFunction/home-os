@@ -265,3 +265,21 @@ applications:
       automated:
         prune: true
         selfHeal: true
+
+  - name: converse
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: ai
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/ai/converse
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: converse
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true

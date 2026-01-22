@@ -37,7 +37,7 @@ jellyfin:
             - tv.home.ssegning
 
     jellyseerr-local:
-      enabled: true
+      enabled: false
       annotations:
         cert-manager.io/cluster-issuer: self-signed-ca
       className: traefik
@@ -107,7 +107,7 @@ jellyfin:
           targetPort: 9117
 
     jellyseerr:
-      enabled: true
+      enabled: false
       annotations: { }
       type: ClusterIP
       controller: jellyseerr
@@ -199,6 +199,7 @@ jellyfin:
               memory: 2Gi
 
     jellyseerr:
+      enabled: false
       type: statefulset
       strategy: RollingUpdate
       replicas: 1
@@ -292,7 +293,7 @@ jellyfin:
             - path: /config
 
     jellyseerr-config:
-      enabled: true
+      enabled: false
       type: persistentVolumeClaim
       accessMode: ReadWriteOnce
       storageClass: longhorn

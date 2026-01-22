@@ -1,0 +1,15 @@
+dependencies:
+- name: app-template
+  repository: https://bjw-s-labs.github.io/helm-charts
+  version: 4.6.2
+- name: common
+  repository: file://../../home-apps/common
+  version: 2.31.4
+- name: mongodb
+  repository: https://charts.bitnami.com/bitnami
+  version: 18.3.0
+- name: meilisearch
+  repository: https://meilisearch.github.io/meilisearch-kubernetes
+  version: 0.23.0
+digest: sha256:ab01b1e65bf7be08bb7cb5408bd6ed5b64319da81b61b918422b55dd14e54d79
+generated: "2026-01-22T16:55:12.306795+01:00"
