@@ -101,6 +101,9 @@ librechat:
             OPENID_REQUIRED_ROLE_PARAMETER_PATH: "librechat_roles"
             OPENID_AUTO_REDIRECT: "true"
 
+            DEBUG_LOGGING: true
+            #DEBUG_CONSOLE: true
+
             LOGIN_MAX: "50"
             LOGIN_WINDOW: "1"
 
