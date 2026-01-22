@@ -280,8 +280,8 @@ librechat:
       annotations: { }
       data:
         librechat: |
-          version: 1.4.0
-          cache: false
+          version: 1.4.1
+          cache: true
           fileStrategy: "s3"
           # Balance settings
           balance:
