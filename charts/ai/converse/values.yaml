@@ -132,7 +132,7 @@ librechat:
             NO_INDEX: "true"
             # TRUST_PROXY: "-1"
 
-            USE_REDIS: "true"
+            USE_REDIS: "false"
             REDIS_KEY_PREFIX: "librechat-prod"
             REDIS_URI: "redis://redis-master.database.svc.cluster.local:6379"
 
