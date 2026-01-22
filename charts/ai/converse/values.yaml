@@ -68,7 +68,7 @@ librechat:
 
   controllers:
     librechat:
-      type: statefulset
+      type: deployment
       strategy: RollingUpdate
       serviceAccount:
         identifier: librechat
