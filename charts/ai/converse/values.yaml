@@ -102,7 +102,7 @@ librechat:
             OPENID_AUTO_REDIRECT: "true"
 
             DEBUG_LOGGING: true
-            #DEBUG_CONSOLE: true
+            DEBUG_CONSOLE: true
 
             LOGIN_MAX: "50"
             LOGIN_WINDOW: "1"
