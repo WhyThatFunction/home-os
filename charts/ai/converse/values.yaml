@@ -364,7 +364,7 @@ librechat:
               #supportedIds: [ "asst_supportedAssistantId1", "asst_supportedAssistantId2" ]
               #excludedIds: ["asst_excludedAssistantId"]
             custom:
-              - name: "Converse"
+              - name: "Converse Local"
                 apiKey: "${CONVERSE_OPENAI_API_KEY}"
                 baseURL: "http://10.10.0.229:11434/v1"
                 models:
