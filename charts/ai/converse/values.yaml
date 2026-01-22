@@ -132,7 +132,7 @@ librechat:
             NO_INDEX: "true"
             # TRUST_PROXY: "-1"
 
-            USE_REDIS: "true"
+            USE_REDIS: "false"
             REDIS_KEY_PREFIX: "librechat-prod"
             REDIS_URI: "redis://redis-master.database.svc.cluster.local:6379"
 
@@ -319,7 +319,7 @@ librechat:
             #socialLogins: [ "openid" ]
           endpoints:
             all:
-              #streamRate: 10
+              streamRate: 5
               titlePromptTemplate: |
                 ### Task:
                 Generate a concise, 3-5 word title with an emoji summarizing the chat history.
@@ -346,8 +346,8 @@ librechat:
                 Human: {input}
                 Assistant: {output}
             agents:
-              recursionLimit: 10
-              maxRecursionLimit: 20
+              recursionLimit: 50
+              maxRecursionLimit: 100
               disableBuilder: false
               # (optional) Agent Capabilities available to all users. Omit the ones you wish to exclude. Defaults to list below.
               # capabilities: ["execute_code", "file_search", "actions", "tools", "artifacts", "ocr", "chain", "web_search"]
@@ -414,9 +414,9 @@ librechat:
                 iconURL: "https://images.ctfassets.net/kftzwdyauwt9/3M8rPrJsENQL5tjaDzo6SL/f0f85c8e27090123c767ac3c8237b401/Blossom_Dark.svg?w=3840&q=80"
                 titleConvo: true
                 titleMethod: "completion"
-                titleModel: "llama3.2:1b"
+                titleModel: "gemini-2.5-flash-lite"
                 summarize: true
-                summaryModel: "llama3.2:1b"
+                summaryModel: "gemini-2.5-flash-lite"
                 forcePrompt: false
                 modelDisplayLabel: "User OpenAI"
                 addParams:
