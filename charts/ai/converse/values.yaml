@@ -286,7 +286,7 @@ librechat:
           #fileStrategy: "s3"
           # Balance settings
           balance:
-            enabled: true                # Enable token credit balances for users
+            enabled: false               # Enable token credit balances for users
             startBalance: 20000          # Initial tokens credited upon registration
             autoRefillEnabled: false     # Enable automatic token refills
             refillIntervalValue: 30      # Numerical value for refill interval
