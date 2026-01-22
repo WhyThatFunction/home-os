@@ -135,7 +135,7 @@ librechat:
             USE_REDIS: "true"
             REDIS_KEY_PREFIX: "librechat-prod-v2"
             REDIS_URI: "redis://redis-master.database.svc.cluster.local:6379"
-            FORCED_IN_MEMORY_CACHE_NAMESPACES: "APP_CONFIG,STARTUP_CONFIG,CONFIG_STORE"
+            FORCED_IN_MEMORY_CACHE_NAMESPACES: "APP_CONFIG,CONFIG_STORE"
 
             SEARCH: true
             MEILI_HOST: "http://{{ .Release.Name }}-search:7700"
@@ -409,24 +409,24 @@ librechat:
                 apiKey: "user_provided"
                 baseURL: "https://api.openai.com/v1"
                 models:
-                  default: [ "fake-tiny", "fake-small", "fake-medium" ]
+                  default: [ "gpt-5-nano-2025-08-07", "gpt-5-mini-2025-08-07", "gpt-5.2-2025-12-11" ]
                   fetch: true  # Attempt to dynamically fetch available models
                   userIdQuery: true
-                iconURL: "https://images.ctfassets.net/kftzwdyauwt9/3M8rPrJsENQL5tjaDzo6SL/f0f85c8e27090123c767ac3c8237b401/Blossom_Dark.svg?w=3840&q=80"
+                iconURL: "https://s3.camer.digital/converse/public/OpenAI-black-monoblossom.svg"
                 titleConvo: true
                 titleMethod: "completion"
-                titleModel: "gemini-2.5-flash-lite"
+                titleModel: "gpt-5-nano-2025-08-07"
                 summarize: true
-                summaryModel: "gemini-2.5-flash-lite"
+                summaryModel: "gpt-5-nano-2025-08-07"
                 forcePrompt: false
                 modelDisplayLabel: "User OpenAI"
                 addParams:
                   safe_prompt: true
-                dropParams:
-                  - "stop"
-                  - "user"
-                  - "presence_penalty"
-                  - "frequency_penalty"
+                # dropParams:
+                #   - "stop"
+                #   - "user"
+                #   - "presence_penalty"
+                #   - "frequency_penalty"
 
   persistence:
     config:
