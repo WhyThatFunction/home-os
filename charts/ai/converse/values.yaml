@@ -99,6 +99,9 @@ librechat:
             OPENID_REQUIRED_ROLE_PARAMETER_PATH: "librechat_roles"
             OPENID_AUTO_REDIRECT: "true"
 
+            LOGIN_MAX: "50"
+            LOGIN_WINDOW: "1"
+
             OPENID_CLIENT_ID:
               secretKeyRef:
                 name: librechat-openid-config
@@ -271,9 +274,10 @@ librechat:
       labels: { }
       annotations: { }
       data:
-        librechat: |
+        librechat:
           version: 1.3.1
           cache: true
+          fileStrategy: "s3"
           # Balance settings
           balance:
             enabled: false                # Enable token credit balances for users
@@ -354,30 +358,47 @@ librechat:
               #supportedIds: [ "asst_supportedAssistantId1", "asst_supportedAssistantId2" ]
               #excludedIds: ["asst_excludedAssistantId"]
             custom:
-              #          - name: "Kivoyo"
-              #            apiKey: "${KIVOYO_OPENAI_API_KEY}"
-              #            baseURL: "http://litellm.litellm.svc.cluster.local:4000"
-              #            models:
-              #              default: [ "gemini-2.5-flash-lite" ]
-              #              fetch: true  # Attempt to dynamically fetch available models
-              #              userIdQuery: true
-              #            iconURL: "https://s3.camer.digital/public-camer.digital/logo.svg
-              #            titleConvo: true
-              #            titleMethod: "completion"
-              #            titleModel: "gemini-2.5-flash-lite"
-              #            summarize: true
-              #            summaryModel: "gemini-2.5-flash-lite"
-              #            forcePrompt: false
-              #            modelDisplayLabel: "Kivoyo AI"
-              #            #            addParams:
-              #            #              safe_prompt: true
-              #            dropParams:
-              #              - "stop"
-              #              - "user"
-              #              - "presence_penalty"
-              #              - "frequency_penalty"
-              #            # headers:
-              #            #    x-custom-header: "${CUSTOM_HEADER_VALUE}"
+              - name: "Converse"
+                apiKey: "${CONVERSE_OPENAI_API_KEY}"
+                baseURL: "http://10.10.0.229:11434/v1"
+                models:
+                  default:
+                    - "cogito:latest"
+                    - "granite4:1b"
+                    - "llama3.2:1b"
+                    - "cogito:3b"
+                    - "bge-m3:567m"
+                    - "snowflake-arctic-embed2:latest"
+                    - "bge-m3:latest"
+                    - "nomic-embed-text:latest"
+                    - "granite3.3:8b"
+                    - "granite3.2:8b"
+                    - "hermes3:8b"
+                    - "gemma3:1b"
+                    - "smollm2:latest"
+                    - "llama3.2:3b-instruct-fp16"
+                    - "starcoder2:3b"
+                    - "starcoder2:7b"
+                    - "llama3.2:3b"
+                    - "llama3.2:latest"
+                    - "gemma3:4b"
+                  fetch: false  # Attempt to dynamically fetch available models
+                  userIdQuery: true
+                iconURL: "https://s3.camer.digital/public-camer.digital/logo.svg"
+                titleConvo: true
+                titleMethod: "completion"
+                titleModel: "llama3.2:1b"
+                summarize: true
+                summaryModel: "llama3.2:1b"
+                forcePrompt: false
+                modelDisplayLabel: "Converse AI"
+                dropParams:
+                  - "stop"
+                  - "user"
+                  - "presence_penalty"
+                  - "frequency_penalty"
+                # headers:
+                #    x-custom-header: "${CUSTOM_HEADER_VALUE}"
               - name: "User OpenAI"
                 apiKey: "user_provided"
                 #baseURL: "http://litellm.litellm.svc.cluster.local:4000"
@@ -388,9 +409,9 @@ librechat:
                 iconURL: "https://images.ctfassets.net/kftzwdyauwt9/3M8rPrJsENQL5tjaDzo6SL/f0f85c8e27090123c767ac3c8237b401/Blossom_Dark.svg?w=3840&q=80"
                 titleConvo: true
                 titleMethod: "completion"
-                titleModel: "gemini-2.5-flash-lite"
+                titleModel: "llama3.2:1b"
                 summarize: true
-                summaryModel: "gemini-2.5-flash-lite"
+                summaryModel: "llama3.2:1b"
                 forcePrompt: false
                 modelDisplayLabel: "User OpenAI"
                 addParams:
