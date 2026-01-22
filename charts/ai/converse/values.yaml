@@ -286,7 +286,7 @@ librechat:
           #fileStrategy: "s3"
           # Balance settings
           balance:
-            enabled: false                # Enable token credit balances for users
+            enabled: true                # Enable token credit balances for users
             startBalance: 20000          # Initial tokens credited upon registration
             autoRefillEnabled: false     # Enable automatic token refills
             refillIntervalValue: 30      # Numerical value for refill interval
@@ -397,7 +397,7 @@ librechat:
                 summarize: true
                 summaryModel: "llama3.2:1b"
                 forcePrompt: false
-                modelDisplayLabel: "Converse AI"
+                modelDisplayLabel: "Converse Local AI"
                 dropParams:
                   - "stop"
                   - "user"
