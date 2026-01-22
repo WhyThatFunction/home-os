@@ -14,7 +14,7 @@ minio:
   enabled: true
   mode: distributed
   statefulset:
-    replicaCount: 2
+    replicaCount: 4
   auth:
     existingSecret: minio-root
   persistence:
