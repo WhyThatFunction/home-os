@@ -2,6 +2,8 @@ global:
   librechat:
     version: "v0.8.1"
     existingSecretName: "librechat-creds-env"
+  mongo:
+    replicaCount: 3
 
 librechat:
   ingress:
@@ -138,7 +140,7 @@ librechat:
                 name: librechat-meili-config
                 key: MEILI_MASTER_KEY
 
-            MONGO_URI: "mongodb://{{ .Release.Name }}-db-0.{{ .Release.Name }}-db-headless:27017,{{ .Release.Name }}-db-1.{{ .Release.Name }}-db-headless:27017,{{ .Release.Name }}-db-2.{{ .Release.Name }}-db-headless:27017"
+            MONGO_URI: '{{ include "mongo_uri" $ }}'
 
             CREDS_KEY:
               secretKeyRef:
@@ -275,7 +277,7 @@ librechat:
       annotations: { }
       data:
         librechat: |
-          version: 1.3.1
+          version: 1.4.0
           cache: true
           fileStrategy: "s3"
           # Balance settings
@@ -466,7 +468,7 @@ db:
     size: 20Gi
     storageClass: longhorn-local
   architecture: replicaset
-  replicaCount: 3
+  replicaCount: 3 # should be similar to the global mongo replicaCount
   resourcesPreset: small
 
 search:
