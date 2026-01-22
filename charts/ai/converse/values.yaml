@@ -135,7 +135,7 @@ librechat:
                 name: librechat-meili-config
                 key: MEILI_MASTER_KEY
 
-            MONGO_URI: "mongodb://{{ .Release.Name }}-db:27017"
+            MONGO_URI: "mongodb://{{ .Release.Name }}-db-0.{{ .Release.Name }}-db-headless:27017,{{ .Release.Name }}-db-1.{{ .Release.Name }}-db-headless:27017,{{ .Release.Name }}-db-2.{{ .Release.Name }}-db-headless:27017"
 
             CREDS_KEY:
               secretKeyRef:
