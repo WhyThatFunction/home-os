@@ -281,7 +281,7 @@ librechat:
       data:
         librechat: |
           version: 1.4.1
-          cache: true
+          cache: false
           #fileStrategy: "s3"
           # Balance settings
           balance:
