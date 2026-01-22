@@ -255,7 +255,7 @@ applications:
     project: infrastructure
     source:
       repoURL: https://traefik.github.io/charts
-      targetRevision: 36.2.0
+      targetRevision: 38.0.2
       chart: traefik
       helm:
         valuesObject:
