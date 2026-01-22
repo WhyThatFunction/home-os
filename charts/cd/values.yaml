@@ -352,7 +352,7 @@ applications:
   - name: s3
     finalizers:
       - resources-finalizer.argocd.argoproj.io
-    project: base-apps
+    project: infrastructure
     source:
       repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD

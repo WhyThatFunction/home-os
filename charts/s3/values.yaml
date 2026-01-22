@@ -171,7 +171,7 @@ provision_minio_buckets_policies:
             }
           ]
         }
-    - name: converse-public
+    - name: converse
       policy:
         {
           "Version": "2012-10-17",
