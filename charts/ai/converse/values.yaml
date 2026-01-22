@@ -167,19 +167,19 @@ librechat:
                 name: librechat-main-config
                 key: converse_openai_api_key
 
-            AWS_ACCESS_KEY_ID:
-              secretKeyRef:
-                name: librechat-s3-config
-                key: s3_access_key_id
-            AWS_SECRET_ACCESS_KEY:
-              secretKeyRef:
-                name: librechat-s3-config
-                key: s3_secret_access_key
-            AWS_BUCKET_NAME:
-              secretKeyRef:
-                name: librechat-s3-config
-                key: s3_bucket_name
-            AWS_ENDPOINT_URL: "https://s3.camer.digital"
+#            AWS_ACCESS_KEY_ID:
+#              secretKeyRef:
+#                name: librechat-s3-config
+#                key: s3_access_key_id
+#            AWS_SECRET_ACCESS_KEY:
+#              secretKeyRef:
+#                name: librechat-s3-config
+#                key: s3_secret_access_key
+#            AWS_BUCKET_NAME:
+#              secretKeyRef:
+#                name: librechat-s3-config
+#                key: s3_bucket_name
+#            AWS_ENDPOINT_URL: "https://s3.camer.digital"
 
           resources:
             limits:
@@ -282,7 +282,7 @@ librechat:
         librechat: |
           version: 1.4.1
           cache: true
-          fileStrategy: "s3"
+          #fileStrategy: "s3"
           # Balance settings
           balance:
             enabled: false                # Enable token credit balances for users
@@ -440,7 +440,7 @@ librechat:
               readOnly: true
 
     cdn-config:
-      enabled: false
+      enabled: true
       type: persistentVolumeClaim
       accessMode: ReadWriteMany
       storageClass: longhorn
