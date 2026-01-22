@@ -420,9 +420,9 @@ librechat:
                 summaryModel: "gpt-5-nano-2025-08-07"
                 forcePrompt: false
                 modelDisplayLabel: "OpenAI"
-                addParams:
-                  safe_prompt: true
-                # dropParams:
+                #addParams:
+                #  safe_prompt: true
+                #dropParams:
                 #   - "stop"
                 #   - "user"
                 #   - "presence_penalty"
