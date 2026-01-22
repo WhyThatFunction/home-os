@@ -12,7 +12,9 @@ minio:
   image:
     repository: bitnamilegacy/minio
   enabled: true
-  mode: standalone
+  mode: distributed
+  statefulset:
+    replicaCount: 2
   auth:
     existingSecret: minio-root
   persistence:
