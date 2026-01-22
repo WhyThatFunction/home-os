@@ -384,7 +384,7 @@ librechat:
                     - "gemma3:4b"
                   fetch: false  # Attempt to dynamically fetch available models
                   userIdQuery: true
-                iconURL: "https://s3.camer.digital/public-camer.digital/logo.svg"
+                iconURL: "https://s3.camer.digital/converse/public/autumn.png"
                 titleConvo: true
                 titleMethod: "completion"
                 titleModel: "llama3.2:1b"
