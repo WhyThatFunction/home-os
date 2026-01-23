@@ -458,6 +458,35 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: prod-mail
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://bokysan.github.io/docker-postfix
+      targetRevision: 4.4.0
+      chart: mail
+      helm:
+        valuesObject:
+          existingSecret: mail-config
+          config:
+            general:
+              TZ: "Europe/Berlin"
+              ANONYMIZE_EMAILS: "smart"
+          persistence:
+            enabled: true
+            storageClass: longhorn
+    destination:
+      name: lke560008-ctx
+      namespace: mail
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: eg
     finalizers:
       - resources-finalizer.argocd.argoproj.io
