@@ -550,7 +550,7 @@ applications:
   - name: prod-traefik
     finalizers:
       - resources-finalizer.argocd.argoproj.io
-    project: infrastructure
+    project: hyperswitch
     source:
       repoURL: https://traefik.github.io/charts
       targetRevision: 38.0.2
