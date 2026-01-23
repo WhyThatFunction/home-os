@@ -506,7 +506,7 @@ applications:
               ANONYMIZE_EMAILS: "smart"
           persistence:
             enabled: true
-            storageClass: longhorn
+            storageClass: linode-block-storage
     destination:
       name: lke560008-ctx
       namespace: mail
