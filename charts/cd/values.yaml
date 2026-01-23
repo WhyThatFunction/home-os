@@ -489,112 +489,21 @@ applications:
         prune: true
         selfHeal: true
 
-    #  - name: prod-mail
-    #    finalizers:
-    #      - resources-finalizer.argocd.argoproj.io
-    #    project: hyperswitch
-    #    source:
-    #      repoURL: https://bokysan.github.io/docker-postfix
-    #      targetRevision: 4.4.0
-    #      chart: mail
-    #      helm:
-    #        releaseName: mail
-    #        valuesObject:
-    #          existingSecret: mail-config
-    #          config:
-    #            general:
-    #              TZ: "Europe/Berlin"
-    #              ANONYMIZE_EMAILS: "smart"
-    #          persistence:
-    #            enabled: true
-    #            storageClass: linode-block-storage
-    #    destination:
-    #      name: lke560008-ctx
-    #      namespace: mail
-    #    syncPolicy:
-    #      syncOptions:
-    #        - CreateNamespace=true
-    #        - ServerSideApply=true
-    #      automated:
-    #        prune: true
-    #        selfHeal: true
-    #
-    #  - name: prod-cert
-    #    finalizers:
-    #      - resources-finalizer.argocd.argoproj.io
-    #    project: hyperswitch
-    #    source:
-    #      repoURL: https://github.com/whythatfunction/home-os
-    #      targetRevision: HEAD
-    #      path: charts/cert
-    #      helm:
-    #        releaseName: cert
-    #        valuesObject:
-    #          solvers:
-    #            cloudflare:
-    #              enabled: false
-    #            http:
-    #              enabled: true
-    #              enabledStaging: false
-    #            selfSigned:
-    #              enabled: false
-    #    destination:
-    #      name: lke560008-ctx
-    #      namespace: cert-system
-    #    syncPolicy:
-    #      syncOptions:
-    #        - CreateNamespace=true
-    #        - ServerSideApply=true
-    #      automated:
-    #        prune: true
-    #        selfHeal: true
-    #
-    #  - name: prod-traefik
-    #    finalizers:
-    #      - resources-finalizer.argocd.argoproj.io
-    #    project: hyperswitch
-    #    source:
-    #      repoURL: https://traefik.github.io/charts
-    #      targetRevision: 38.0.2
-    #      chart: traefik
-    #      helm:
-    #        releaseName: traefik
-    #        valuesObject:
-    #          additionalArguments:
-    #            #- "--api.dashboard=true"
-    #            #- "--api.insecure=true"
-    #            #- "--serversTransport.insecureSkipVerify=true"
-    #            - "--log.level=ERROR"
-    #            - "--entryPoints.web.http.redirections.entryPoint.to=:443"
-    #            - "--entryPoints.web.http.redirections.entryPoint.scheme=https"
-    #            #- "--entryPoints.web.http2.maxConcurrentStreams=1000"
-    #            #- "--entryPoints.websecure.http2.maxConcurrentStreams=1000"
-    #            - "--global.sendAnonymousUsage=false"
-    #          logs:
-    #            access:
-    #              enabled: false
-    #          ports:
-    #            traefik:
-    #              expose:
-    #                web: true
-    #                websecure: true
-    #          providers:
-    #            kubernetesCRD:
-    #              allowCrossNamespace: true
-    #            kubernetesGateway:
-    #              enabled: true
-    #
-    #          gateway:
-    #            namespacePolicy: All
-    #    destination:
-    #      name: lke560008-ctx
-    #      namespace: traefik-system
-    #    syncPolicy:
-    #      syncOptions:
-    #        - CreateNamespace=true
-    #      automated:
-    #        prune: true
-    #        selfHeal: true
+  - name: hyperswitch-charts
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: hyperswitch
+    source:
+      repoURL: https://github.com/whythatfunction/hyperswitch-gitops
+      targetRevision: HEAD
+      path: charts/apps
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: argocd
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
 
   - name: eg
     finalizers:
