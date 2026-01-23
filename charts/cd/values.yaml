@@ -94,6 +94,39 @@ projects:
     syncWindows: [ ]
     sourceNamespaces:
       - "*"
+  - name: hyperswitch-base
+    additionalLabels: { }
+    additionalAnnotations: { }
+    permitOnlyProjectScopedClusters: false
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    description: Infrastructure Applications
+    sourceRepos:
+      - "*"
+    destinations:
+      - namespace: "*"
+        name: "lke560008-ctx"
+      - namespace: "*"
+        server: https://kubernetes.default.svc
+    clusterResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    clusterResourceBlacklist: [ ]
+    namespaceResourceBlacklist:
+      - group: ""
+        kind: ResourceQuota
+      - group: ""
+        kind: LimitRange
+      - group: ""
+        kind: NetworkPolicy
+    namespaceResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    orphanedResources: { }
+    roles: [ ]
+    syncWindows: [ ]
+    sourceNamespaces:
+      - "*"
   - name: ai
     additionalLabels: { }
     additionalAnnotations: { }
@@ -492,7 +525,7 @@ applications:
   - name: hyperswitch-charts
     finalizers:
       - resources-finalizer.argocd.argoproj.io
-    project: hyperswitch
+    project: hyperswitch-base
     source:
       repoURL: https://github.com/whythatfunction/hyperswitch-gitops
       targetRevision: HEAD
