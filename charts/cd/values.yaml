@@ -74,7 +74,7 @@ projects:
       - "*"
     destinations:
       - namespace: "*"
-        name: "lke560008-ctx"
+        name: "lke560142-ctx"
     clusterResourceWhitelist:
       - group: "*"
         kind: "*"
@@ -105,7 +105,7 @@ projects:
       - "*"
     destinations:
       - namespace: "*"
-        name: "lke560008-ctx"
+        name: "lke560142-ctx"
       - namespace: "*"
         server: https://kubernetes.default.svc
     clusterResourceWhitelist:
