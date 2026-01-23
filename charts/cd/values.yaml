@@ -526,9 +526,6 @@ applications:
       repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD
       path: charts/cert
-    destination:
-      name: lke560008-ctx
-      namespace: cert-system
       helm:
         valuesObject:
           solvers:
@@ -539,10 +536,59 @@ applications:
               enabledStaging: false
             selfSigned:
               enabled: false
+    destination:
+      name: lke560008-ctx
+      namespace: cert-system
     syncPolicy:
       syncOptions:
         - CreateNamespace=true
         - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: prod-traefik
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://traefik.github.io/charts
+      targetRevision: 38.0.2
+      chart: traefik
+      helm:
+        valuesObject:
+          additionalArguments:
+            #- "--api.dashboard=true"
+            #- "--api.insecure=true"
+            #- "--serversTransport.insecureSkipVerify=true"
+            - "--log.level=ERROR"
+            - "--entryPoints.web.http.redirections.entryPoint.to=:443"
+            - "--entryPoints.web.http.redirections.entryPoint.scheme=https"
+            #- "--entryPoints.web.http2.maxConcurrentStreams=1000"
+            #- "--entryPoints.websecure.http2.maxConcurrentStreams=1000"
+            - "--global.sendAnonymousUsage=false"
+          logs:
+            access:
+              enabled: false
+          ports:
+            traefik:
+              expose:
+                web: true
+                websecure: true
+          providers:
+            kubernetesCRD:
+              allowCrossNamespace: true
+            kubernetesGateway:
+              enabled: true
+
+          gateway:
+            namespacePolicy: All
+    destination:
+      name: lke560008-ctx
+      namespace: traefik-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
       automated:
         prune: true
         selfHeal: true
