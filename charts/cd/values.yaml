@@ -518,6 +518,35 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: prod-cert
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: hyperswitch
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/cert
+    destination:
+      name: lke560008-ctx
+      namespace: cert-system
+      helm:
+        valuesObject:
+          solvers:
+            cloudflare:
+              enabled: false
+            http:
+              enabled: true
+              enabledStaging: false
+            selfSigned:
+              enabled: false
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: eg
     finalizers:
       - resources-finalizer.argocd.argoproj.io
