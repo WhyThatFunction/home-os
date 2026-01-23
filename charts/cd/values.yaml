@@ -498,6 +498,7 @@ applications:
       targetRevision: 4.4.0
       chart: mail
       helm:
+        releaseName: mail
         valuesObject:
           existingSecret: mail-config
           config:
@@ -527,6 +528,7 @@ applications:
       targetRevision: HEAD
       path: charts/cert
       helm:
+        releaseName: cert
         valuesObject:
           solvers:
             cloudflare:
@@ -556,6 +558,7 @@ applications:
       targetRevision: 38.0.2
       chart: traefik
       helm:
+        releaseName: traefik
         valuesObject:
           additionalArguments:
             #- "--api.dashboard=true"
