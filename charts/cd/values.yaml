@@ -63,6 +63,37 @@ projects:
     syncWindows: [ ]
     sourceNamespaces:
       - "*"
+  - name: hyperswitch
+    additionalLabels: { }
+    additionalAnnotations: { }
+    permitOnlyProjectScopedClusters: false
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    description: Infrastructure Applications
+    sourceRepos:
+      - "*"
+    destinations:
+      - namespace: "*"
+        name: "lke560008-ctx"
+    clusterResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    clusterResourceBlacklist: [ ]
+    namespaceResourceBlacklist:
+      - group: ""
+        kind: ResourceQuota
+      - group: ""
+        kind: LimitRange
+      - group: ""
+        kind: NetworkPolicy
+    namespaceResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    orphanedResources: { }
+    roles: [ ]
+    syncWindows: [ ]
+    sourceNamespaces:
+      - "*"
   - name: ai
     additionalLabels: { }
     additionalAnnotations: { }
@@ -461,7 +492,7 @@ applications:
   - name: prod-mail
     finalizers:
       - resources-finalizer.argocd.argoproj.io
-    project: infrastructure
+    project: hyperswitch
     source:
       repoURL: https://bokysan.github.io/docker-postfix
       targetRevision: 4.4.0
