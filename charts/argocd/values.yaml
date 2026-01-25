@@ -1,11 +1,18 @@
 controller:
-  replicas: 1
+  replicas: 2
+  pdb:
+    enabled: true
+    minAvailable: 1
 
 redis:
   enabled: true
 
 server:
-  replicas: 1
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 2
+    targetCPUUtilizationPercentage: 80
   ingress:
     enabled: true
     ingressClassName: traefik
@@ -15,22 +22,87 @@ server:
     hostname: argocd.ssegning.me
 
 repoServer:
-  replicas: 1
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 2
+    targetCPUUtilizationPercentage: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
 
 applicationSet:
-  replicas: 1
+  replicas: 2
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+dex:
+  pdb:
+    enabled: true
+    minAvailable: 1
 
 notifications:
   argocdUrl: https://argocd.ssegning.me
+  pdb:
+    enabled: true
+    minAvailable: 1
 
 configs:
   secret:
     createSecret: true
   cm:
     url: https://argocd.ssegning.me
+
+    # OIDC (OAuth2) configuration using the issuer behind your discovery endpoint
+    oidc.config: |
+      name: SSegning SSO
+      issuer: https://accounts.ssegning.com/realms/ssegning-dev
+      clientID: argocd
+      clientSecret: $oidc.keycloak.clientSecret
+      enablePKCEAuthentication: true
+      requestedScopes:
+        - openid
+        - profile
+        - email
+        - argocd_groups
+
     "resource.exclusions": |
       [ ]
+
   rbac:
     "policy.csv": |
-      g, ArgoCDAdmins, role:admin
+      # --- Group-to-role mappings (from OIDC groups) ---
+      g, ArgoCDAdmin, role:admin
+      g, ArgoCDHyperswitch, role:hyperswitch
+      g, ArgoCDAI, role:ai
       g, ArgoCDViewer, role:readonly
+
+      # --- Hyperswitch role ---
+      # hyperswitch project: read/write
+      p, role:hyperswitch, projects, get, hyperswitch, allow
+      p, role:hyperswitch, applications, get, hyperswitch/*, allow
+      p, role:hyperswitch, applications, create, hyperswitch/*, allow
+      p, role:hyperswitch, applications, update, hyperswitch/*, allow
+      p, role:hyperswitch, applications, delete, hyperswitch/*, allow
+      p, role:hyperswitch, applications, sync, hyperswitch/*, allow
+      p, role:hyperswitch, applications, override, hyperswitch/*, allow
+      p, role:hyperswitch, logs, get, hyperswitch/*, allow
+      p, role:hyperswitch, exec, create, hyperswitch/*, allow
+
+      # hyperswitch-base project: read-only
+      p, role:hyperswitch, projects, get, hyperswitch-base, allow
+      p, role:hyperswitch, applications, get, hyperswitch-base/*, allow
+      p, role:hyperswitch, logs, get, hyperswitch-base/*, allow
+
+      # --- AI role ---
+      # ai project: read/write
+      p, role:ai, projects, get, ai, allow
+      p, role:ai, applications, get, ai/*, allow
+      p, role:ai, applications, create, ai/*, allow
+      p, role:ai, applications, update, ai/*, allow
+      p, role:ai, applications, delete, ai/*, allow
+      p, role:ai, applications, sync, ai/*, allow
+      p, role:ai, applications, override, ai/*, allow
+      p, role:ai, logs, get, ai/*, allow
+      p, role:ai, exec, create, ai/*, allow
