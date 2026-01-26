@@ -27,7 +27,7 @@ keycloak:
 
   pdb:
     minAvailable: 1
-    maxUnavailable: 1
+    #maxUnavailable: 1
 
   autoscaling:
     hpa:
