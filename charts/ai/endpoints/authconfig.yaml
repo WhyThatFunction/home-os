@@ -13,6 +13,13 @@ spec:
         selector:
           matchLabels:
             app: librechat-client # Labels on your API Key Secrets
-        credentials:
-          authorizationHeader:
-            prefix: APIKEY
+      credentials:
+        authorizationHeader:
+          prefix: APIKEY
+  response:
+    success:
+      headers:
+        "X-Authorized-User":
+          # 2. Use valueFrom + authJSON instead of 'item'
+          valueFrom:
+            authJSON: auth.identity.metadata.name
