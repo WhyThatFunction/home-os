@@ -18,12 +18,16 @@ keycloak:
     storageClass: longhorn
 
   production: true
-  proxyHeaders: forwarded
+  proxyHeaders: xforwarded
   
   image:
     repository: bitnamilegacy/keycloak
 
   #replicaCount: 3
+
+  pdb:
+    minAvailable: 1
+    maxUnavailable: 1
 
   autoscaling:
     hpa:
