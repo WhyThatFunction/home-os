@@ -16,10 +16,3 @@ spec:
         credentials:
           authorizationHeader:
             prefix: APIKEY
-  response:
-    success:
-      headers:
-        "X-Authorized-User":
-          # 2. Use valueFrom + authJSON instead of 'item'
-          valueFrom:
-            authJSON: auth.identity.metadata.name
