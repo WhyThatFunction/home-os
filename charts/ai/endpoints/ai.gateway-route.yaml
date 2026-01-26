@@ -5,7 +5,7 @@ metadata:
   namespace: converse-llm
 spec:
   parentRefs:
-    - name: traefik-gateway
+    - name: eg
       kind: Gateway
       group: gateway.networking.k8s.io
   rules:
