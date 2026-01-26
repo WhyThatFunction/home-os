@@ -1,0 +1,24 @@
+apiVersion: authorino.kuadrant.io/v1beta3
+kind: AuthConfig
+metadata:
+  name: ai-v1-home-api-protection
+  namespace: converse-llm
+spec:
+  # String array
+  hosts:
+    - "*" # Replace with your AI Gateway host if specific
+  authentication:
+    "librechat-api-key":
+      apiKey:
+        selector:
+          matchLabels:
+            app: librechat-client # Labels on your API Key Secrets
+        credentials:
+          header:
+            name: X-API-Key
+  response:
+    success:
+      headers:
+        X-Authorized-User:
+          item:
+            path: "auth.identity.metadata.name"

@@ -1,0 +1,18 @@
+apiVersion: aigateway.envoyproxy.io/v1alpha1
+kind: AIGatewayRoute
+metadata:
+  name: envoy-ai-gateway-basic-openai
+  namespace: converse-llm
+spec:
+  parentRefs:
+    - name: envoy-ai-gateway-basic
+      kind: Gateway
+      group: gateway.networking.k8s.io
+  rules:
+    - matches:
+        - headers:
+            - type: Exact
+              name: x-ai-eg-model
+              value: gpt-5-nano
+      backendRefs:
+        - name: envoy-ai-gateway-basic-openai
