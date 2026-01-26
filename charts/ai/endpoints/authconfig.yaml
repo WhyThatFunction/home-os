@@ -6,7 +6,7 @@ metadata:
 spec:
   # String array
   hosts:
-    - "*" # Replace with your AI Gateway host if specific
+    - "ai-v1.home.lab" # Replace with your AI Gateway host if specific
   authentication:
     "librechat-api-key":
       apiKey:
