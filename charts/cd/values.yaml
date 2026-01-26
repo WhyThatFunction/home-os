@@ -239,6 +239,22 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: home-secrets
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://github.com/WhyThatFunction/home-secrets
+      targetRevision: HEAD
+      path: manifests
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: argocd
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: storage
     finalizers:
       - resources-finalizer.argocd.argoproj.io
