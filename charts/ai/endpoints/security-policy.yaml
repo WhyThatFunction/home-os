@@ -11,6 +11,9 @@ spec:
   extAuth:
     grpc:
       backendRefs:
-        - name: authorino-authorino-authorization
+        - group: ''
+          name: authorino-authorino-authorization
           namespace: converse-llm
           port: 50051
+          kind: Service
+          weight: 1
