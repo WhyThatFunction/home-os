@@ -5,8 +5,8 @@ metadata:
   namespace: converse-llm
 spec:
   # String array
-  #hosts:
-  #  - "*" # Replace with your AI Gateway host if specific
+  hosts:
+    - "*" # Replace with your AI Gateway host if specific
   authentication:
     "librechat-api-key":
       apiKey:
