@@ -295,9 +295,9 @@ applications:
     destination:
       server: https://kubernetes.default.svc
       namespace: converse-llm
-    syncPolicy:
-      syncOptions:
-        - ServerSideApply=true
-      automated:
-        prune: true
-        selfHeal: true
+    #syncPolicy:
+      #syncOptions:
+      #  - ServerSideApply=true
+      #automated:
+      #  prune: true
+      #  selfHeal: true
