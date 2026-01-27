@@ -301,3 +301,27 @@ applications:
       #automated:
       #  prune: true
       #  selfHeal: true
+
+  - name: converse-llm-core
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: ai
+    source:
+      repoURL: https://github.com/ADORSYS-GIS/ai-helm
+      targetRevision: feat/model-chart
+      path: charts/ai-gateway-core
+      helm:
+        valuesObject:
+          envoyProxy:
+            enabled: false
+          clientTrafficPolicy:
+            enabled: false
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: converse-llm
+    #syncPolicy:
+      #syncOptions:
+      #  - ServerSideApply=true
+      #automated:
+      #  prune: true
+      #  selfHeal: true

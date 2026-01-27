@@ -412,8 +412,26 @@ librechat:
                   - "user"
                   - "presence_penalty"
                   - "frequency_penalty"
-                # headers:
-                #    x-custom-header: "${CUSTOM_HEADER_VALUE}"
+              - name: "Converse"
+                baseURL: "http://10.10.0.143:8080/v1"
+                models:
+                  default:
+                    - "gpt-5-nano"
+                  fetch: true  # Attempt to dynamically fetch available models
+                  userIdQuery: true
+                iconURL: "https://s3.camer.digital/converse/public/autumn.png"
+                titleConvo: true
+                titleMethod: "completion"
+                titleModel: "gpt-5-nano"
+                summarize: true
+                summaryModel: "gpt-5-nano"
+                forcePrompt: false
+                modelDisplayLabel: "Converse AI"
+                headers:
+                  X-User-ID: "{{LIBRECHAT_USER_ID}}"
+                  X-User-Email: "{{LIBRECHAT_USER_EMAIL}}"
+                  X-User-Role: "{{LIBRECHAT_USER_ROLE}}"
+                  Authorization: "APIKEY ${CONVERSE_OPENAI_API_KEY}"
               - name: "User Kivoyo"
                 apiKey: "user_provided"
                 baseURL: "https://ai.kivoyo.com/api"
