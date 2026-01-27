@@ -310,12 +310,10 @@ applications:
       repoURL: https://github.com/ADORSYS-GIS/ai-helm
       targetRevision: feat/model-chart
       path: charts/ai-gateway-core
-      helm:
-        valuesObject:
-          envoyProxy:
-            enabled: false
-          clientTrafficPolicy:
-            enabled: false
+      #helm:
+      #  valuesObject:
+      #    envoyProxy:
+      #      enabled: false
     destination:
       server: https://kubernetes.default.svc
       namespace: converse-llm
