@@ -295,12 +295,12 @@ applications:
     destination:
       server: https://kubernetes.default.svc
       namespace: converse-llm
-    #syncPolicy:
-      #syncOptions:
-      #  - ServerSideApply=true
-      #automated:
-      #  prune: true
-      #  selfHeal: true
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
 
   - name: converse-llm-core
     finalizers:
@@ -319,9 +319,58 @@ applications:
     destination:
       server: https://kubernetes.default.svc
       namespace: converse-llm
-    #syncPolicy:
-      #syncOptions:
-      #  - ServerSideApply=true
-      #automated:
-      #  prune: true
-      #  selfHeal: true
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: converse-llm-models
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: ai
+    source:
+      repoURL: https://github.com/ADORSYS-GIS/ai-helm
+      targetRevision: feat/model-chart
+      path: charts/models
+      helm:
+        valuesObject:
+          backends:
+            fw-02: null
+            gpt-02: null
+            gcp-02: null
+          models:
+            fireworks-thinking:
+              backends:
+                fw-02:
+                  enabled: false
+            fireworks-instruct:
+              backends:
+                fw-02:
+                  enabled: false
+            gpt-5:
+              backends:
+                gpt-02:
+                  enabled: false
+            gpt-04:
+              backends:
+                gpt-02:
+                  enabled: false
+            gemini-flash:
+              backends:
+                gcp-02:
+                  enabled: false
+            gemini-pro:
+              backends:
+                gcp-02:
+                  enabled: false
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: converse-llm
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
