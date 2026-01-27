@@ -318,8 +318,8 @@ applications:
               kubernetes:
                 envoyDeployment:
                   replicas: 2
-                envoyService:
-                  type: ClusterIP
+                #envoyService:
+                #  type: ClusterIP
     destination:
       server: https://kubernetes.default.svc
       namespace: converse-llm
