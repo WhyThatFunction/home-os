@@ -345,7 +345,7 @@ applications:
         valuesObject:
           models:
             gpt-5-nano:
-              enabled: true
+              enabled: false
 
               envoyRateLimit:
                 requests: 30_000

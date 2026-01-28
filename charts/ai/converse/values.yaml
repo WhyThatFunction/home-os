@@ -374,7 +374,8 @@ librechat:
               #excludedIds: ["asst_excludedAssistantId"]
             custom:
               - name: "Converse"
-                baseURL: "http://10.10.0.143:8080/v1"
+                apiKey: "${CONVERSE_OPENAI_API_KEY}"
+                baseURL: "http://10.10.0.143/v1"
                 models:
                   default:
                     - "gpt-5-nano"
