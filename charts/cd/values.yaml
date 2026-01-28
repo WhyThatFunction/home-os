@@ -575,8 +575,27 @@ applications:
               logging:
                 level:
                   default: info
+              rateLimit:
+                backend:
+                  type: Redis
+                  redis:
+                    # Update this URL to match your Redis service location
+                    # This assumes Redis is deployed using the redis.yaml in this directory
+                    url: redis-master.database.svc.cluster.local:6379
               provider:
                 type: Kubernetes
+                kubernetes:
+                  rateLimitDeployment:
+                    patch:
+                      type: StrategicMerge
+                      value:
+                        spec:
+                          template:
+                            spec:
+                              containers:
+                                - imagePullPolicy: IfNotPresent
+                                  name: envoy-ratelimit
+                                  image: docker.io/envoyproxy/ratelimit:60d8e81b
               extensionApis:
                 # Not strictly required, but recommended for backward/future compatibility.
                 enableEnvoyPatchPolicy: true
