@@ -135,7 +135,7 @@ applications:
       automated:
         prune: true
         selfHeal: true
-        
+
   - name: endpoints
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -151,7 +151,7 @@ applications:
       automated:
         prune: true
         selfHeal: true
-        
+
   - name: music
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -169,7 +169,7 @@ applications:
       automated:
         prune: true
         selfHeal: true
-  
+
   - name: portainer
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -343,6 +343,27 @@ applications:
       path: charts/models
       helm:
         valuesObject:
+          models:
+            gpt-5-nano:
+              enabled: true
+
+              envoyRateLimit:
+                requests: 30_000
+                unit: Minute
+
+              backends:
+                gpt-01:
+                  enabled: true
+                  ref: gpt-5-nano
+                  #modelNameOverride: "gpt-5"
+                  #weight: 50
+                  priority: 0
+                gpt-02:
+                  enabled: true
+                  ref: gpt-02
+                  #modelNameOverride: "gpt-5"
+                  #weight: 50
+                  priority: 0
           backends:
             gpt-01:
               fqdn:
