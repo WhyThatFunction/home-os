@@ -338,6 +338,15 @@ applications:
       repoURL: https://github.com/ADORSYS-GIS/ai-helm
       targetRevision: feat/model-chart
       path: charts/models
+      helm:
+        valuesObject:
+          backends:
+            gpt-01:
+              fqdn:
+                hostname: api.openai.com
+            gpt-02:
+              fqdn:
+                hostname: api.openai.com
     destination:
       server: https://kubernetes.default.svc
       namespace: converse-llm
