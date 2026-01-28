@@ -347,9 +347,11 @@ applications:
             gpt-01:
               fqdn:
                 hostname: api.openai.com
+              tlsHostname: api.openai.com
             gpt-02:
               fqdn:
                 hostname: api.openai.com
+              tlsHostname: api.openai.com
     destination:
       server: https://kubernetes.default.svc
       namespace: converse-llm
