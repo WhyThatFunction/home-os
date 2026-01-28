@@ -289,7 +289,7 @@ librechat:
       labels: { }
       annotations: { }
       data:
-        librechat: |
+        librechat:
           version: 1.3.1
           cache: true
           #fileStrategy: "s3"
@@ -373,47 +373,6 @@ librechat:
               #supportedIds: [ "asst_supportedAssistantId1", "asst_supportedAssistantId2" ]
               #excludedIds: ["asst_excludedAssistantId"]
             custom:
-              - name: "Converse Local"
-                apiKey: "${CONVERSE_OPENAI_API_KEY}"
-                baseURL: "http://10.10.0.229:11434/v1"
-                models:
-                  default:
-                    - "cogito:latest"
-                    - "granite4:1b"
-                    - "llama3.2:1b"
-                    - "cogito:3b"
-                    - "bge-m3:567m"
-                    - "snowflake-arctic-embed2:latest"
-                    - "bge-m3:latest"
-                    - "nomic-embed-text:latest"
-                    - "granite3.3:8b"
-                    - "granite3.2:8b"
-                    - "hermes3:8b"
-                    - "gemma3:1b"
-                    - "smollm2:latest"
-                    - "llama3.2:3b-instruct-fp16"
-                    - "starcoder2:3b"
-                    - "starcoder2:7b"
-                    - "llama3.2:3b"
-                    - "llama3.2:latest"
-                    - "gemma3:4b"
-                  fetch: false  # Attempt to dynamically fetch available models
-                  userIdQuery: true
-                iconURL: "https://s3.camer.digital/converse/public/autumn.png"
-                titleConvo: true
-                titleMethod: "completion"
-                titleModel: "llama3.2:1b"
-                summarize: true
-                summaryModel: "llama3.2:1b"
-                forcePrompt: false
-                modelDisplayLabel: "Converse Local AI"
-                dropParams:
-                  - "stop"
-                  - "user"
-                  - "presence_penalty"
-                  - "frequency_penalty"
-                # headers:
-                #    x-custom-header: "${CUSTOM_HEADER_VALUE}"
               - name: "Converse"
                 apiKey: "${CONVERSE_OPENAI_API_KEY}"
                 baseURL: "http://10.10.0.142/v1"
