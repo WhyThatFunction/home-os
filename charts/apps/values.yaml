@@ -284,23 +284,23 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: converse-endpoints
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: ai
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: charts/ai/endpoints
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: converse-llm
-    syncPolicy:
-      syncOptions:
-        - ServerSideApply=true
-      automated:
-        prune: true
-        selfHeal: true
+#  - name: converse-endpoints
+#    finalizers:
+#      - resources-finalizer.argocd.argoproj.io
+#    project: ai
+#    source:
+#      repoURL: https://github.com/whythatfunction/home-os
+#      targetRevision: HEAD
+#      path: charts/ai/endpoints
+#    destination:
+#      server: https://kubernetes.default.svc
+#      namespace: converse-llm
+#    syncPolicy:
+#      syncOptions:
+#        - ServerSideApply=true
+#      automated:
+#        prune: true
+#        selfHeal: true
 
   - name: converse-llm-core
     finalizers:
