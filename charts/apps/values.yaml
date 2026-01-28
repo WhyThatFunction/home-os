@@ -313,6 +313,9 @@ applications:
       helm:
         valuesObject:
           envoyProxy:
+            logging:
+              level:
+                default: debug
             provider:
               type: Kubernetes
               kubernetes:
