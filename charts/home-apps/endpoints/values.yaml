@@ -54,3 +54,19 @@ customServices:
     selfSigned: true
     domain: omada.home.ssegning
     usePriority: ~
+
+  - name: converse-llm
+    ip: 10.10.0.142
+    port: 80
+    useHttps: true
+    selfSigned: false
+    domain: converse-llm.camer.digital
+    usePriority: ~
+
+  - name: converse-llm-local
+    ip: 10.10.0.142
+    port: 80
+    useHttps: true
+    selfSigned: true
+    domain: converse-llm.home.ssegning
+    usePriority: ~

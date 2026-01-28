@@ -22,8 +22,8 @@ metadata:
   namespace: {{ include "common.names.namespace" $ | quote }}
   labels:
     {{ include "common.labels.standard" $ | nindent 4 }}
-  annotations:
-    "helm.sh/hook": post-install,post-upgrade
+  #annotations:
+  #  "helm.sh/hook": post-install,post-upgrade
 subsets:
   - addresses:
       - ip: {{ .ip }}
