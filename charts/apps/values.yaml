@@ -317,7 +317,7 @@ applications:
               type: Kubernetes
               kubernetes:
                 envoyDeployment:
-                  replicas: 2
+                  replicas: 1
                 #envoyService:
                 #  type: ClusterIP
     destination:
