@@ -72,7 +72,7 @@ librechat:
       strategy: RollingUpdate
       serviceAccount:
         identifier: librechat
-      replicas: 2
+      replicas: 1
       pod:
         labels:
           app: librechat-app
