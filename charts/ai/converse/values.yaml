@@ -374,7 +374,7 @@ librechat:
               #excludedIds: ["asst_excludedAssistantId"]
             custom:
               - name: "Converse"
-                apiKey: "${CONVERSE_OPENAI_API_KEY}"
+                apiKey: "dummy"
                 baseURL: "http://10.10.0.142/v1"
                 models:
                   default:
@@ -420,7 +420,7 @@ librechat:
                   X-User-ID: '{{ `{{` }}LIBRECHAT_USER_ID{{ `}}` }}'
                   X-User-Email: '{{ `{{` }}LIBRECHAT_USER_EMAIL{{ `}}` }}'
                   X-User-Role: '{{ `{{` }}LIBRECHAT_USER_ROLE{{ `}}` }}'
-                  #Authorization: 'APIKEY ${CONVERSE_OPENAI_API_KEY}'
+                  Authorization: 'APIKEY ${CONVERSE_OPENAI_API_KEY}'
 
 
   persistence:
