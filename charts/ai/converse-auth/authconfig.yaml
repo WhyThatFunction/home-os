@@ -1,7 +1,7 @@
 apiVersion: authorino.kuadrant.io/v1beta3
 kind: AuthConfig
 metadata:
-  name: ai-v1-home-api-protection
+  name: converse-api-protection
   namespace: converse-llm
 spec:
   # String array
@@ -12,7 +12,7 @@ spec:
       apiKey:
         selector:
           matchLabels:
-            app: librechat-client # Labels on your API Key Secrets
+            group: converse-api-key # Labels on your API Key Secrets
       credentials:
         authorizationHeader:
           prefix: APIKEY
