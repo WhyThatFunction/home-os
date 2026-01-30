@@ -291,7 +291,7 @@ applications:
     source:
       repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD
-      path: charts/ai/auth
+      path: charts/ai/converse-auth
     destination:
       server: https://kubernetes.default.svc
       namespace: converse-llm
@@ -302,14 +302,14 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: converse-endpoints
+  - name: converse-mcp
     finalizers:
       - resources-finalizer.argocd.argoproj.io
     project: ai
     source:
       repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD
-      path: charts/ai/endpoints
+      path: charts/ai/converse-mcp
     destination:
       server: https://kubernetes.default.svc
       namespace: converse-llm
