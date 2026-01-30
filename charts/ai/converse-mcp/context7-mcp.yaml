@@ -30,3 +30,16 @@ spec:
         hostname: mcp.context7.com
         port: 443
 ---
+apiVersion: gateway.networking.k8s.io/v1alpha3
+kind: BackendTLSPolicy
+metadata:
+  name: context7-tls
+  namespace: converse-llm
+spec:
+  targetRefs:
+    - group: "gateway.envoyproxy.io"
+      kind: Backend
+      name: context7
+  validation:
+    wellKnownCACertificates: "System"
+    hostname: mcp.context7.com
