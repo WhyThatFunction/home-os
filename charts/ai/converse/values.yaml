@@ -406,7 +406,7 @@ librechat:
                     - "gemini-2-5-pro-reasoning-4096"
                     - "dall-e-3"
                     - "gemini-3-pro"
-                  fetch: true  # Attempt to dynamically fetch available models
+                  fetch: false  # Attempt to dynamically fetch available models # disabled because of 401
                   userIdQuery: true
                 iconURL: "https://s3.camer.digital/converse/public/autumn.png"
                 titleConvo: true

@@ -5,7 +5,7 @@ metadata:
   namespace: converse-llm
 spec:
   parentRefs:
-    - name: aigw-run
+    - name: ai-gateway
       kind: Gateway
       group: gateway.networking.k8s.io
   path: "/mcp" # Clients connect to http://gateway-address/mcp
