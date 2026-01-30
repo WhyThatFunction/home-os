@@ -1,18 +1,17 @@
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: SecurityPolicy
 metadata:
-  name: test-authorino-security-policy
+  name: converse-authorino-security-policy
   namespace: converse-llm
 spec:
-  targetRefs:
+  targetSelectors:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      name: envoy-ai-gateway-basic-openai
   extAuth:
     grpc:
       backendRefs:
         - group: ''
-          name: authorino-authorino-authorization
+          name: converse-authorino-authorization
           namespace: converse-llm
           port: 50051
           kind: Service

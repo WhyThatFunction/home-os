@@ -1,7 +1,7 @@
 apiVersion: operator.authorino.kuadrant.io/v1beta1
 kind: Authorino
 metadata:
-  name: authorino
+  name: converse
   namespace: converse-llm
 spec:
   listener:
