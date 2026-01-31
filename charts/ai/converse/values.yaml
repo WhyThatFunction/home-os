@@ -375,7 +375,7 @@ librechat:
             custom:
               - name: "Converse"
                 apiKey: "dummy"
-                baseURL: "http://10.10.0.142/v1"
+                baseURL: "http://143.42.221.63/v1" # TODO Should fix the SSL
                 models:
                   default:
                     - "deepseek-v3p1"
