@@ -559,7 +559,7 @@ applications:
   - name: ai-charts
     finalizers:
       - resources-finalizer.argocd.argoproj.io
-    project: hyperswitch-base
+    project: ai
     source:
       repoURL: https://github.com/whythatfunction/home-ai
       targetRevision: HEAD
