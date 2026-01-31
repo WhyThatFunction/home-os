@@ -139,6 +139,8 @@ projects:
     destinations:
       - namespace: "*"
         server: https://kubernetes.default.svc
+      - namespace: "*"
+        name: "lke560142-ctx"
     clusterResourceWhitelist:
       - group: "*"
         kind: "*"
