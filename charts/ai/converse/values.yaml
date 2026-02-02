@@ -177,6 +177,42 @@ librechat:
                 name: librechat-main-config
                 key: converse_openai_api_key
 
+            # Web Search Configuration - Reference environment variables from secrets
+            # Search Provider: Serper (you can also use SearXNG)
+            SERPER_API_KEY:
+              secretKeyRef:
+                name: librechat-websearch-config
+                key: serper_api_key
+
+            # Scraper: Firecrawl
+            FIRECRAWL_API_KEY:
+              secretKeyRef:
+                name: librechat-websearch-config
+                key: firecrawl_api_key
+
+            # Reranker: Jina (you can also use Cohere)
+            JINA_API_KEY:
+              secretKeyRef:
+                name: librechat-websearch-config
+                key: jina_api_key
+
+            # Image Generation Configuration - Reference environment variables from secrets
+            # OpenAI Image Generation
+            IMAGE_GEN_OAI_API_KEY:
+              secretKeyRef:
+                name: librechat-imagegen-config
+                key: image_gen_oai_api_key
+
+            # Gemini Image Generation Using Vertex AI
+            GOOGLE_SERVICE_KEY:
+              secretKeyRef:
+                name: google-vertex-ai-credentials
+                key: service-account-json
+
+            # Optional: Specify the Google Cloud location (default: global)
+            # Common locations: us-central1, us-east1, europe-west1, asia-northeast1
+            GOOGLE_CLOUD_LOCATION: "us-central1"
+
 #            AWS_ACCESS_KEY_ID:
 #              secretKeyRef:
 #                name: librechat-s3-config
@@ -301,6 +337,30 @@ librechat:
             refillIntervalValue: 30      # Numerical value for refill interval
             refillIntervalUnit: "days"   # Time unit for refill interval (days, hours, etc.)
             refillAmount: 10000          # Tokens added during each refill
+          
+          # Web Search Configuration
+          webSearch:
+            # Search Provider Configuration - use environment variable references
+            serperApiKey: "${SERPER_API_KEY}"
+            # Alternative: SearXNG (uncomment if using)
+            # searxngInstanceUrl: "${SEARXNG_INSTANCE_URL}"
+            # searxngApiKey: "${SEARXNG_API_KEY}"
+            
+            # Scraper Configuration
+            firecrawlApiKey: "${FIRECRAWL_API_KEY}"
+            # Optional: Custom Firecrawl instance
+            # firecrawlApiUrl: "${FIRECRAWL_API_URL}"
+            
+            # Reranker Configuration - Jina (or use Cohere)
+            jinaApiKey: "${JINA_API_KEY}"
+            # Optional: Custom Jina instance
+            # jinaApiUrl: "${JINA_API_URL}"
+            # Alternative: Cohere
+            # cohereApiKey: "${COHERE_API_KEY}"
+            
+            # General Settings
+            safeSearch: 1  # Options: 0 (OFF), 1 (MODERATE - default), 2 (STRICT)
+          
           fileConfig:
             endpoints:
               assistants:
