@@ -204,7 +204,7 @@ librechat:
                 key: api_key
 
             # OpenAI-compatible Converse LLM API base URL
-            IMAGE_GEN_OAI_BASEURL=https://converse-llm.camer.digital/v1
+            IMAGE_GEN_OAI_BASEURL=http://converse-llm.camer.digital/v1
 
 #            AWS_ACCESS_KEY_ID:
 #              secretKeyRef:
