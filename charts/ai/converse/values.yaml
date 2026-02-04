@@ -244,7 +244,7 @@ librechat:
             PGID: "1000"
             TZ: "Europe/Berlin"
 
-            RAG_OPENAI_BASEURL: "http://10.10.0.229:11434/v1"
+            RAG_OPENAI_BASEURL: "http://10.10.0.230:11434/v1"
             RAG_OPENAI_API_KEY:
               secretKeyRef:
                 name: librechat-main-config
