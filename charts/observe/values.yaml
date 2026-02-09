@@ -41,7 +41,7 @@ loki:
     service:
       publishNotReadyAddresses: true
   ingress:
-    enabled: false
+    enabled: true
     ingressClassName: traefik
     hosts:
       - "loki-{{ .Values.global.domain }}"
@@ -112,7 +112,7 @@ loki:
         cpu: '1000m'
         memory: '4Gi'
     persistence:
-      storageClass: 'wazuh-monitoring-sc'
+      storageClass: 'longhorn-static'
 
   # Zero out replica counts of other deployment modes
   backend:
