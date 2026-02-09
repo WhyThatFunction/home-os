@@ -571,3 +571,63 @@ applications:
       automated:
         prune: true
         selfHeal: true
+
+  - name: monitoring
+    namespace: "argocd"
+    additionalLabels: { }
+    additionalAnnotations: { }
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: applications
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/observe
+      helm:
+        valueFiles:
+          - values.yaml
+        valuesObject:
+          nameOverride: "monitoring"
+          global:
+            domain: "grafana.ssegning.com"
+            storageClassName: longhorn-static
+
+          commonAnnotations:
+            "kubernetes.io/description": 'Monitoring for Home Cluster'
+
+          keycloak:
+            enabled: true
+            client_id: "grafana-home"
+            client_secret: "vw8Kr4XoARxFllVpULzGLNLKqtlU34LP"
+            url: "https://accounts.ssegning.com"
+            realm: "camer-digital"
+
+          prom-stack:
+            grafana:
+              grafana.ini:
+                auth.generic_oauth:
+                  name: "SSegning"
+              ingress:
+                ingressClassName: traefik
+                annotations:
+                  cert-manager.io/cluster-issuer: cert-cloudflare
+          loki:
+            loki:
+              storage:
+                type: filesystem
+                bucketNames:
+                  chunks: "wazuh-monitoring-loki-logs"
+                  ruler: "wazuh-monitoring-loki-logs"
+          storageClasses:
+            '{{ include "common.storage-className" $ }}':
+              enabled: false
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: "monitoring"
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true

@@ -1,23 +1,40 @@
 global:
   security:
     allowInsecureImages: true
+  domain: "grafana.ssegning.com"
+  storageClassName: longhorn-static
 
-grafana-alloy:
-  alloy:
-    image: 
-      repository: bitnamilegacy/grafana-alloy
-    extraContainerPorts:
-      - name: "otel"
-        containerPort: 4317
-      - name: "otel-http"
-        containerPort: 4318
-  ingress:
+
+monitoring:
+  nameOverride: "monitoring"
+
+  commonAnnotations:
+    "kubernetes.io/description": 'Monitoring for Home Cluster'
+
+  keycloak:
     enabled: true
-    annotations:
-      cert-manager.io/cluster-issuer: self-signed-ca
-    hostname: alloy.home.ssegning
-    tls: true
-  configReloader: 
-    enabled: false
-    image: 
-      repository: bitnamilegacy/configmap-reload
+    client_id: "grafana-home"
+    client_secret: "vw8Kr4XoARxFllVpULzGLNLKqtlU34LP"
+    url: "https://accounts.ssegning.com"
+    realm: "camer-digital"
+
+  prom-stack:
+    grafana:
+      grafana.ini:
+        auth.generic_oauth:
+          name: "SSegning"
+      ingress:
+        ingressClassName: traefik
+        annotations:
+          cert-manager.io/cluster-issuer: cert-cloudflare
+  loki:
+    ingress:
+      ingressClassName: traefik
+      annotations:
+        cert-manager.io/cluster-issuer: cert-cloudflare
+    loki:
+      storage:
+        type: filesystem
+  storageClasses:
+    '{{ include "common.storage-className" $ }}':
+      enabled: false

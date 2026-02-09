@@ -1,6 +1,6 @@
 dependencies:
-- name: grafana-alloy
-  repository: https://charts.bitnami.com/bitnami
-  version: 1.0.7
-digest: sha256:c1932286ed26aabe11a2c47bc4e081543cd7263724cfcf5da27e46649c41c9fa
-generated: "2025-10-02T09:01:32.589181+02:00"
+- name: wazuh-monitoring
+  repository: https://adorsys-gis.github.io/wazuh-helm
+  version: 0.1.0
+digest: sha256:8b016fc47df3aaa3b5f50bb4156e1f3f2299154d657ae305463bf1e0c09f326d
+generated: "2026-02-09T15:29:11.170556+01:00"
