@@ -56,7 +56,7 @@ monitoring:
                 paths:
                   - backend:
                       service:
-                        name: monitoring-otel
+                        name: monitoring-alloy
                         port:
                           number: 4317
                     path: /
