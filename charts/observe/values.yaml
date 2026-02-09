@@ -35,6 +35,9 @@ monitoring:
     loki:
       storage:
         type: filesystem
+    singleBinary:
+      persistence:
+        storageClass: longhorn-static
   storageClasses:
     '{{ include "common.storage-className" $ }}':
       enabled: false
