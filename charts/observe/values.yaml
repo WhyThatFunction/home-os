@@ -27,22 +27,116 @@ monitoring:
         ingressClassName: traefik
         annotations:
           cert-manager.io/cluster-issuer: cert-cloudflare
-  loki:
-    ingress:
-      ingressClassName: traefik
-      annotations:
-        cert-manager.io/cluster-issuer: cert-cloudflare
-    loki:
-      storage:
-        type: filesystem
-        bucketNames: null
-      structuredConfig:
-        common:
-          storage:
-            s3: null
-    singleBinary:
-      persistence:
-        storageClass: longhorn-static
   storageClasses:
     '{{ include "common.storage-className" $ }}':
       enabled: false
+  loki:
+    enabled: false
+
+
+loki:
+  fullnameOverride: loki
+  enabled: true
+  memberlist:
+    service:
+      publishNotReadyAddresses: true
+  ingress:
+    enabled: false
+    ingressClassName: traefik
+    hosts:
+      - "loki-{{ .Values.global.domain }}"
+  loki:
+    auth_enabled: false
+    storage:
+      type: filesystem
+      bucketNames:
+        chunks: monitoring
+        ruler: monitoring
+      object_store:
+        storage_prefix: "loki_"
+    structuredConfig:
+      compactor:
+        retention_enabled: true
+        delete_request_store: s3
+      limits_config:
+        retention_period: 30d
+
+    commonConfig:
+      replication_factor: 1
+    schemaConfig:
+      configs:
+        - from: "2024-04-01"
+          store: tsdb
+          object_store: s3
+          schema: v13
+          index:
+            prefix: loki_index_
+            period: 24h
+    pattern_ingester:
+      enabled: true
+    limits_config:
+      allow_structured_metadata: true
+      volume_enabled: true
+  ruler:
+    enable_api: true
+  lokiCanary:
+    enabled: false
+  test:
+    enabled: false
+  monitoring:
+    dashboards:
+      enabled: false
+    rules:
+      enabled: false
+    serviceMonitor:
+      enabled: false
+    selfMonitoring:
+      enabled: false
+      grafanaAgent:
+        installOperator: false
+    lokiCanary:
+      enabled: false
+
+  minio:
+    enabled: false
+
+  deploymentMode: SingleBinary
+
+  singleBinary:
+    replicas: 1
+    resources:
+      requests:
+        cpu: '100m'
+        memory: '600Mi'
+      limits:
+        cpu: '1000m'
+        memory: '4Gi'
+    persistence:
+      storageClass: 'wazuh-monitoring-sc'
+
+  # Zero out replica counts of other deployment modes
+  backend:
+    replicas: 0
+  read:
+    replicas: 0
+  write:
+    replicas: 0
+
+  ingester:
+    replicas: 0
+  querier:
+    replicas: 0
+  queryFrontend:
+    replicas: 0
+  queryScheduler:
+    replicas: 0
+  distributor:
+    replicas: 0
+  compactor:
+    replicas: 0
+  indexGateway:
+    replicas: 0
+  bloomCompactor:
+    replicas: 0
+  bloomGateway:
+    replicas: 0

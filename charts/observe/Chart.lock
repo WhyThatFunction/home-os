@@ -2,5 +2,8 @@ dependencies:
 - name: wazuh-monitoring
   repository: https://adorsys-gis.github.io/wazuh-helm
   version: 0.1.0
-digest: sha256:b66d9f431fb3b7c099d28d15338645ad6eea29c6042b73a2757f455d6ca8bb18
-generated: "2026-02-09T15:36:00.106933+01:00"
+- name: loki
+  repository: https://grafana.github.io/helm-charts
+  version: 6.52.0
+digest: sha256:55ce9417eaa31aae283ede3af4602e49cebcf7606f6d2adc96276c1d0698a3c0
+generated: "2026-02-09T15:51:25.202619+01:00"

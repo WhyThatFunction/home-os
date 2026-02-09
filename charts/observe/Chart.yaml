@@ -28,3 +28,10 @@ dependencies:
     version: "*"
     repository: https://adorsys-gis.github.io/wazuh-helm
     alias: monitoring
+
+  - condition: loki.enabled
+    name: loki
+    repository: https://grafana.github.io/helm-charts
+    tags:
+      - loki
+    version: '*'
