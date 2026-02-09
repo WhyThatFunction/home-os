@@ -37,7 +37,7 @@ monitoring:
 
 loki:
   fullnameOverride: loki
-  enabled: true
+  enabled: false
   memberlist:
     service:
       publishNotReadyAddresses: true
