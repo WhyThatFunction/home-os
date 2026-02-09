@@ -63,7 +63,7 @@ customServices:
     domain: converse-llm.camer.digital
     usePriority: ~
 
-  - name: converse-llm
+  - name: converse-analytics
     ip: 172.105.146.66
     port: 443
     useHttps: false
