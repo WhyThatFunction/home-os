@@ -24,6 +24,7 @@ monitoring:
         auth.generic_oauth:
           name: "SSegning"
           role_attribute_path: "contains(resource_access.grafana-home.roles[*], 'admin') && 'Admin' || contains(resource_access.grafana-home.roles[*], 'grafanaadmin') && 'GrafanaAdmin' || 'Viewer'"
+          use_refresh_token: "false"
       ingress:
         ingressClassName: traefik
         annotations:
@@ -33,6 +34,12 @@ monitoring:
       enabled: false
   loki:
     enabled: false
+  alloy:
+    ingress:
+      enabled: true
+      ingressClassName: traefik
+      annotations:
+        cert-manager.io/cluster-issuer: cert-cloudflare
 
 
 loki:
