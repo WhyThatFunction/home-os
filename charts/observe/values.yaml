@@ -23,7 +23,7 @@ monitoring:
       grafana.ini:
         auth.generic_oauth:
           name: "SSegning"
-          role_attribute_path: "contains(resource_access.grafana.roles[*], 'admin') && 'Admin' || contains(resource_access.grafana.roles[*], 'grafanaadmin') && 'GrafanaAdmin' || 'Viewer'"
+          role_attribute_path: "contains(resource_access.grafana-home.roles[*], 'admin') && 'Admin' || contains(resource_access.grafana-home.roles[*], 'grafanaadmin') && 'GrafanaAdmin' || 'Viewer'"
       ingress:
         ingressClassName: traefik
         annotations:
