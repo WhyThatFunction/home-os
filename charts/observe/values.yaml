@@ -40,6 +40,28 @@ monitoring:
       ingressClassName: traefik
       annotations:
         cert-manager.io/cluster-issuer: cert-cloudflare
+    extraObjects:
+      - apiVersion: networking.k8s.io/v1
+        kind: Ingress
+        metadata:
+          annotations:
+            cert-manager.io/cluster-issuer: cert-cloudflare
+          name: monitoring-alloy-otel
+          namespace: monitoring
+        spec:
+          ingressClassName: traefik
+          rules:
+            - host: otel-alloy-grafana.ssegning.com
+              http:
+                paths:
+                  - backend:
+                      service:
+                        name: monitoring-otel
+                        port:
+                          number: 4317
+                    path: /
+                    pathType: Prefix
+
 
 
 loki:
