@@ -200,8 +200,8 @@ librechat:
             #  Image Generation
             IMAGE_GEN_OAI_API_KEY:
               secretKeyRef:
-                name: converse-api-key
-                key: api_key
+                name: librechat-main-config
+                key: converse_openai_api_key
 
             # OpenAI-compatible Converse LLM API base URL
             IMAGE_GEN_OAI_BASEURL: http://converse-llm.camer.digital/v1
