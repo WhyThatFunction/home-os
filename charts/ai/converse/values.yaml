@@ -97,7 +97,7 @@ librechat:
             OPENID_CALLBACK_URL: "/oauth/openid/callback"
             OPENID_SCOPE: "openid profile email librechat"
             OPENID_REQUIRED_ROLE: "user"
-            OPENID_REQUIRED_ROLE_TOKEN_KIND: "(access|id)"
+            OPENID_REQUIRED_ROLE_TOKEN_KIND: "access"
             OPENID_REQUIRED_ROLE_PARAMETER_PATH: "librechat_roles"
             OPENID_AUTO_REDIRECT: "true"
 
