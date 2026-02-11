@@ -1,6 +1,6 @@
 global:
   librechat:
-    version: "v0.8.1"
+    version: "v0.8.2"
     existingSecretName: "librechat-creds-env"
   mongo:
     replicaCount: 3
@@ -26,7 +26,7 @@ librechat:
             - converse.camer.digital
 
     librechat-local:
-      enabled: true
+      enabled: false
       annotations:
         cert-manager.io/cluster-issuer: self-signed-ca
       className: traefik
