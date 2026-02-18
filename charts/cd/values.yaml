@@ -38,11 +38,11 @@ projects:
     permitOnlyProjectScopedClusters: false
     finalizers:
       - resources-finalizer.argocd.argoproj.io
-    description: Moboko Applications
+    description: Mboko Applications
     sourceRepos:
       - "*"
     destinations:
-      - namespace: "*"
+      - namespace: "mboko-*"
         server: https://kubernetes.default.svc
     clusterResourceWhitelist:
       - group: "*"
@@ -55,7 +55,7 @@ projects:
     roles: [ ]
     syncWindows: [ ]
     sourceNamespaces:
-      - "mboko"
+      - "*"
   - name: infrastructure
     additionalLabels: { }
     additionalAnnotations: { }
