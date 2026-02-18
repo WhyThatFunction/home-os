@@ -76,6 +76,7 @@ configs:
       g, ArgoCDAdmin, role:admin
       g, ArgoCDHyperswitch, role:hyperswitch
       g, ArgoCDAI, role:ai
+      g, ArgoCDMboko, role:mboko
       g, ArgoCDViewer, role:readonly
 
       # --- Hyperswitch role ---
@@ -106,3 +107,15 @@ configs:
       p, role:ai, applications, override, ai/*, allow
       p, role:ai, logs, get, ai/*, allow
       p, role:ai, exec, create, ai/*, allow
+
+      # --- mboko role ---
+      # mboko project: read/write
+      p, role:mboko, projects, get, mboko, allow
+      p, role:mboko, applications, get, mboko/*, allow
+      p, role:mboko, applications, create, mboko/*, allow
+      p, role:mboko, applications, update, mboko/*, allow
+      p, role:mboko, applications, delete, mboko/*, allow
+      p, role:mboko, applications, sync, mboko/*, allow
+      p, role:mboko, applications, override, mboko/*, allow
+      p, role:mboko, logs, get, mboko/*, allow
+      p, role:mboko, exec, create, mboko/*, allow
