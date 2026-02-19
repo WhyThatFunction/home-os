@@ -1,6 +1,9 @@
 dependencies:
-- name: grafana-alloy
-  repository: https://charts.bitnami.com/bitnami
-  version: 1.0.7
-digest: sha256:c1932286ed26aabe11a2c47bc4e081543cd7263724cfcf5da27e46649c41c9fa
-generated: "2025-10-02T09:01:32.589181+02:00"
+- name: wazuh-monitoring
+  repository: https://adorsys-gis.github.io/wazuh-helm
+  version: 0.1.0
+- name: loki
+  repository: https://grafana.github.io/helm-charts
+  version: 6.52.0
+digest: sha256:55ce9417eaa31aae283ede3af4602e49cebcf7606f6d2adc96276c1d0698a3c0
+generated: "2026-02-09T15:51:25.202619+01:00"

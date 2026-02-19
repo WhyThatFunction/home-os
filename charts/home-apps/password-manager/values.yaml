@@ -15,6 +15,7 @@ db:
 vaultwarden:
   image: 
     repository: ghcr.io/dani-garcia/vaultwarden
+    tag: 1.35.3-alpine
   env:
     TZ: Europe/Berlin
     ADMIN_TOKEN:

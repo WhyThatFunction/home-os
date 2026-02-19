@@ -24,6 +24,14 @@ version: 0.1.0
 appVersion: "1.16.0"
 
 dependencies:
-  - name: grafana-alloy
-    version: 1.0.7
-    repository: https://charts.bitnami.com/bitnami
+  - name: wazuh-monitoring
+    version: "*"
+    repository: https://adorsys-gis.github.io/wazuh-helm
+    alias: monitoring
+
+  - condition: loki.enabled
+    name: loki
+    repository: https://grafana.github.io/helm-charts
+    tags:
+      - loki
+    version: '*'

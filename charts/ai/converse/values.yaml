@@ -1,6 +1,6 @@
 global:
   librechat:
-    version: "v0.8.1"
+    version: "v0.8.2"
     existingSecretName: "librechat-creds-env"
   mongo:
     replicaCount: 3
@@ -26,7 +26,7 @@ librechat:
             - converse.camer.digital
 
     librechat-local:
-      enabled: true
+      enabled: false
       annotations:
         cert-manager.io/cluster-issuer: self-signed-ca
       className: traefik
@@ -96,7 +96,7 @@ librechat:
             OPENID_ISSUER: "https://accounts.camer.digital/realms/camer-digital"
             OPENID_CALLBACK_URL: "/oauth/openid/callback"
             OPENID_SCOPE: "openid profile email librechat"
-            OPENID_REQUIRED_ROLE: "chat"
+            OPENID_REQUIRED_ROLE: "user"
             OPENID_REQUIRED_ROLE_TOKEN_KIND: "access"
             OPENID_REQUIRED_ROLE_PARAMETER_PATH: "librechat_roles"
             OPENID_AUTO_REDIRECT: "true"
@@ -200,8 +200,8 @@ librechat:
             #  Image Generation
             IMAGE_GEN_OAI_API_KEY:
               secretKeyRef:
-                name: converse-api-key
-                key: api_key
+                name: librechat-main-config
+                key: converse_openai_api_key
 
             # OpenAI-compatible Converse LLM API base URL
             IMAGE_GEN_OAI_BASEURL: https://converse-llm.camer.digital/v1
@@ -283,7 +283,7 @@ librechat:
             PGID: "1000"
             TZ: "Europe/Berlin"
 
-            RAG_OPENAI_BASEURL: "http://10.10.0.229:11434/v1"
+            RAG_OPENAI_BASEURL: "http://10.10.0.230:11434/v1"
             RAG_OPENAI_API_KEY:
               secretKeyRef:
                 name: librechat-main-config
@@ -438,7 +438,7 @@ librechat:
             custom:
               - name: "Converse"
                 apiKey: "dummy"
-                baseURL: "http://143.42.221.63/v1" # TODO Should fix the SSL
+                baseURL: "https://api.ai.camer.digital/v1"
                 models:
                   default:
                     - "deepseek-v3p1"

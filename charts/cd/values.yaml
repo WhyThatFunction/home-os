@@ -32,6 +32,30 @@ projects:
     syncWindows: [ ]
     sourceNamespaces:
       - "*"
+  - name: mboko
+    additionalLabels: { }
+    additionalAnnotations: { }
+    permitOnlyProjectScopedClusters: false
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    description: Mboko Applications
+    sourceRepos:
+      - "*"
+    destinations:
+      - namespace: "mboko-*"
+        server: https://kubernetes.default.svc
+    clusterResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    clusterResourceBlacklist: [ ]
+    namespaceResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    orphanedResources: { }
+    roles: [ ]
+    syncWindows: [ ]
+    sourceNamespaces:
+      - "*"
   - name: infrastructure
     additionalLabels: { }
     additionalAnnotations: { }
