@@ -204,7 +204,16 @@ librechat:
                 key: api_key
 
             # OpenAI-compatible Converse LLM API base URL
-            IMAGE_GEN_OAI_BASEURL: http://converse-llm.camer.digital/v1
+            IMAGE_GEN_OAI_BASEURL: https://converse-llm.camer.digital/v1
+
+            # Required
+            DALLE_API_KEY:  # or DALLE3_API_KEY=sk-...
+              secretKeyRef:
+                name: converse-api-key
+                key: api_key
+            
+            # Optional
+            DALLE3_BASEURL: https://converse-llm.camer.digital/v1  
 
 
 #            AWS_ACCESS_KEY_ID:
@@ -460,6 +469,7 @@ librechat:
                     - "gemini-2-5-pro-reasoning-4096"
                     - "dall-e-3"
                     - "gemini-3-pro"
+                    - "gpt-image-1"
                   fetch: false  # Attempt to dynamically fetch available models # disabled because of 401
                   userIdQuery: true
                 iconURL: "https://s3.camer.digital/converse/public/autumn.png"
