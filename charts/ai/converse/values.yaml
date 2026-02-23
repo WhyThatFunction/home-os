@@ -1,6 +1,6 @@
 global:
   librechat:
-    version: "v0.8.2"
+    version: "v0.8.3-rc1"
     existingSecretName: "librechat-creds-env"
   mongo:
     replicaCount: 3
