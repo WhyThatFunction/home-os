@@ -6,6 +6,7 @@ global:
     replicaCount: 3
 
 librechat:
+  enabled: false
   ingress:
     librechat:
       enabled: true
@@ -357,9 +358,11 @@ librechat:
           
           mcpServers:
             github:
+              title: "Github"
               type: "streamable-http"
               initTimeout: 150000
               url: "https://api.githubcopilot.com/mcp"
+              oauth:
           
           fileConfig:
             endpoints:
@@ -531,7 +534,7 @@ db:
   resourcesPreset: small
 
 search:
-  enabled: true
+  enabled: false
   persistence:
     enabled: true
     storageClass: "longhorn"
