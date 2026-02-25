@@ -585,7 +585,7 @@ applications:
       - resources-finalizer.argocd.argoproj.io
     project: ai
     source:
-      repoURL: https://github.com/whythatfunction/home-ai
+      repoURL: https://github.com/ADORSYS-GIS/converse-ops
       targetRevision: HEAD
       path: charts/apps
     destination:
