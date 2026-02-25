@@ -177,6 +177,11 @@ librechat:
                 name: librechat-main-config
                 key: converse_openai_api_key
 
+            CONVERSE_API_KEY:  # or DALLE3_API_KEY=sk-...
+              secretKeyRef:
+                name: converse-api-key
+                key: api_key
+
             # Web Search Configuration - Reference environment variables from secrets
             # Search Provider: Serper (you can also use SearXNG)
             SERPER_API_KEY:
@@ -437,7 +442,7 @@ librechat:
               #excludedIds: ["asst_excludedAssistantId"]
             custom:
               - name: "Converse"
-                apiKey: "dummy"
+                apiKey: "${CONVERSE_API_KEY}"
                 baseURL: "https://api.ai.camer.digital/v1"
                 models:
                   default:
@@ -474,7 +479,7 @@ librechat:
                     - "qwen3-embedding-8b"
                     - "minimax-m2p5"
                     - "qwen3-rerankr-8b"
-                  fetch: false  # Attempt to dynamically fetch available models # disabled because of 401
+                  fetch: true  # Attempt to dynamically fetch available models # disabled because of 401
                   userIdQuery: true
                 iconURL: "https://s3.camer.digital/converse/public/autumn.png"
                 titleConvo: true
