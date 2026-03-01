@@ -87,70 +87,6 @@ projects:
     syncWindows: [ ]
     sourceNamespaces:
       - "*"
-  - name: hyperswitch
-    additionalLabels: { }
-    additionalAnnotations: { }
-    permitOnlyProjectScopedClusters: false
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    description: Infrastructure Applications
-    sourceRepos:
-      - "*"
-    destinations:
-      - namespace: "*"
-        name: "lke560142-ctx"
-    clusterResourceWhitelist:
-      - group: "*"
-        kind: "*"
-    clusterResourceBlacklist: [ ]
-    namespaceResourceBlacklist:
-      - group: ""
-        kind: ResourceQuota
-      - group: ""
-        kind: LimitRange
-      - group: ""
-        kind: NetworkPolicy
-    namespaceResourceWhitelist:
-      - group: "*"
-        kind: "*"
-    orphanedResources: { }
-    roles: [ ]
-    syncWindows: [ ]
-    sourceNamespaces:
-      - "*"
-  - name: hyperswitch-base
-    additionalLabels: { }
-    additionalAnnotations: { }
-    permitOnlyProjectScopedClusters: false
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    description: Infrastructure Applications
-    sourceRepos:
-      - "*"
-    destinations:
-      - namespace: "*"
-        name: "lke560142-ctx"
-      - namespace: "*"
-        server: https://kubernetes.default.svc
-    clusterResourceWhitelist:
-      - group: "*"
-        kind: "*"
-    clusterResourceBlacklist: [ ]
-    namespaceResourceBlacklist:
-      - group: ""
-        kind: ResourceQuota
-      - group: ""
-        kind: LimitRange
-      - group: ""
-        kind: NetworkPolicy
-    namespaceResourceWhitelist:
-      - group: "*"
-        kind: "*"
-    orphanedResources: { }
-    roles: [ ]
-    syncWindows: [ ]
-    sourceNamespaces:
-      - "*"
   - name: ai
     additionalLabels: { }
     additionalAnnotations: { }
@@ -560,22 +496,6 @@ applications:
       syncOptions:
         - CreateNamespace=true
         - ServerSideApply=true
-      automated:
-        prune: true
-        selfHeal: true
-
-  - name: hyperswitch-charts
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: hyperswitch-base
-    source:
-      repoURL: https://github.com/whythatfunction/hyperswitch-gitops
-      targetRevision: HEAD
-      path: charts/apps
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: argocd
-    syncPolicy:
       automated:
         prune: true
         selfHeal: true
