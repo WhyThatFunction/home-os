@@ -56,6 +56,30 @@ projects:
     syncWindows: [ ]
     sourceNamespaces:
       - "*"
+  - name: keycloak
+    additionalLabels: { }
+    additionalAnnotations: { }
+    permitOnlyProjectScopedClusters: false
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    description: Keycloak Applications
+    sourceRepos:
+      - "*"
+    destinations:
+      - namespace: "keycloak"
+        server: https://kubernetes.default.svc
+    clusterResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    clusterResourceBlacklist: [ ]
+    namespaceResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    orphanedResources: { }
+    roles: [ ]
+    syncWindows: [ ]
+    sourceNamespaces:
+      - "*"
   - name: infrastructure
     additionalLabels: { }
     additionalAnnotations: { }

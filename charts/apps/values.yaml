@@ -89,7 +89,7 @@ applications:
   - name: keycloak
     finalizers:
       - resources-finalizer.argocd.argoproj.io
-    project: external
+    project: keycloak
     source:
       repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD
