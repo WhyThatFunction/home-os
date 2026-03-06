@@ -119,3 +119,15 @@ configs:
       p, role:mboko, applications, override, mboko/*, allow
       p, role:mboko, logs, get, mboko/*, allow
       p, role:mboko, exec, create, mboko/*, allow
+
+      # --- keycloak role ---
+      # keycloak project: read/write
+      p, role:keycloak, projects, get, keycloak, allow
+      p, role:keycloak, applications, get, keycloak/*, allow
+      p, role:keycloak, applications, create, keycloak/*, allow
+      p, role:keycloak, applications, update, keycloak/*, allow
+      p, role:keycloak, applications, delete, keycloak/*, allow
+      p, role:keycloak, applications, sync, keycloak/*, allow
+      p, role:keycloak, applications, override, keycloak/*, allow
+      p, role:keycloak, logs, get, keycloak/*, allow
+      p, role:keycloak, exec, create, keycloak/*, allow
