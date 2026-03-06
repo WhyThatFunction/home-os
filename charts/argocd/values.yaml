@@ -77,7 +77,7 @@ configs:
       g, ArgoCDHyperswitch, role:hyperswitch
       g, ArgoCDAI, role:ai
       g, ArgoCDMboko, role:mboko
-      g, ArgoCDKeycloak, role:mboko
+      g, ArgoCDKeycloak, role:keycloak
       g, ArgoCDViewer, role:readonly
 
       # --- Hyperswitch role ---
