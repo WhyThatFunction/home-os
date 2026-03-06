@@ -178,6 +178,11 @@ librechat:
                 name: librechat-main-config
                 key: converse_openai_api_key
 
+            CONVERSE_API_KEY:  # or DALLE3_API_KEY=sk-...
+              secretKeyRef:
+                name: converse-api-key
+                key: api_key
+
             # Web Search Configuration - Reference environment variables from secrets
             # Search Provider: Serper (you can also use SearXNG)
             SERPER_API_KEY:
@@ -205,7 +210,16 @@ librechat:
                 key: converse_openai_api_key
 
             # OpenAI-compatible Converse LLM API base URL
-            IMAGE_GEN_OAI_BASEURL: https://api.ai.camer.digital/v1
+            IMAGE_GEN_OAI_BASEURL: https://converse-llm.camer.digital/v1
+
+            # Required
+            DALLE_API_KEY:  # or DALLE3_API_KEY=sk-...
+              secretKeyRef:
+                name: converse-api-key
+                key: api_key
+            
+            # Optional
+            DALLE3_BASEURL: https://converse-llm.camer.digital/v1  
 
 
 #            AWS_ACCESS_KEY_ID:
@@ -437,7 +451,7 @@ librechat:
               #excludedIds: ["asst_excludedAssistantId"]
             custom:
               - name: "Converse"
-                apiKey: "dummy"
+                apiKey: "${CONVERSE_API_KEY}"
                 baseURL: "https://api.ai.camer.digital/v1"
                 models:
                   default:
@@ -445,9 +459,7 @@ librechat:
                     - "gpt-5-nano"
                     - "gpt-4o-mini-audio"
                     - "gpt-oss-120b"
-                    - "glm-4p6"
                     - "qwen3-235b-a22b-instruct-2507"
-                    - "gemini-3-flash-thinking"
                     - "gemini-3-flash"
                     - "gpt-5-mini"
                     - "gemini-2-5-pro-reasoning"
@@ -455,7 +467,6 @@ librechat:
                     - "deepseek-v3p1-terminus"
                     - "gemini-2-5-flash"
                     - "qwen3-235b-a22b"
-                    - "gemini-2-5-pro-reasoning-1024"
                     - "gemini-2-5-flash-lite"
                     - "gpt-oss-20b"
                     - "o4-mini"
@@ -466,10 +477,18 @@ librechat:
                     - "kimi-k2-instruct-0905"
                     - "kimi-k2-thinking"
                     - "gpt-4-1-mini"
-                    - "gemini-2-5-pro-reasoning-4096"
                     - "dall-e-3"
                     - "gemini-3-pro"
-                  fetch: false  # Attempt to dynamically fetch available models # disabled because of 401
+                    - "gpt-image-1"
+                    - "glm-5"
+                    - "fireworks-asr-v2"
+                    - "kimi-k2p5"
+                    - "whisper-v3"
+                    - "whisper-v3-turbo"
+                    - "qwen3-embedding-8b"
+                    - "minimax-m2p5"
+                    - "qwen3-rerankr-8b"
+                  fetch: true  # Attempt to dynamically fetch available models # disabled because of 401
                   userIdQuery: true
                 iconURL: "https://s3.camer.digital/converse/public/autumn.png"
                 titleConvo: true
