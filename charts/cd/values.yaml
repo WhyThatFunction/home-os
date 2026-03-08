@@ -564,6 +564,27 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: arc-runners
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: arc-runner
+    source:
+      repoURL: "oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller"
+      targetRevision: 0.13.1
+      chart: "."
+      helm:
+        releaseName: arc
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: arc-systems
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: sky-runners
     finalizers:
       - resources-finalizer.argocd.argoproj.io
