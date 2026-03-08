@@ -32,6 +32,30 @@ projects:
     syncWindows: [ ]
     sourceNamespaces:
       - "*"
+  - name: arc-runner
+    additionalLabels: { }
+    additionalAnnotations: { }
+    permitOnlyProjectScopedClusters: false
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    description: Arc Runner
+    sourceRepos:
+      - "*"
+    destinations:
+      - namespace: "*"
+        server: https://kubernetes.default.svc
+    clusterResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    clusterResourceBlacklist: [ ]
+    namespaceResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    orphanedResources: { }
+    roles: [ ]
+    syncWindows: [ ]
+    sourceNamespaces:
+      - "*"
   - name: mboko
     additionalLabels: { }
     additionalAnnotations: { }
@@ -536,6 +560,127 @@ applications:
       server: https://kubernetes.default.svc
       namespace: argocd
     syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: sky-runners
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: arc-runner
+    source:
+      repoURL: "oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set"
+      targetRevision: 0.13.1
+      chart: "."
+      helm:
+        releaseName: arc-runner-set-sky-selast
+        valuesObject:
+          githubConfigUrl: https://github.com/skyengpro
+          githubConfigSecret: gh-runner-secret-pat
+
+          maxRunners: 5
+
+          minRunners: 0
+
+          runnerGroup: "skyengpro-runner-group"
+
+          ## name of the runner scale set to create. Defaults to the helm release name
+          runnerScaleSetName: "skyengpro-projects-scale-set"
+
+          template:
+            spec:
+              initContainers:
+                - name: init-dind-externals
+                  image: ghcr.io/actions/actions-runner:latest
+                  command: [ "cp", "-r", "/home/runner/externals/.", "/home/runner/tmpDir/" ]
+                  volumeMounts:
+                    - name: dind-externals
+                      mountPath: /home/runner/tmpDir
+                - name: init-dind-rootless
+                  image: docker:dind-rootless
+                  command:
+                    - sh
+                    - -c
+                    - |
+                      set -x
+                      cp -a /etc/. /dind-etc/
+                      echo 'runner:x:1001:1001:runner:/home/runner:/bin/ash' >> /dind-etc/passwd
+                      echo 'runner:x:1001:' >> /dind-etc/group
+                      echo 'runner:100000:65536' >> /dind-etc/subgid
+                      echo 'runner:100000:65536' >> /dind-etc/subuid
+                      chmod 755 /dind-etc;
+                      chmod u=rwx,g=rx+s,o=rx /dind-home
+                      chown 1001:1001 /dind-home
+                  securityContext:
+                    runAsUser: 0
+                  volumeMounts:
+                    - mountPath: /dind-etc
+                      name: dind-etc
+                    - mountPath: /dind-home
+                      name: dind-home
+                - name: dind
+                  image: docker:dind-rootless
+                  args:
+                    - dockerd
+                    - --host=unix:///run/user/1001/docker.sock
+                  securityContext:
+                    privileged: true
+                    runAsUser: 1001
+                    runAsGroup: 1001
+                  restartPolicy: Always
+                  startupProbe:
+                    exec:
+                      command:
+                        - docker
+                        - info
+                    initialDelaySeconds: 0
+                    failureThreshold: 24
+                    periodSeconds: 5
+                  volumeMounts:
+                    - name: work
+                      mountPath: /home/runner/_work
+                    - name: dind-sock
+                      mountPath: /run/user/1001
+                    - name: dind-externals
+                      mountPath: /home/runner/externals
+                    - name: dind-etc
+                      mountPath: /etc
+                    - name: dind-home
+                      mountPath: /home/runner
+              containers:
+                - name: runner
+                  image: ghcr.io/actions/actions-runner:latest
+                  command: [ "/home/runner/run.sh" ]
+                  env:
+                    - name: DOCKER_HOST
+                      value: unix:///run/user/1001/docker.sock
+                  securityContext:
+                    privileged: true
+                    runAsUser: 1001
+                    runAsGroup: 1001
+                  volumeMounts:
+                    - name: work
+                      mountPath: /home/runner/_work
+                    - name: dind-sock
+                      mountPath: /run/user/1001
+              volumes:
+                - name: work
+                  emptyDir: { }
+                - name: dind-externals
+                  emptyDir: { }
+                - name: dind-sock
+                  emptyDir: { }
+                - name: dind-etc
+                  emptyDir: { }
+                - name: dind-home
+                  emptyDir: { }
+
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: gh-runners-sky
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
       automated:
         prune: true
         selfHeal: true
