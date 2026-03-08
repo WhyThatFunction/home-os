@@ -608,9 +608,9 @@ applications:
           ## name of the runner scale set to create. Defaults to the helm release name
           runnerScaleSetName: "skyengpro-projects-scale-set"
 
-          controllerServiceAccount:
-            namespace: gh-runners-sky
-            name: sky-arc-gha-runner-scale-set-controller
+          #controllerServiceAccount:
+          #  namespace: gh-runners-sky
+          #  name: sky-arc-gha-runner-scale-set-controller
 
           template:
             spec:
