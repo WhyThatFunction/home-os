@@ -438,7 +438,7 @@ applications:
       automated:
         prune: true
         selfHeal: true
-  
+
   - name: s3
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -606,6 +606,15 @@ applications:
           controllerServiceAccount:
             namespace: arc-systems
             name: arc-gha-rs-controller
+
+          containerMode:
+            type: "kubernetes"
+            kubernetesModeWorkVolumeClaim:
+              accessModes: [ "ReadWriteOnce" ]
+              storageClassName: "longhorn-local"
+              resources:
+                requests:
+                  storage: 1Gi
 
     destination:
       server: https://kubernetes.default.svc
