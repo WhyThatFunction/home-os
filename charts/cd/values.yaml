@@ -603,10 +603,10 @@ applications:
 
           minRunners: 0
 
-          runnerGroup: "skyengpro-runner-group"
+          #runnerGroup: "skyengpro-runner-group"
 
           ## name of the runner scale set to create. Defaults to the helm release name
-          runnerScaleSetName: "skyengpro-projects-scale-set"
+          #runnerScaleSetName: "skyengpro-projects-scale-set"
 
           controllerServiceAccount:
             namespace: arc-systems
@@ -728,10 +728,10 @@ applications:
 
           minRunners: 0
 
-          runnerGroup: "selast-runner-group"
+          #runnerGroup: "selast-runner-group"
 
           ## name of the runner scale set to create. Defaults to the helm release name
-          runnerScaleSetName: "selast-projects-scale-set"
+          #runnerScaleSetName: "selast-projects-scale-set"
 
           controllerServiceAccount:
             namespace: arc-systems
