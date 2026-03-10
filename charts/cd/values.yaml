@@ -599,7 +599,7 @@ applications:
           githubConfigUrl: https://github.com/skyengpro/azamra-tokenization-bff
           githubConfigSecret: gh-runner-secret-pat
 
-          maxRunners: 10
+          maxRunners: 5
 
           minRunners: 0
 
@@ -661,6 +661,81 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: sky-runners-frontend
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: arc-runner
+    source:
+      repoURL: "oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set"
+      targetRevision: 0.13.1
+      chart: "."
+      helm:
+        releaseName: arc-runner-set-sky-frontend
+        valuesObject:
+          githubConfigUrl: https://github.com/skyengpro/azamra-tokenization-frontend
+          githubConfigSecret: gh-runner-secret-pat
+
+          maxRunners: 5
+
+          minRunners: 0
+
+          controllerServiceAccount:
+            namespace: arc-systems
+            name: arc-gha-rs-controller
+
+          template:
+            spec:
+              containers:
+                - name: dind
+                  image: docker:29-dind
+                  securityContext:
+                    privileged: true
+                  env:
+                    - name: DOCKER_TLS_CERTDIR
+                      value: ""
+                  args:
+                    - dockerd
+                    - --host=tcp://0.0.0.0:2375
+                    - --host=unix:///var/run/docker.sock
+                  startupProbe:
+                    tcpSocket:
+                      port: 2375
+                    failureThreshold: 24
+                    periodSeconds: 5
+                  volumeMounts:
+                    - name: docker-graph
+                      mountPath: /var/lib/docker
+                    - name: work
+                      mountPath: /home/runner/_work
+
+                - name: runner
+                  image: ghcr.io/actions/actions-runner:latest
+                  command: [ "/home/runner/run.sh" ]
+                  env:
+                    - name: DOCKER_HOST
+                      value: tcp://localhost:2375
+                  securityContext:
+                    runAsUser: 1001
+                    runAsGroup: 1001
+                  volumeMounts:
+                    - name: work
+                      mountPath: /home/runner/_work
+              volumes:
+                - name: docker-graph
+                  emptyDir: { }
+                - name: work
+                  emptyDir: { }
+
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: gh-runners-sky
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: selast-runners
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -675,7 +750,7 @@ applications:
           githubConfigUrl: https://github.com/stephane-segning
           githubConfigSecret: gh-runner-secret-pat
 
-          maxRunners: 10
+          maxRunners: 5
 
           minRunners: 0
 
