@@ -758,6 +758,49 @@ applications:
             namespace: arc-systems
             name: arc-gha-rs-controller
 
+          template:
+            spec:
+              containers:
+                - name: dind
+                  image: docker:29-dind
+                  securityContext:
+                    privileged: true
+                  env:
+                    - name: DOCKER_TLS_CERTDIR
+                      value: ""
+                  args:
+                    - dockerd
+                    - --host=tcp://0.0.0.0:2375
+                    - --host=unix:///var/run/docker.sock
+                  startupProbe:
+                    tcpSocket:
+                      port: 2375
+                    failureThreshold: 24
+                    periodSeconds: 5
+                  volumeMounts:
+                    - name: docker-graph
+                      mountPath: /var/lib/docker
+                    - name: work
+                      mountPath: /home/runner/_work
+
+                - name: runner
+                  image: ghcr.io/actions/actions-runner:latest
+                  command: [ "/home/runner/run.sh" ]
+                  env:
+                    - name: DOCKER_HOST
+                      value: tcp://localhost:2375
+                  securityContext:
+                    runAsUser: 1001
+                    runAsGroup: 1001
+                  volumeMounts:
+                    - name: work
+                      mountPath: /home/runner/_work
+              volumes:
+                - name: docker-graph
+                  emptyDir: { }
+                - name: work
+                  emptyDir: { }
+
     destination:
       server: https://kubernetes.default.svc
       namespace: gh-runners-selast
