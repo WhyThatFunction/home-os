@@ -287,6 +287,7 @@ applications:
   - name: keycloak-backup
     finalizers:
       - resources-finalizer.argocd.argoproj.io
+    project: keycloak
     source:
       repoURL: https://github.com/ADORSYS-GIS/ai-helm
       targetRevision: HEAD
