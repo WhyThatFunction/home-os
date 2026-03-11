@@ -308,6 +308,7 @@ applications:
                     image:
                       tag: "26.0"
     destination:
+      server: https://kubernetes.default.svc
       namespace: keycloak
     syncPolicy:
       syncOptions:
