@@ -378,7 +378,7 @@ applications:
       - resources-finalizer.argocd.argoproj.io
     project: ai
     source:
-      repoURL: https://community-charts.github.io
+      repoURL: https://community-charts.github.io/helm-charts
       targetRevision: 1.8.1
       chart: mlflow
       helm:
