@@ -564,6 +564,89 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: argo-workflows
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://argoproj.github.io/argo-helm
+      targetRevision: 1.0.4
+      chart: argo-workflows
+      helm:
+        valuesObject:
+          crds:
+            install: true
+          
+          images:
+            tag: v4.0.2
+          
+          controller:
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+            workflowWorkers: 32
+            podWorkers: 8
+            rbac:
+              create: true
+          
+          server:
+            enabled: true
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+            extraArgs:
+              - --auth-mode=server
+            ingress:
+              enabled: true
+              ingressClassName: traefik
+              annotations:
+                cert-manager.io/cluster-issuer: self-signed-ca
+              hosts:
+                - argo-workflows.home.ssegning
+              tls:
+                - secretName: argo-workflows.home.ssegning-tls
+                  hosts:
+                    - argo-workflows.home.ssegning
+          
+          artifactRepository:
+            archiveLogs: true
+            s3:
+              endpoint: minio.s3.svc.cluster.local:9000
+              insecure: true
+              bucket: argo-artifacts
+              keyFormat: "{{workflow.namespace}}/{{workflow.name}}/{{pod.name}}"
+              accessKeySecret:
+                name: argo-artifacts-secret
+                key: accessKey
+              secretKeySecret:
+                name: argo-artifacts-secret
+                key: secretKey
+          
+          workflow:
+            serviceAccount:
+              create: true
+              name: "argo-workflow"
+          
+          singleNamespace: false
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: argo
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: arc-runners
     finalizers:
       - resources-finalizer.argocd.argoproj.io

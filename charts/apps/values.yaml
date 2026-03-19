@@ -316,3 +316,113 @@ applications:
       automated:
         prune: true
         selfHeal: true
+
+  - name: lakefs
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://charts.lakefs.io
+      targetRevision: 1.8.0
+      chart: lakefs
+      helm:
+        valuesObject:
+          replicaCount: 1
+          
+          image:
+            pullPolicy: IfNotPresent
+          
+          ingress:
+            enabled: true
+            ingressClassName: traefik
+            annotations:
+              cert-manager.io/cluster-issuer: self-signed-ca
+            hosts:
+              - host: lakefs.home.ssegning
+                paths: []
+            tls:
+              - secretName: lakefs.home.ssegning-tls
+                hosts:
+                  - lakefs.home.ssegning
+          
+          lakefsConfig: |
+            database:
+              type: local
+            blockstore:
+              type: local
+          
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          
+          service:
+            type: ClusterIP
+            port: 80
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: lakefs
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: mlflow
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: ai
+    source:
+      repoURL: https://community-charts.github.io
+      targetRevision: 1.8.1
+      chart: mlflow
+      helm:
+        valuesObject:
+          replicaCount: 1
+          
+          image:
+            repository: burakince/mlflow
+            pullPolicy: IfNotPresent
+            tag: "3.7.0"
+          
+          ingress:
+            enabled: true
+            className: traefik
+            annotations:
+              cert-manager.io/cluster-issuer: self-signed-ca
+            hosts:
+              - host: mlflow.home.ssegning
+                paths:
+                  - path: /
+                    pathType: Prefix
+            tls:
+              - secretName: mlflow.home.ssegning-tls
+                hosts:
+                  - mlflow.home.ssegning
+          
+          resources:
+            requests:
+              cpu: 200m
+              memory: 1Gi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+          
+          artifactRoot:
+            defaultArtifactRoot: "./mlruns"
+            defaultArtifactsDestination: "./mlartifacts"
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: mlflow
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true

@@ -1,9 +1,0 @@
-dependencies:
-- name: common
-  repository: file://../common
-  version: 2.31.4
-- name: docuseal
-  repository: https://zekker6.github.io/helm-charts
-  version: 1.97.0
-digest: sha256:47f4952ba40a108992b969fa643790eea48372c4f9d27d3ab350c90f798e631d
-generated: "2026-01-15T18:24:01.025475+01:00"
