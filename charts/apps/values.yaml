@@ -32,24 +32,6 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: comfyui
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: external
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: charts/home-apps/comfyui
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: comfyui
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-      automated:
-        prune: true
-        selfHeal: true
-
   - name: adminer
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -98,24 +80,6 @@ applications:
       server: https://kubernetes.default.svc
       namespace: keycloak
     syncPolicy:
-      automated:
-        prune: true
-        selfHeal: true
-
-  - name: remote-code
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: external
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: charts/home-apps/remote-code
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: remote-code
-    syncPolicy:
-      syncOptions:
-        - ServerSideApply=true
       automated:
         prune: true
         selfHeal: true
@@ -209,81 +173,6 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: n8n-apps
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: external
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: charts/home-apps/n8n-apps
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: n8n
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-        - ServerSideApply=true
-      automated:
-        prune: true
-        selfHeal: true
-
-  - name: nocodb-apps
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: external
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: charts/home-apps/nocodb
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: nocodb
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-        - ServerSideApply=true
-      automated:
-        prune: true
-        selfHeal: true
-
-  - name: docuseal
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: external
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: charts/home-apps/docuseal
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: docuseal
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-        - ServerSideApply=true
-      automated:
-        prune: true
-        selfHeal: true
-
-  - name: converse
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: ai
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: charts/ai/converse
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: converse
-    syncPolicy:
-      syncOptions:
-        - ServerSideApply=true
-      automated:
-        prune: true
-        selfHeal: true
-  
   - name: keycloak-backup
     finalizers:
       - resources-finalizer.argocd.argoproj.io
