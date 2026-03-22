@@ -682,7 +682,7 @@ applications:
           githubConfigUrl: https://github.com/skyengpro/azamra-tokenization-bff
           githubConfigSecret: gh-runner-secret-pat
 
-          maxRunners: 10
+          maxRunners: 2
 
           minRunners: 0
 
@@ -758,7 +758,7 @@ applications:
           githubConfigUrl: https://github.com/skyengpro/azamra-tokenization-frontend
           githubConfigSecret: gh-runner-secret-pat
 
-          maxRunners: 10
+          maxRunners: 3
 
           minRunners: 0
 
@@ -828,7 +828,7 @@ applications:
       targetRevision: 0.13.1
       chart: "."
       helm:
-        releaseName: arc-runner-set-vaam-frontend
+        releaseName: arc-runner-set-vaam
         valuesObject:
           githubConfigUrl: https://github.com/vaam-store
           githubConfigSecret: gh-runner-secret-pat
