@@ -867,7 +867,9 @@ applications:
 
                 - name: runner
                   image: ghcr.io/actions/actions-runner:latest
-                  command: [ "/home/runner/run.sh" ]
+                  command: [ "/bin/sh", "-c" ]
+                  args:
+                    - sleep 15; exec /home/runner/run.sh
                   env:
                     - name: DOCKER_HOST
                       value: tcp://localhost:2375
