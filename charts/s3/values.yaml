@@ -78,6 +78,8 @@ minio:
         withLock: false
       - name: lakefs
         withLock: false
+      - name: mlflow
+        withLock: false
 
 provision_minio_buckets_policies:
   enabled: true

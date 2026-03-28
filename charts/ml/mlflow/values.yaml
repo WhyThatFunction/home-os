@@ -33,6 +33,26 @@ mlflow:
       cpu: 1000m
       memory: 2Gi
 
+  extraEnvVars:
+    MLFLOW_S3_IGNORE_TLS: true  # Skip TLS certificate verification for S3
+    MLFLOW_S3_ENDPOINT_URL: http://s3-minio.s3.svc.cluster.local:9000
+
   artifactRoot:
     defaultArtifactRoot: "./mlruns"
     defaultArtifactsDestination: "./mlartifacts"
+    s3:
+      enabled: true
+      bucket: mlflow
+      existingSecret:
+        name: mlflow-env
+        keyOfAccessKeyId: "s3-access-key"
+        keyOfSecretAccessKey: "s3-secret-key"
+
+  backendStore:
+    postgres:
+      enabled: true
+      host: 'mlflow-pg'
+      database: app
+
+    existingDatabaseSecret:
+      name: 'mlflow-pg-app'
