@@ -230,6 +230,7 @@ applications:
               - host: lakefs.home.ssegning
                 paths:
                   - path: /
+                    pathType: Prefix
             tls:
               - secretName: lakefs.home.ssegning-tls
                 hosts:
