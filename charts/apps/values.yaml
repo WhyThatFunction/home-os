@@ -211,47 +211,9 @@ applications:
       - resources-finalizer.argocd.argoproj.io
     project: external
     source:
-      repoURL: https://charts.lakefs.io
-      targetRevision: 1.8.1
-      chart: lakefs
-      helm:
-        valuesObject:
-          replicaCount: 1
-          
-          image:
-            pullPolicy: IfNotPresent
-          
-          ingress:
-            enabled: true
-            ingressClassName: traefik
-            annotations:
-              cert-manager.io/cluster-issuer: self-signed-ca
-            hosts:
-              - host: lakefs.home.ssegning
-                paths:
-                  - "/"
-            tls:
-              - secretName: lakefs.home.ssegning-tls
-                hosts:
-                  - lakefs.home.ssegning
-          
-          lakefsConfig: |
-            database:
-              type: local
-            blockstore:
-              type: local
-          
-          resources:
-            requests:
-              cpu: 100m
-              memory: 512Mi
-            limits:
-              cpu: 500m
-              memory: 1Gi
-          
-          service:
-            type: ClusterIP
-            port: 80
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/ml/lake-fs
     destination:
       server: https://kubernetes.default.svc
       namespace: lakefs

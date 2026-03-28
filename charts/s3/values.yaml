@@ -111,6 +111,14 @@ minio:
             resources:
               - "arn:aws:s3:::converse/*"
               - "arn:aws:s3:::converse"
+      - name: lakefs-policy
+        statements:
+          - actions:
+              - "s3:*"
+            effect: "Allow"
+            resources:
+              - "arn:aws:s3:::lakefs/*"
+              - "arn:aws:s3:::lakefs"
     
     usersExistingSecrets:
       - minio-users
@@ -135,6 +143,8 @@ minio:
       - name: apple-health-export
         withLock: false
       - name: converse
+        withLock: false
+      - name: lakefs
         withLock: false
 
 provision_minio_buckets_policies:

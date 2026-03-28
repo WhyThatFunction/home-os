@@ -1,0 +1,78 @@
+db:
+  enabled: true
+  instances: 2
+  storage:
+    size: 5Gi
+    storageClass: longhorn
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1"
+
+lakefs:
+  replicaCount: 1
+
+  image:
+    pullPolicy: IfNotPresent
+
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    annotations:
+      cert-manager.io/cluster-issuer: self-signed-ca
+    hosts:
+      - host: lakefs.home.ssegning
+        paths:
+          - "/"
+    tls:
+      - secretName: lakefs.home.ssegning-tls
+        hosts:
+          - lakefs.home.ssegning
+
+  extraEnvVars:
+    - name: LAKEFS_DATABASE_TYPE
+      value: postgres
+    - name: LAKEFS_DATABASE_POSTGRES_CONNECTION_STRING
+      valueFrom:
+        secretKeyRef:
+          name: 'lake-fs-pg-app'
+          key: secret_key
+    - name: LAKEFS_AUTH_ENCRYPT_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: 'lakefs-env'
+          key: auth-secret
+    - name: LAKEFS_BLOCKSTORE_TYPE
+      value: s3
+    - name: LAKEFS_BLOCKSTORE_S3_CREDENTIALS_ACCESS_KEY_ID
+      valueFrom:
+        secretKeyRef:
+          name: 'lakefs-env'
+          key: s3-access-key
+    - name: LAKEFS_BLOCKSTORE_S3_CREDENTIALS_SECRET_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: 'lakefs-env'
+          key: s3-secret-key
+
+
+  lakefsConfig: |
+    database:
+      type: postgres
+    blockstore:
+      type: s3
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+  service:
+    type: ClusterIP
+    port: 80
