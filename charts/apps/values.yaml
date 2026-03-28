@@ -228,7 +228,8 @@ applications:
               cert-manager.io/cluster-issuer: self-signed-ca
             hosts:
               - host: lakefs.home.ssegning
-                paths: []
+                paths:
+                  - path: /
             tls:
               - secretName: lakefs.home.ssegning-tls
                 hosts:
