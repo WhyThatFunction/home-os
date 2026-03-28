@@ -32,6 +32,11 @@ lakefs:
         hosts:
           - lakefs.home.ssegning
 
+  existingSecret: 'lakefs-env'
+
+  secretKeys:
+    authEncryptSecretKey: auth-secret
+
   extraEnvVars:
     - name: LAKEFS_DATABASE_TYPE
       value: postgres
@@ -40,11 +45,11 @@ lakefs:
         secretKeyRef:
           name: 'lake-fs-pg-app'
           key: secret_key
-    - name: LAKEFS_AUTH_ENCRYPT_SECRET_KEY
-      valueFrom:
-        secretKeyRef:
-          name: 'lakefs-env'
-          key: auth-secret
+    #- name: LAKEFS_AUTH_ENCRYPT_SECRET_KEY
+    #  valueFrom:
+    #    secretKeyRef:
+    #      name: 'lakefs-env'
+    #      key: auth-secret
     - name: LAKEFS_BLOCKSTORE_TYPE
       value: s3
     - name: LAKEFS_BLOCKSTORE_S3_CREDENTIALS_ACCESS_KEY_ID
