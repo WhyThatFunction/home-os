@@ -12,14 +12,12 @@ minio:
   image:
     repository: bitnamilegacy/minio
   enabled: true
-  mode: distributed
-  statefulset:
-    replicaCount: 4
+  mode: standalone
   auth:
     existingSecret: minio-root
   persistence:
-    storageClass: longhorn-local
-    size: 50Gi
+    storageClass: sstorage
+    size: 200Gi
   service:
     type: ClusterIP
   clientImage:
@@ -49,22 +47,6 @@ minio:
     enabled: true
     
     policies:
-      - name: nocodb-policy
-        statements:
-          - actions:
-              - "s3:*"
-            effect: "Allow"
-            resources:
-              - "arn:aws:s3:::nocodb-bucket/*"
-              - "arn:aws:s3:::nocodb-bucket"
-      - name: ai-apps-policy
-        statements:
-          - actions:
-              - "s3:*"
-            effect: "Allow"
-            resources:
-              - "arn:aws:s3:::ai-apps/*"
-              - "arn:aws:s3:::ai-apps"
       - name: monitoring-policy
         statements:
           - actions:
@@ -79,38 +61,6 @@ minio:
               - "arn:aws:s3:::monitoring-loki-chunks"
               - "arn:aws:s3:::monitoring-tempo/*"
               - "arn:aws:s3:::monitoring-tempo"
-      - name: sschool-policy
-        statements:
-          - actions:
-              - "s3:*"
-            effect: "Allow"
-            resources:
-              - "arn:aws:s3:::sschool/*"
-              - "arn:aws:s3:::sschool"
-      - name: vaam-eat-policy
-        statements:
-          - actions:
-              - "s3:*"
-            effect: "Allow"
-            resources:
-              - "arn:aws:s3:::vaam-eat/*"
-              - "arn:aws:s3:::vaam-eat"
-      - name: apple-health-export-policy
-        statements:
-          - actions:
-              - "s3:*"
-            effect: "Allow"
-            resources:
-              - "arn:aws:s3:::apple-health-export/*"
-              - "arn:aws:s3:::apple-health-export"
-      - name: converse-policy
-        statements:
-          - actions:
-              - "s3:*"
-            effect: "Allow"
-            resources:
-              - "arn:aws:s3:::converse/*"
-              - "arn:aws:s3:::converse"
       - name: lakefs-policy
         statements:
           - actions:
@@ -124,25 +74,7 @@ minio:
       - minio-users
     
     buckets:
-      - name: nocodb-bucket
-        withLock: false
-      - name: ai-apps
-        withLock: false
-      - name: sschool
-        withLock: false
-      - name: vaam-eat
-        withLock: false
       - name: monitoring
-        withLock: false
-      - name: monitoring-loki-chunks
-        withLock: false
-      - name: monitoring-loki-ruler
-        withLock: false
-      - name: monitoring-tempo
-        withLock: false
-      - name: apple-health-export
-        withLock: false
-      - name: converse
         withLock: false
       - name: lakefs
         withLock: false
@@ -151,21 +83,6 @@ provision_minio_buckets_policies:
   enabled: true
   secret: minio-root
   policies:
-    - name: sschool
-      policy:
-        {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": { "AWS": [ "*" ] },
-              "Action": [ "s3:GetObject" ],
-              "Resource": [
-                "arn:aws:s3:::sschool/images/*"
-              ]
-            }
-          ]
-        }
     - name: vaam-eat
       policy:
         {
@@ -176,22 +93,7 @@ provision_minio_buckets_policies:
               "Principal": { "AWS": [ "*" ] },
               "Action": [ "s3:GetObject" ],
               "Resource": [
-                "arn:aws:s3:::vaam-eat/images/*"
-              ]
-            }
-          ]
-        }
-    - name: converse
-      policy:
-        {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": { "AWS": [ "*" ] },
-              "Action": [ "s3:GetObject" ],
-              "Resource": [
-                "arn:aws:s3:::converse/public/*"
+                "arn:aws:s3:::vaam-eat/public/*"
               ]
             }
           ]
