@@ -83,7 +83,7 @@ provision_minio_buckets_policies:
   enabled: true
   secret: minio-root
   policies:
-    - name: vaam-eat
+    - name: lakefs
       policy:
         {
           "Version": "2012-10-17",
@@ -93,7 +93,7 @@ provision_minio_buckets_policies:
               "Principal": { "AWS": [ "*" ] },
               "Action": [ "s3:GetObject" ],
               "Resource": [
-                "arn:aws:s3:::vaam-eat/public/*"
+                "arn:aws:s3:::lakefs/public/*"
               ]
             }
           ]
