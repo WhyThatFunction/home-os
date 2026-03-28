@@ -212,7 +212,7 @@ applications:
     project: external
     source:
       repoURL: https://charts.lakefs.io
-      targetRevision: 1.8.0
+      targetRevision: 1.8.1
       chart: lakefs
       helm:
         valuesObject:
@@ -229,8 +229,7 @@ applications:
             hosts:
               - host: lakefs.home.ssegning
                 paths:
-                  - path: /
-                    pathType: Prefix
+                  - "/"
             tls:
               - secretName: lakefs.home.ssegning-tls
                 hosts:
