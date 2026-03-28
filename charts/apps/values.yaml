@@ -209,7 +209,7 @@ applications:
   - name: lakefs
     finalizers:
       - resources-finalizer.argocd.argoproj.io
-    project: external
+    project: ml
     source:
       repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD
@@ -228,46 +228,11 @@ applications:
   - name: mlflow
     finalizers:
       - resources-finalizer.argocd.argoproj.io
-    project: ai
+    project: ml
     source:
-      repoURL: https://community-charts.github.io/helm-charts
-      targetRevision: 1.8.1
-      chart: mlflow
-      helm:
-        valuesObject:
-          replicaCount: 1
-          
-          image:
-            repository: burakince/mlflow
-            pullPolicy: IfNotPresent
-            tag: "3.7.0"
-          
-          ingress:
-            enabled: true
-            className: traefik
-            annotations:
-              cert-manager.io/cluster-issuer: self-signed-ca
-            hosts:
-              - host: mlflow.home.ssegning
-                paths:
-                  - path: /
-                    pathType: Prefix
-            tls:
-              - secretName: mlflow.home.ssegning-tls
-                hosts:
-                  - mlflow.home.ssegning
-          
-          resources:
-            requests:
-              cpu: 200m
-              memory: 1Gi
-            limits:
-              cpu: 1000m
-              memory: 2Gi
-          
-          artifactRoot:
-            defaultArtifactRoot: "./mlruns"
-            defaultArtifactsDestination: "./mlartifacts"
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/ml/mlflow
     destination:
       server: https://kubernetes.default.svc
       namespace: mlflow

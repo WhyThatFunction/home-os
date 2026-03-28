@@ -1,0 +1,38 @@
+mlflow:
+  replicaCount: 1
+
+  image:
+    repository: burakince/mlflow
+    pullPolicy: IfNotPresent
+    tag: "3.7.0"
+
+  extraArgs:
+    allowedHosts: "mlflow.home.ssegning"
+    corsAllowedOrigins: "https://mlflow.home.ssegning"
+
+  ingress:
+    enabled: true
+    className: traefik
+    annotations:
+      cert-manager.io/cluster-issuer: self-signed-ca
+    hosts:
+      - host: mlflow.home.ssegning
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: mlflow.home.ssegning-tls
+        hosts:
+          - mlflow.home.ssegning
+
+  resources:
+    requests:
+      cpu: 200m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+  artifactRoot:
+    defaultArtifactRoot: "./mlruns"
+    defaultArtifactsDestination: "./mlartifacts"
