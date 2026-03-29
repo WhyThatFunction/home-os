@@ -256,7 +256,7 @@ applications:
         valuesObject:
           global:
             imagePullSecrets:
-              - gh-pat
+              - name: gh-pat
     destination:
       server: https://kubernetes.default.svc
       namespace: vaam-store-ml-platform
