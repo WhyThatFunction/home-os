@@ -18,11 +18,14 @@ mlflow:
   image:
     repository: burakince/mlflow
     pullPolicy: IfNotPresent
-    tag: "3.7.0"
+    #tag: "3.7.0"
 
-  #extraArgs:
-  #  allowedHosts: "mlflow.home.ssegning"
-  #  corsAllowedOrigins: "https://mlflow.home.ssegning"
+  extraArgs:
+    allowedHosts: "mlflow.home.ssegning"
+    corsAllowedOrigins: "https://mlflow.home.ssegning"
+
+  extraFlags:
+    - uvicornOpts
 
   ingress:
     enabled: true
