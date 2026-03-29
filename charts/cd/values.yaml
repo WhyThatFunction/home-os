@@ -680,6 +680,25 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: argo-events
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://argoproj.github.io/argo-helm
+      targetRevision: 2.4.21
+      chart: argo-events
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: argo-events
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: arc-runners
     finalizers:
       - resources-finalizer.argocd.argoproj.io
