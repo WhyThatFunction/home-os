@@ -603,15 +603,15 @@ applications:
     project: infrastructure
     source:
       repoURL: https://argoproj.github.io/argo-helm
-      targetRevision: 1.0.4
+      targetRevision: 1.0.6
       chart: argo-workflows
       helm:
         valuesObject:
           crds:
             install: true
           
-          images:
-            tag: v4.0.2
+          #images:
+          #  tag: v4.0.2
           
           controller:
             resources:
