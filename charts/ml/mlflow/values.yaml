@@ -24,8 +24,7 @@ mlflow:
     allowedHosts: "mlflow.home.ssegning"
     corsAllowedOrigins: "https://mlflow.home.ssegning"
 
-  extraFlags:
-    - uvicornOpts
+  extraFlags: [ ]
 
   ingress:
     enabled: true
