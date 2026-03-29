@@ -65,7 +65,7 @@ mlflow:
   backendStore:
     postgres:
       enabled: true
-      host: 'mlflow-pg'
+      host: 'mlflow-pg-rw'
       database: app
 
     existingDatabaseSecret:
