@@ -69,7 +69,7 @@ minio:
             resources:
               - "arn:aws:s3:::lakefs/*"
               - "arn:aws:s3:::lakefs"
-      - name: argo-workflow
+      - name: argo-workflow-policy
         statements:
           - actions:
               - "s3:*"
