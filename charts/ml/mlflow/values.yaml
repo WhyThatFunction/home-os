@@ -20,9 +20,9 @@ mlflow:
     pullPolicy: IfNotPresent
     tag: "3.7.0"
 
-  extraFlags:
-    - --allowed-hosts="mlflow.home.ssegning"
-    - --cors-allowed-origins="https://mlflow.home.ssegning"
+  extraArgs:
+    allowedHosts: "mlflow.home.ssegning"
+    corsAllowedOrigins: "https://mlflow.home.ssegning"
 
   ingress:
     enabled: true
