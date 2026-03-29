@@ -652,7 +652,7 @@ applications:
           artifactRepository:
             archiveLogs: true
             s3:
-              endpoint: minio.s3.svc.cluster.local:9000
+              endpoint: s3-minio.s3.svc.cluster.local:9000
               insecure: true
               bucket: argo-artifacts
               keyFormat: "{{workflow.namespace}}/{{workflow.name}}/pod-{{pod.name}}"
