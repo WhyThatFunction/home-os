@@ -20,7 +20,7 @@ mlflow:
     pullPolicy: IfNotPresent
     tag: "3.7.0"
 
-  extraArgs:
+  extraFlags:
     allowedHosts: "mlflow.home.ssegning"
     corsAllowedOrigins: "https://mlflow.home.ssegning"
 
