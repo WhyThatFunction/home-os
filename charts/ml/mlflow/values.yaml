@@ -20,11 +20,15 @@ mlflow:
     pullPolicy: IfNotPresent
     #tag: "3.7.0"
 
+  log:
+    enabled: false
+
   extraArgs:
     allowedHosts: "mlflow.home.ssegning"
     corsAllowedOrigins: "https://mlflow.home.ssegning"
 
-  extraFlags: [ ]
+  # extraFlags:
+  #   - uvicornOpts
 
   ingress:
     enabled: true
