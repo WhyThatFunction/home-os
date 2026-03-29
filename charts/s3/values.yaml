@@ -69,6 +69,14 @@ minio:
             resources:
               - "arn:aws:s3:::lakefs/*"
               - "arn:aws:s3:::lakefs"
+      - name: argo-workflow
+        statements:
+          - actions:
+              - "s3:*"
+            effect: "Allow"
+            resources:
+              - "arn:aws:s3:::argo-artifacts/*"
+              - "arn:aws:s3:::argo-artifacts"
     
     usersExistingSecrets:
       - minio-users
@@ -79,6 +87,8 @@ minio:
       - name: lakefs
         withLock: false
       - name: mlflow
+        withLock: false
+      - name: argo-artifacts
         withLock: false
 
 provision_minio_buckets_policies:

@@ -621,7 +621,7 @@ applications:
               limits:
                 cpu: 500m
                 memory: 512Mi
-            workflowWorkers: 32
+            workflowWorkers: 4
             podWorkers: 8
             rbac:
               create: true
@@ -655,7 +655,7 @@ applications:
               endpoint: minio.s3.svc.cluster.local:9000
               insecure: true
               bucket: argo-artifacts
-              keyFormat: "{{workflow.namespace}}/{{workflow.name}}/{{pod.name}}"
+              keyFormat: "{{workflow.namespace}}/{{workflow.name}}/pod-{{pod.name}}"
               accessKeySecret:
                 name: argo-artifacts-secret
                 key: accessKey
