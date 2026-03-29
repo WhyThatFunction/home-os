@@ -252,6 +252,11 @@ applications:
       repoURL: https://github.com/vaam-store/vaam-store-ml
       targetRevision: HEAD
       path: helm/ml-platform
+      helm:
+        valuesObject:
+          global:
+            imagePullSecrets:
+              - gh-pat
     destination:
       server: https://kubernetes.default.svc
       namespace: vaam-store-ml-platform
