@@ -24,7 +24,7 @@ mlflow:
     enabled: false
 
   extraArgs:
-    allowedHosts: "mlflow.home.ssegning"
+    allowedHosts: "mlflow.home.ssegning,mlflow.mlflow.svc"
     corsAllowedOrigins: "https://mlflow.home.ssegning"
 
   # extraFlags:
