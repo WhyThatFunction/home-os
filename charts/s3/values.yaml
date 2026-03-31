@@ -85,6 +85,14 @@ minio:
             resources:
               - "arn:aws:s3:::mlflow/*"
               - "arn:aws:s3:::mlflow"
+      - name: ai-ops-backups-policy
+        statements:
+          - actions:
+              - "s3:*"
+            effect: "Allow"
+            resources:
+              - "arn:aws:s3:::ai-ops-backups/*"
+              - "arn:aws:s3:::ai-ops-backups"
     
     usersExistingSecrets:
       - minio-users
@@ -97,6 +105,8 @@ minio:
       - name: mlflow
         withLock: false
       - name: argo-artifacts
+        withLock: false
+      - name: ai-ops-backups
         withLock: false
 
 provision_minio_buckets_policies:
