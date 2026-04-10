@@ -734,7 +734,7 @@ applications:
           githubConfigUrl: https://github.com/skyengpro/azamra-tokenization-bff
           githubConfigSecret: gh-runner-secret-pat
 
-          maxRunners: 2
+          maxRunners: 5
 
           minRunners: 0
 
@@ -812,7 +812,7 @@ applications:
           githubConfigUrl: https://github.com/skyengpro/azamra-tokenization-frontend
           githubConfigSecret: gh-runner-secret-pat
 
-          maxRunners: 8
+          maxRunners: 10
 
           minRunners: 0
 
