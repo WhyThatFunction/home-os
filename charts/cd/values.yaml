@@ -988,6 +988,7 @@ applications:
         #  collectorImage:
         #    repository: "otel/opentelemetry-collector-k8s"
     destination:
+      server: https://kubernetes.default.svc
       namespace: opentelemetry-system
     syncPolicy:
       syncOptions:
