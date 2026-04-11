@@ -80,6 +80,30 @@ projects:
     syncWindows: [ ]
     sourceNamespaces:
       - "*"
+  - name: kyc
+    additionalLabels: { }
+    additionalAnnotations: { }
+    permitOnlyProjectScopedClusters: false
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    description: KYC Applications
+    sourceRepos:
+      - "*"
+    destinations:
+      - namespace: "kyc-*"
+        server: https://kubernetes.default.svc
+    clusterResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    clusterResourceBlacklist: [ ]
+    namespaceResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    orphanedResources: { }
+    roles: [ ]
+    syncWindows: [ ]
+    sourceNamespaces:
+      - "*"
   - name: keycloak
     additionalLabels: { }
     additionalAnnotations: { }

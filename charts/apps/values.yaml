@@ -267,3 +267,41 @@ applications:
       automated:
         prune: true
         selfHeal: true
+
+  - name: kyc-storage
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: kyc
+    source:
+      repoURL: oci://ghcr.io/adorsys-gis/charts/user-storage
+      targetRevision: 0.1.0
+      chart: .
+      helm:
+        valuesObject:
+          ingress:
+            user-storage:
+              className: traefik
+              annotations:
+                cert-manager.io/cluster-issuer: cert-cloudflare
+              hosts:
+                - host: kyc.verif.fyi
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      service:
+                        identifier: user-storage
+                        port: http
+              tls:
+                - secretName: kyc.verif.fyi-tls
+                  hosts:
+                    - kyc.verif.fyi
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: kyc-store
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true

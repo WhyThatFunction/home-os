@@ -77,6 +77,7 @@ configs:
       g, ArgoCDHyperswitch, role:hyperswitch
       g, ArgoCDAI, role:ai
       g, ArgoCDMboko, role:mboko
+      g, ArgoCDKYC, role:kyc
       g, ArgoCDKeycloak, role:keycloak
       g, ArgoCDViewer, role:readonly
 
@@ -120,6 +121,18 @@ configs:
       p, role:mboko, applications, override, mboko/*, allow
       p, role:mboko, logs, get, mboko/*, allow
       p, role:mboko, exec, create, mboko/*, allow
+
+      # --- kyc role ---
+      # kyc project: read/write
+      p, role:kyc, projects, get, kyc, allow
+      p, role:kyc, applications, get, kyc/*, allow
+      p, role:kyc, applications, create, kyc/*, allow
+      p, role:kyc, applications, update, kyc/*, allow
+      p, role:kyc, applications, delete, kyc/*, allow
+      p, role:kyc, applications, sync, kyc/*, allow
+      p, role:kyc, applications, override, kyc/*, allow
+      p, role:kyc, logs, get, kyc/*, allow
+      p, role:kyc, exec, create, kyc/*, allow
 
       # --- keycloak role ---
       # keycloak project: read/write
