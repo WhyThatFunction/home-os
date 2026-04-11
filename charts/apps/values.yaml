@@ -283,12 +283,22 @@ applications:
               containers:
                 user-storage:
                   env:
+                    DATABASE_URL:
+                      valueFrom:
+                        secretKeyRef:
+                          name: kyc-store-pg-app
+                          key: uri
                     REDIS_URL: "redis://redis-master.database.svc.cluster.local:6379"
                     RUST_LOG: "info"
             worker:
               containers:
                 worker:
                   env:
+                    DATABASE_URL:
+                      valueFrom:
+                        secretKeyRef:
+                          name: kyc-store-pg-app
+                          key: uri
                     REDIS_URL: "redis://redis-master.database.svc.cluster.local:6379"
                     RUST_LOG: "info"
           ingress:
