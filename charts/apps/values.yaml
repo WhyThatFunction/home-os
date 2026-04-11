@@ -298,6 +298,7 @@ applications:
                           key: uri
                     REDIS_URL: "redis://redis-master.database.svc.cluster.local:6379"
                     RUST_LOG: "info"
+                    OTEL_SERVICE_NAME: "user-storage-backend"
                     OTEL_EXPORTER_OTLP_ENDPOINT: "http://{{ .Release.Name }}-otel-collector:4317"
             worker:
               containers:
@@ -310,6 +311,7 @@ applications:
                           key: uri
                     REDIS_URL: "redis://redis-master.database.svc.cluster.local:6379"
                     RUST_LOG: "info"
+                    OTEL_SERVICE_NAME: "user-storage-worker"
                     OTEL_EXPORTER_OTLP_ENDPOINT: "http://{{ .Release.Name }}-otel-collector:4317"
           ingress:
             user-storage:
