@@ -338,6 +338,7 @@ applications:
                     memory: "1Gi"
                     cpu: "1"
             otel:
+              enabled: true
               apiVersion: opentelemetry.io/v1beta1
               kind: OpenTelemetryCollector
               spec:
