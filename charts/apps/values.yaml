@@ -286,7 +286,7 @@ applications:
                     DATABASE_URL:
                       valueFrom:
                         secretKeyRef:
-                          name: kyc-store-pg-app
+                          name: kyc-storage-db-app
                           key: uri
                     REDIS_URL: "redis://redis-master.database.svc.cluster.local:6379"
                     RUST_LOG: "info"
@@ -298,7 +298,7 @@ applications:
                     DATABASE_URL:
                       valueFrom:
                         secretKeyRef:
-                          name: kyc-store-pg-app
+                          name: kyc-storage-db-app
                           key: uri
                     REDIS_URL: "redis://redis-master.database.svc.cluster.local:6379"
                     RUST_LOG: "info"
