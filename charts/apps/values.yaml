@@ -320,6 +320,51 @@ applications:
                 - secretName: api.verif.fyi-tls
                   hosts:
                     - api.verif.fyi
+          rawRessources:
+            db:
+              enabled: true
+              apiVersion: postgresql.cnpg.io/v1
+              kind: Cluster
+              spec:
+                instances: 2
+                storage:
+                  size: 10Gi
+                  storageClass: longhorn
+                resources:
+                  requests:
+                    memory: "512Mi"
+                    cpu: "500m"
+                  limits:
+                    memory: "1Gi"
+                    cpu: "1"
+            otel:
+              apiVersion: opentelemetry.io/v1beta1
+              kind: OpenTelemetryCollector
+              spec:
+                config:
+                  receivers:
+                    otlp:
+                      protocols:
+                        grpc:
+                          endpoint: 0.0.0.0:4317
+                        http:
+                          endpoint: 0.0.0.0:4318
+
+                  processors:
+                    batch: { }
+
+                  exporters:
+                    debug: { }
+
+                  service:
+                    pipelines:
+                      traces:
+                        receivers:
+                          - otlp
+                        processors:
+                          - batch
+                        exporters:
+                          - debug
     destination:
       server: https://kubernetes.default.svc
       namespace: kyc-store
