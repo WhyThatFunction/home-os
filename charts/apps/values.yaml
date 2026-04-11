@@ -290,6 +290,7 @@ applications:
                           key: uri
                     REDIS_URL: "redis://redis-master.database.svc.cluster.local:6379"
                     RUST_LOG: "info"
+                    OTEL_EXPORTER_OTLP_ENDPOINT: "http://kyc-otel:4317"
             worker:
               containers:
                 worker:
@@ -301,6 +302,7 @@ applications:
                           key: uri
                     REDIS_URL: "redis://redis-master.database.svc.cluster.local:6379"
                     RUST_LOG: "info"
+                    OTEL_EXPORTER_OTLP_ENDPOINT: "http://kyc-otel:4317"
           ingress:
             user-storage:
               className: traefik

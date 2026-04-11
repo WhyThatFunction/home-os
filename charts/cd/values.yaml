@@ -972,3 +972,27 @@ applications:
       automated:
         prune: true
         selfHeal: true
+
+  - name: opentelemetry-operator
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
+      targetRevision: 0.106.0
+      chart: opentelemetry-operator
+      helm:
+        releaseName: opentelemetry-operator
+        valuesObject:
+        #manager:
+        #  collectorImage:
+        #    repository: "otel/opentelemetry-collector-k8s"
+    destination:
+      namespace: opentelemetry-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
