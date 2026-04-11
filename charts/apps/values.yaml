@@ -298,7 +298,7 @@ applications:
                           key: uri
                     REDIS_URL: "redis://redis-master.database.svc.cluster.local:6379"
                     RUST_LOG: "info"
-                    OTEL_EXPORTER_OTLP_ENDPOINT: "http://kyc-otel:4317"
+                    OTEL_EXPORTER_OTLP_ENDPOINT: "http://{{ .Release.Name }}-otel-collector:4317"
             worker:
               containers:
                 worker:
