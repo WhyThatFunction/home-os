@@ -320,7 +320,7 @@ applications:
                 - secretName: api.verif.fyi-tls
                   hosts:
                     - api.verif.fyi
-          rawRessources:
+          rawResources:
             db:
               enabled: true
               apiVersion: postgresql.cnpg.io/v1
