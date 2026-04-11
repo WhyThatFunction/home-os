@@ -280,13 +280,21 @@ applications:
         valuesObject:
           controllers:
             user-storage:
+              initContainers:
+                migrate:
+                  env:
+                    DATABASE_URL:
+                      valueFrom:
+                        secretKeyRef:
+                          name: "{{ .Release.Name }}-db-app"
+                          key: uri
               containers:
                 user-storage:
                   env:
                     DATABASE_URL:
                       valueFrom:
                         secretKeyRef:
-                          name: kyc-storage-db-app
+                          name: "{{ .Release.Name }}-db-app"
                           key: uri
                     REDIS_URL: "redis://redis-master.database.svc.cluster.local:6379"
                     RUST_LOG: "info"
@@ -298,11 +306,11 @@ applications:
                     DATABASE_URL:
                       valueFrom:
                         secretKeyRef:
-                          name: kyc-storage-db-app
+                          name: "{{ .Release.Name }}-db-app"
                           key: uri
                     REDIS_URL: "redis://redis-master.database.svc.cluster.local:6379"
                     RUST_LOG: "info"
-                    OTEL_EXPORTER_OTLP_ENDPOINT: "http://kyc-otel:4317"
+                    OTEL_EXPORTER_OTLP_ENDPOINT: "http://{{ .Release.Name }}-otel-collector:4317"
           ingress:
             user-storage:
               className: traefik
