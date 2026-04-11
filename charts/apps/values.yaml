@@ -278,6 +278,17 @@ applications:
       chart: .
       helm:
         valuesObject:
+          controllers:
+            user-storage:
+              containers:
+                user-storage:
+                  env:
+                    REDIS_URL: "redis-master.database.svc.cluster.local"
+            worker:
+              containers:
+                worker:
+                  env:
+                    REDIS_URL: "redis-master.database.svc.cluster.local"
           ingress:
             user-storage:
               className: traefik
