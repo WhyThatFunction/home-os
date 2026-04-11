@@ -297,7 +297,7 @@ applications:
               annotations:
                 cert-manager.io/cluster-issuer: cert-cloudflare
               hosts:
-                - host: kyc.verif.fyi
+                - host: api.verif.fyi
                   paths:
                     - path: /
                       pathType: Prefix
@@ -305,9 +305,9 @@ applications:
                         identifier: user-storage
                         port: http
               tls:
-                - secretName: kyc.verif.fyi-tls
+                - secretName: api.verif.fyi-tls
                   hosts:
-                    - kyc.verif.fyi
+                    - api.verif.fyi
     destination:
       server: https://kubernetes.default.svc
       namespace: kyc-store
