@@ -283,13 +283,13 @@ applications:
               containers:
                 user-storage:
                   env:
-                    REDIS_URL: "redis-master.database.svc.cluster.local"
+                    REDIS_URL: "redis://redis-master.database.svc.cluster.local:6379"
                     RUST_LOG: "info"
             worker:
               containers:
                 worker:
                   env:
-                    REDIS_URL: "redis-master.database.svc.cluster.local"
+                    REDIS_URL: "redis://redis-master.database.svc.cluster.local:6379"
                     RUST_LOG: "info"
           ingress:
             user-storage:
