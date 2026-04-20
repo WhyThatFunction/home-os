@@ -60,6 +60,7 @@ configs:
       issuer: https://accounts.ssegning.com/realms/ssegning-dev
       clientID: argocd
       clientSecret: $oidc.keycloak.clientSecret
+      cliClientID: argocd-cli
       enablePKCEAuthentication: true
       requestedScopes:
         - openid
