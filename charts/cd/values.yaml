@@ -92,6 +92,8 @@ projects:
     destinations:
       - namespace: "kyc-*"
         server: https://kubernetes.default.svc
+      - namespace: "kyc-*"
+        name: home-remote
     clusterResourceWhitelist:
       - group: "*"
         kind: "*"
@@ -116,6 +118,8 @@ projects:
     destinations:
       - namespace: "keycloak"
         server: https://kubernetes.default.svc
+      - namespace: "*"
+        name: home-remote
     clusterResourceWhitelist:
       - group: "*"
         kind: "*"
@@ -140,6 +144,8 @@ projects:
     destinations:
       - namespace: "*"
         server: https://kubernetes.default.svc
+      - namespace: "*"
+        name: home-remote
     clusterResourceWhitelist:
       - group: "*"
         kind: "*"
