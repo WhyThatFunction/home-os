@@ -289,6 +289,40 @@ projects:
     sourceNamespaces:
       - "*"
 
+  - name: home-remote-init
+    additionalLabels: { }
+    additionalAnnotations: { }
+    permitOnlyProjectScopedClusters: false
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    description: Home Remote
+    sourceRepos:
+      - "*"
+    destinations:
+      - namespace: "*"
+        server: https://kubernetes.default.svc
+      - namespace: "*"
+        name: home-remote
+    clusterResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    clusterResourceBlacklist: [ ]
+    namespaceResourceBlacklist:
+      - group: ""
+        kind: ResourceQuota
+      - group: ""
+        kind: LimitRange
+      - group: ""
+        kind: NetworkPolicy
+    namespaceResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    orphanedResources: { }
+    roles: [ ]
+    syncWindows: [ ]
+    sourceNamespaces:
+      - "*"
+
 applications:
   - name: cd
     finalizers:
@@ -567,7 +601,7 @@ applications:
       targetRevision: v1.18.1
       chart: knative-operator
     destination:
-      server: https://kubernetes.default.svc
+      name: home-remote
       namespace: knative-operator
     syncPolicy:
       syncOptions:
