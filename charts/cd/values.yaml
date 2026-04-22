@@ -1025,7 +1025,7 @@ applications:
       helm:
         releaseName: arc-runner-set-sse
         valuesObject:
-          githubConfigUrl: https://github.com/adorsys-gis
+          githubConfigUrl: https://github.com/ADORSYS-GIS
           githubConfigSecret: gh-runner-secret-pat
 
           maxRunners: 10
@@ -1101,11 +1101,27 @@ applications:
       helm:
         releaseName: opentelemetry-operator
         valuesObject:
-        #manager:
-        #  collectorImage:
-        #    repository: "otel/opentelemetry-collector-k8s"
     destination:
       server: https://kubernetes.default.svc
+      namespace: opentelemetry-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: otel-operator
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
+      targetRevision: 0.106.0
+      chart: opentelemetry-operator
+    destination:
+      name: home-remote
       namespace: opentelemetry-system
     syncPolicy:
       syncOptions:
