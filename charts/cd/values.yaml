@@ -635,6 +635,25 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: external-secrets
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://charts.external-secrets.io
+      targetRevision: v2.3.0
+      chart: external-secrets
+    destination:
+      name: home-remote
+      namespace: external-secrets
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: mail
     finalizers:
       - resources-finalizer.argocd.argoproj.io
