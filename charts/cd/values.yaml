@@ -1146,6 +1146,8 @@ applications:
         releaseName: opentelemetry-operator
         valuesObject:
           admissionWebhooks:
+            autoGenerateCert:
+              enabled: false
             certManager:
               issuerRef:
                 kind: ClusterIssuer
