@@ -1,0 +1,296 @@
+global:
+  tags:
+    keycloak: "26.6.1"
+    busybox: "latest"
+
+db:
+  enabled: true
+  instances: 3
+  storage:
+    size: 10Gi
+    storageClass: longhorn
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1"
+  backup:
+    enabled: true
+    schedule: "0 0 */4 * * *"
+    retentionPolicy: "30d"
+    s3:
+      destinationPath: "s3://my-backup-bucket/prod/pg1"
+      credentials:
+        accessKeyId:
+          name: aws-creds
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: aws-creds
+          key: ACCESS_SECRET_KEY
+
+
+keycloak:
+  ingress:
+    main:
+      enabled: false
+      annotations: { }
+      #  cert-manager.io/cluster-issuer: <issuer-name>
+      className: traefik
+      hosts:
+        - host: auth.verif.fyi
+          paths:
+            - path: /
+              pathType: Prefix
+              service:
+                identifier: main
+                port: http
+      tls:
+        - secretName: auth.verif.fyi-tls
+          hosts:
+            - auth.verif.fyi
+
+    legacy:
+      enabled: false
+      annotations: { }
+      #  cert-manager.io/cluster-issuer: <issuer-name>
+      className: traefik
+      hosts:
+        - host: accounts.ssegning.com
+          paths:
+            - path: /
+              pathType: Prefix
+              service:
+                identifier: main
+                port: http
+      tls:
+        - secretName: accounts.ssegning.com-tls
+          hosts:
+            - accounts.ssegning.com
+
+  service:
+    main:
+      enabled: true
+      annotations: { }
+      type: ClusterIP
+      controller: main
+      ports:
+        http:
+          enabled: true
+          port: 8080
+          targetPort: 8080
+        management:
+          enabled: true
+          port: 9000
+          targetPort: 9000
+
+    headless:
+      enabled: true
+      annotations: { }
+      type: ClusterIP
+      clusterIP: None
+      controller: main
+      ports:
+        http:
+          enabled: true
+          port: 8080
+          targetPort: 8080
+
+  defaultPodOptions:
+    enableServiceLinks: true
+
+  controllers:
+    main:
+      type: deployment
+      strategy: RollingUpdate
+      replicas: 3
+      pod:
+        labels:
+          app: keycloak-app
+      initContainers:
+        download-theme:
+          image:
+            repository: busybox
+            tag: "{{ $.Values.global.tags.busybox }}"
+            pullPolicy: IfNotPresent
+          command: [ "/bin/sh", "-c" ]
+          args:
+            - |
+              set -ex;
+              wget -O /spi/theme-vaam-01.jar "https://github.com/vymalo/vymalo-keycloak-theme/releases/download/v8cfdfb2/theme-vaam-01.jar"
+              wget -O /spi/theme-vymalo-01.jar  "https://github.com/vymalo/vymalo-keycloak-theme/releases/download/v8cfdfb2/theme-vymalo-01.jar"
+              wget -O /spi/theme-vymalo-02.jar  "https://github.com/vymalo/vymalo-keycloak-theme/releases/download/v8cfdfb2/theme-vymalo-02.jar"
+              wget -O /spi/theme-ssegning-tw-01.jar  "https://github.com/vymalo/vymalo-keycloak-theme/releases/download/v8cfdfb2/theme-ssegning-tw-01.jar"
+              echo "Downloaded theme";
+              ls -lash /spi;
+
+      containers:
+        main:
+          image:
+            repository: quay.io/keycloak/keycloak
+            tag: "{{ $.Values.global.tags.keycloak }}"
+            pullPolicy: IfNotPresent
+          env:
+            PUID: "1000"
+            PGID: "1000"
+            TZ: "Europe/Berlin"
+            JAVA_OPTS_APPEND: '-Djgroups.dns.query={{ include "common.names.fullname" $ }}-headless.{{ include "common.names.namespace" $ }}.svc.cluster.local'
+            KC_BOOTSTRAP_ADMIN_PASSWORD: /opt/bitnami/keycloak/secrets/password
+            KC_BOOTSTRAP_ADMIN_USERNAME: admin
+            KC_DB: postgres
+            KC_DB_URL:
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-db-app"
+                  key: jdbc-uri
+            KC_DB_PASSWORD:
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-db-app"
+                  key: password
+            KC_HOSTNAME: https://auth.verif.fyi
+            KC_HOSTNAME_STRICT: 'false'
+            KC_HEALTH_ENABLED: 'true'
+            KC_HTTP_ENABLED: 'true'
+            KC_HTTP_MANAGEMENT_PORT: '9000'
+            KC_HTTP_PORT: '8080'
+            KC_HTTP_RELATIVE_PATH: /
+            KC_LOG_CONSOLE_OUTPUT: default
+            KC_LOG_LEVEL: INFO
+            KC_PROXY_HEADERS: xforwarded
+            KC_SPI_ADMIN_REALM: master
+            KEYCLOAK_PRODUCTION: 'true'
+            KC_TELEMETRY_ENDPOINT: 'http://{{ .Release.Name }}-otel-collector:4317'
+            KC_TELEMETRY_SERVICE_NAME: '{{ include "common.names.fullname" $ }}'
+            KC_TRACING_ENABLED: 'true'
+            KC_TELEMETRY_LOGS_ENABLED: 'true'
+            KC_METRICS_ENABLED: 'true'
+            KUBERNETES_NAMESPACE:
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 1001
+            runAsNonRoot: true
+            runAsUser: 1001
+            seLinuxOptions: { }
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            limits:
+              cpu: '1'
+              memory: 2Gi
+            requests:
+              cpu: 500m
+              memory: 1Gi
+          probes:
+            liveness:
+              enabled: true
+              path: /health/live
+              type: HTTP
+              spec:
+                httpGet:
+                  port: http
+            readiness:
+              enabled: true
+              path: /health/ready
+              type: HTTP
+              spec:
+                httpGet:
+                  port: http
+            startup:
+              enabled: true
+              path: /health
+              type: HTTP
+              spec:
+                httpGet:
+                  port: http
+                failureThreshold: 30
+                periodSeconds: 5
+
+  persistence:
+    artifacts-spi:
+      enabled: true
+      type: emptyDir
+      advancedMounts:
+        main:
+          main:
+            - path: /opt/keycloak/providers
+          download-theme:
+            - path: /spi
+
+  networkpolicies:
+    main:
+      enabled: true
+      controller: main
+      policyTypes:
+        - Ingress
+        - Egress
+      rules:
+        ingress:
+          - { }
+        egress:
+          - { }
+
+  rawResources:
+    ext-secret:
+      enabled: true
+      apiVersion: external-secrets.io/v1
+      kind: ExternalSecret
+      spec:
+        spec:
+          refreshInterval: 1h0m0s
+          secretStoreRef:
+            name: github-vymalo
+            kind: SecretStore
+          target:
+            name: s3-secret
+            creationPolicy: Owner
+          data:
+            - secretKey: secret-key-to-be-managed
+              remoteRef:
+                key: provider-key
+                version: provider-key-version
+                property: provider-key-property
+          dataFrom:
+            - extract:
+                key: remote-key-in-the-provider
+
+    otel:
+      enabled: true
+      apiVersion: opentelemetry.io/v1beta1
+      kind: OpenTelemetryCollector
+      spec:
+        spec:
+          config:
+            receivers:
+              otlp:
+                protocols:
+                  grpc:
+                    endpoint: 0.0.0.0:4317
+                  http:
+                    endpoint: 0.0.0.0:4318
+
+            processors:
+              batch: { }
+
+            exporters:
+              debug: { }
+
+            service:
+              pipelines:
+                traces:
+                  receivers:
+                    - otlp
+                  processors:
+                    - batch
+                  exporters:
+                    - debug

@@ -36,6 +36,8 @@ spec:
   configuration:
     destinationPath: {{ include "common.tplvalues.render" ( dict "value" .s3.destinationPath "context" $ ) }}
     s3Credentials: {{ include "common.tplvalues.render" ( dict "value" .s3.credentials "context" $ ) | nindent 6 }}
+    wal:
+      compression: gzip
   retentionPolicy: {{ include "common.tplvalues.render" ( dict "value" .retentionPolicy "context" $ ) }}
 
 ---

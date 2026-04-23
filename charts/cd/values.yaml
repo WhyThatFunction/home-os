@@ -586,6 +586,25 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: secret-store
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/secret-store
+    destination:
+      name: home-remote
+      namespace: secret-store-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: redis
     finalizers:
       - resources-finalizer.argocd.argoproj.io
