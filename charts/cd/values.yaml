@@ -1120,6 +1120,8 @@ applications:
       repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
       targetRevision: 0.106.0
       chart: opentelemetry-operator
+      helm:
+        releaseName: opentelemetry-operator
     destination:
       name: home-remote
       namespace: opentelemetry-system
