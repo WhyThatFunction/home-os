@@ -546,8 +546,6 @@ applications:
       path: charts/cert
       helm:
         releaseName: cert
-        valuesObject:
-          fullnameOverride: certif
     destination:
       name: home-remote
       namespace: kube-system
