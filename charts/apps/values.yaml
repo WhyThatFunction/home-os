@@ -103,7 +103,7 @@ applications:
         valuesObject:
           global:
             redisinsight:
-              dns: redisinsight.ssegning.com
+              dns: redisinsight.apps.verif.fyi
           ingress:
             redisinsight:
               annotations:
