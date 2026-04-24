@@ -107,7 +107,7 @@ keycloak:
             PUID: "1000"
             PGID: "1000"
             TZ: "Europe/Berlin"
-            JAVA_OPTS_APPEND: '-Djgroups.dns.query={{ include "common.names.fullname" $ }}-headless.{{ include "common.names.namespace" $ }}.svc.cluster.local'
+            JAVA_OPTS_APPEND: '-Djgroups.dns.query={{ $.Release.Name }}-headless.{{ $.Release.Namespace }}.svc.cluster.local'
             KC_BOOTSTRAP_ADMIN_PASSWORD: /opt/bitnami/keycloak/secrets/password
             KC_BOOTSTRAP_ADMIN_USERNAME: admin
             KC_DB: postgres
@@ -134,7 +134,7 @@ keycloak:
             KC_SPI_ADMIN_REALM: master
             KEYCLOAK_PRODUCTION: 'true'
             KC_TELEMETRY_ENDPOINT: 'https://{{ .Release.Name }}-otel-collector:4317'
-            KC_TELEMETRY_SERVICE_NAME: '{{ include "common.names.fullname" $ }}'
+            KC_TELEMETRY_SERVICE_NAME: '{{ $.Release.Name }}'
             KC_TRACING_ENABLED: 'true'
             KC_TELEMETRY_LOGS_ENABLED: 'true'
             KC_METRICS_ENABLED: 'true'
