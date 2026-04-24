@@ -82,9 +82,8 @@ applications:
               enabled: false
           keycloak:
             ingress:
-              enabled: false
-            backup:
-              enabled: false
+              main:
+                enabled: false
     destination:
       name: home-remote
       namespace: keycloak
