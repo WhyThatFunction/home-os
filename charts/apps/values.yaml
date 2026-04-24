@@ -107,7 +107,7 @@ applications:
           ingress:
             redisinsight:
               annotations:
-                cert-manager.io/cluster-issuer: cert-cloudflare
+                cert-manager.io/cluster-issuer: cert-home-cert-http
           rawResources:
             redis-tls:
               spec:
