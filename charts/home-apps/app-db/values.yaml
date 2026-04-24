@@ -22,6 +22,7 @@ db:
                 key: s3SecretKey
 
     scheduled-backup:
+      enabled: true
       apiVersion: postgresql.cnpg.io/v1
       kind: ScheduledBackup
       spec:
@@ -34,6 +35,7 @@ db:
             name: barman-cloud.cloudnative-pg.io
 
     object-store:
+      enabled: true
       apiVersion: barmancloud.cnpg.io/v1
       kind: ObjectStore
       spec:
@@ -52,6 +54,7 @@ db:
           retentionPolicy: 30d
 
     cluster:
+      enabled: true
       apiVersion: postgresql.cnpg.io/v1
       kind: Cluster
       spec:
@@ -80,6 +83,7 @@ db:
               memory: 512Mi
 
     certificate-holder:
+      enabled: true
       apiVersion: v1
       kind: Secret
       annotations:
@@ -91,6 +95,7 @@ db:
         data: { }
 
     certificate:
+      enabled: true
       apiVersion: cert-manager.io/v1
       kind: Certificate
       spec:
