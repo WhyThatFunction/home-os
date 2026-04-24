@@ -269,6 +269,7 @@ db:
   enabled: true
   rawResources:
     ext-secret:
+      enabled: false
       spec:
         spec:
           secretStoreRef:
