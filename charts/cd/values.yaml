@@ -132,6 +132,32 @@ projects:
     syncWindows: [ ]
     sourceNamespaces:
       - "*"
+  - name: redis
+    additionalLabels: { }
+    additionalAnnotations: { }
+    permitOnlyProjectScopedClusters: false
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    description: Redis Applications
+    sourceRepos:
+      - "*"
+    destinations:
+      - namespace: "redis-system"
+        server: https://kubernetes.default.svc
+      - namespace: "redis-system"
+        name: home-remote
+    clusterResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    clusterResourceBlacklist: [ ]
+    namespaceResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    orphanedResources: { }
+    roles: [ ]
+    syncWindows: [ ]
+    sourceNamespaces:
+      - "*"
   - name: infrastructure
     additionalLabels: { }
     additionalAnnotations: { }
