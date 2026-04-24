@@ -267,18 +267,17 @@ keycloak:
 
 db:
   enabled: true
-  db:
-    rawResources:
-      ext-secret:
+  rawResources:
+    ext-secret:
+      spec:
         spec:
-          spec:
-            secretStoreRef:
-              name: bitwarden
-              kind: ClusterSecretStore
-            data:
-              - secretKey: accessKeyId
-                remoteRef:
-                  key: hetznerS3AccessKey
-              - secretKey: S3_SECRET_KEY
-                remoteRef:
-                  key: hetznerS3SecretKey
+          secretStoreRef:
+            name: bitwarden
+            kind: ClusterSecretStore
+          data:
+            - secretKey: accessKeyId
+              remoteRef:
+                key: hetznerS3AccessKey
+            - secretKey: S3_SECRET_KEY
+              remoteRef:
+                key: hetznerS3SecretKey

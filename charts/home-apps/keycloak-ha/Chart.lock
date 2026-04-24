@@ -4,6 +4,6 @@ dependencies:
   version: 4.6.2
 - name: app-db
   repository: file://../app-db
-  version: 0.1.1
-digest: sha256:fc0df910df5f48a5b092e769c9a0460cc8c24c6e39b9b10ad044d6de29e84bb9
-generated: "2026-04-25T01:20:02.748012+02:00"
+  version: 0.1.2
+digest: sha256:a2ea2c170ed948bd43750330551dc55d1d3e8f9656cff34d4c4436a9b7666d83
+generated: "2026-04-25T01:31:54.990535+02:00"
