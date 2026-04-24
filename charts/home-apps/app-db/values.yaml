@@ -1,0 +1,111 @@
+db:
+  rawResources:
+    ext-secret:
+      enabled: true
+      apiVersion: external-secrets.io/v1
+      kind: ExternalSecret
+      spec:
+        spec:
+          refreshInterval: 1h0m0s
+          secretStoreRef:
+            name: some-store
+            kind: ClusterSecretStore
+          target:
+            name: '{{ .Release.Name }}-s3-creds'
+            creationPolicy: Owner
+          data:
+            - secretKey: accessKeyId
+              remoteRef:
+                key: s3AccessKey
+            - secretKey: secretKeyId
+              remoteRef:
+                key: s3SecretKey
+
+    scheduled-backup:
+      apiVersion: postgresql.cnpg.io/v1
+      kind: ScheduledBackup
+      spec:
+        spec:
+          cluster:
+            name: '{{ .Release.Name }}-cluster'
+          schedule: 0 0 */4 * * *
+          method: plugin
+          pluginConfiguration:
+            name: barman-cloud.cloudnative-pg.io
+
+    object-store:
+      apiVersion: barmancloud.cnpg.io/v1
+      kind: ObjectStore
+      spec:
+        spec:
+          configuration:
+            destinationPath: s3://my-backup-bucket/prod/keycloak-ha
+            s3Credentials:
+              accessKeyId:
+                key: accessKeyId
+                name: '{{ .Release.Name }}-s3-creds'
+              secretAccessKey:
+                key: secretKeyId
+                name: '{{ .Release.Name }}-s3-creds'
+            wal:
+              compression: gzip
+          retentionPolicy: 30d
+
+    cluster:
+      apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      spec:
+        spec:
+          instances: 3
+
+          certificates:
+            serverTLSSecret: '{{ .Release.Name }}-certificate-holder'
+            serverCASecret: '{{ .Release.Name }}-certificate-holder'
+
+          storage:
+            size: 1Gi
+            #storageClass: longhorn
+
+          plugins:
+            - name: barman-cloud.cloudnative-pg.io
+              isWALArchiver: true
+              parameters:
+                barmanObjectName: '{{ .Release.Name }}-cluster'
+          resources:
+            limits:
+              cpu: "1"
+              memory: 1Gi
+            requests:
+              cpu: 500m
+              memory: 512Mi
+
+    certificate-holder:
+      apiVersion: v1
+      kind: Secret
+      labels:
+        cnpg.io/reload: ""
+      spec:
+        data: { }
+
+    certificate:
+      apiVersion: cert-manager.io/v1
+      kind: Certificate
+      spec:
+        spec:
+          secretName: '{{ .Release.Name }}-certificate-holder'
+          usages:
+            - server auth
+          dnsNames:
+            - '{{ .Release.Name }}-cluster-rw'
+            - '{{ .Release.Name }}-cluster-rw.{{ .Release.Namespace }}'
+            - '{{ .Release.Name }}-cluster-rw.{{ .Release.Namespace }}.svc'
+            - '{{ .Release.Name }}-cluster-r'
+            - '{{ .Release.Name }}-cluster-r.{{ .Release.Namespace }}'
+            - '{{ .Release.Name }}-cluster-r.{{ .Release.Namespace }}.svc'
+            - '{{ .Release.Name }}-cluster-ro'
+            - '{{ .Release.Name }}-cluster-ro.{{ .Release.Namespace }}'
+            - '{{ .Release.Name }}-cluster-ro.{{ .Release.Namespace }}.svc'
+          issuerRef:
+            name: self-signed-ca
+            kind: ClusterIssuer
+            group: cert-manager.io
