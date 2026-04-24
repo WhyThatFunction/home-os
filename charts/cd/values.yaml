@@ -580,6 +580,56 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: cnpg
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://cloudnative-pg.github.io/charts
+      targetRevision: 0.27.1
+      chart: cloudnative-pg
+      helm:
+        releaseName: cnpg
+        valuesObject:
+          resources:
+            limits:
+              cpu: 100m
+              memory: 200Mi
+            requests:
+              cpu: 100m
+              memory: 100Mi
+    destination:
+      name: home-remote
+      namespace: cnpg-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: cnpg-barman-cloud
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://cloudnative-pg.github.io/charts
+      targetRevision: 0.5.0
+      chart: plugin-barman-cloud
+      helm:
+        releaseName: cnpg-barman-cloud
+    destination:
+      name: home-remote
+      namespace: cnpg-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: s3
     finalizers:
       - resources-finalizer.argocd.argoproj.io
