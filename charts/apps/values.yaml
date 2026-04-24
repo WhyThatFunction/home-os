@@ -50,24 +50,6 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: browserless
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: external
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: charts/home-apps/browserless
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: browserless
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-      automated:
-        prune: true
-        selfHeal: true
-
   - name: keycloak
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -78,6 +60,33 @@ applications:
       path: charts/home-apps/keycloak
     destination:
       server: https://kubernetes.default.svc
+      namespace: keycloak
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: keycloak-ha
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: keycloak
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/keycloak-ha
+      helm:
+        valuesObject:
+          db:
+            enabled: false
+            backup:
+              enabled: false
+          keycloak:
+            ingress:
+              enabled: false
+            backup:
+              enabled: false
+    destination:
+      name: home-remote
       namespace: keycloak
     syncPolicy:
       automated:
@@ -363,7 +372,7 @@ applications:
                           exporters:
                             - debug
     destination:
-      server: https://kubernetes.default.svc
+      name: home-remote
       namespace: kyc-store
     syncPolicy:
       syncOptions:

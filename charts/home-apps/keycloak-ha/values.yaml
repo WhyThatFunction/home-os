@@ -3,34 +3,6 @@ global:
     keycloak: "26.6.1"
     busybox: "latest"
 
-db:
-  enabled: true
-  instances: 3
-  storage:
-    size: 10Gi
-    storageClass: longhorn
-  resources:
-    requests:
-      memory: "512Mi"
-      cpu: "500m"
-    limits:
-      memory: "1Gi"
-      cpu: "1"
-  backup:
-    enabled: true
-    schedule: "0 0 */4 * * *"
-    retentionPolicy: "30d"
-    s3:
-      destinationPath: "s3://my-backup-bucket/prod/pg1"
-      credentials:
-        accessKeyId:
-          name: aws-creds
-          key: ACCESS_KEY_ID
-        secretAccessKey:
-          name: aws-creds
-          key: ACCESS_SECRET_KEY
-
-
 keycloak:
   ingress:
     main:
@@ -249,20 +221,18 @@ keycloak:
         spec:
           refreshInterval: 1h0m0s
           secretStoreRef:
-            name: github-vymalo
-            kind: SecretStore
+            name: bitwarden
+            kind: ClusterSecretStore
           target:
-            name: s3-secret
+            name: aws-creds
             creationPolicy: Owner
           data:
-            - secretKey: secret-key-to-be-managed
+            - secretKey: accessKeyId
               remoteRef:
-                key: provider-key
-                version: provider-key-version
-                property: provider-key-property
-          dataFrom:
-            - extract:
-                key: remote-key-in-the-provider
+                key: hetznerS3AccessKey
+            - secretKey: S3_SECRET_KEY
+              remoteRef:
+                key: secretAccessKey
 
     otel:
       enabled: true
@@ -294,3 +264,92 @@ keycloak:
                     - batch
                   exporters:
                     - debug
+
+    db-scheduled-backup:
+      apiVersion: postgresql.cnpg.io/v1
+      kind: ScheduledBackup
+      spec:
+        spec:
+          cluster:
+            name: '{{ .Release.Name }}-db-cluster'
+          schedule: 0 0 */4 * * *
+          method: plugin
+          pluginConfiguration:
+            name: barman-cloud.cloudnative-pg.io
+
+    db-object-store:
+      apiVersion: barmancloud.cnpg.io/v1
+      kind: ObjectStore
+      spec:
+        spec:
+          configuration:
+            destinationPath: s3://my-backup-bucket/prod/keycloak-ha
+            s3Credentials:
+              accessKeyId:
+                key: accessKeyId
+                name: aws-creds
+              secretAccessKey:
+                key: secretAccessKey
+                name: aws-creds
+            wal:
+              compression: gzip
+          retentionPolicy: 30d
+
+    db-cluster:
+      apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      spec:
+        spec:
+          instances: 3
+
+          certificates:
+            serverTLSSecret: '{{ .Release.Name }}-db-certificate-holder'
+            serverCASecret: '{{ .Release.Name }}-db-certificate-holder'
+
+          storage:
+            size: 1Gi
+            #storageClass: longhorn
+
+          plugins:
+            - name: barman-cloud.cloudnative-pg.io
+              isWALArchiver: true
+              parameters:
+                barmanObjectName: '{{ .Release.Name }}-db-cluster'
+          resources:
+            limits:
+              cpu: "1"
+              memory: 1Gi
+            requests:
+              cpu: 500m
+              memory: 512Mi
+
+    db-certificate-holder:
+      apiVersion: v1
+      kind: Secret
+      labels:
+        cnpg.io/reload: ""
+      spec:
+        spec: {}
+
+    db-certificate:
+      apiVersion: cert-manager.io/v1
+      kind: Certificate
+      spec:
+        spec:
+          secretName: '{{ .Release.Name }}-db-certificate-holder'
+          usages:
+            - server auth
+          dnsNames:
+            - '{{ .Release.Name }}-db-cluster-rw'
+            - '{{ .Release.Name }}-db-cluster-rw.{{ .Release.Namespace }}'
+            - '{{ .Release.Name }}-db-cluster-rw.{{ .Release.Namespace }}.svc'
+            - '{{ .Release.Name }}-db-cluster-r'
+            - '{{ .Release.Name }}-db-cluster-r.{{ .Release.Namespace }}'
+            - '{{ .Release.Name }}-db-cluster-r.{{ .Release.Namespace }}.svc'
+            - '{{ .Release.Name }}-db-cluster-ro'
+            - '{{ .Release.Name }}-db-cluster-ro.{{ .Release.Namespace }}'
+            - '{{ .Release.Name }}-db-cluster-ro.{{ .Release.Namespace }}.svc'
+          issuerRef:
+            name: self-signed-ca
+            kind: ClusterIssuer
+            group: cert-manager.io

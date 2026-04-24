@@ -1,15 +1,11 @@
 secretStores:
-  vymalo-github:
-    github:
-      appID: 2926172
-      # url: Default "https://github.com/", for enterprise Github instances uncomment and add your domain like "https://github.domain.com/"
-      # uploadURL: Default "https://github.com"
+  bitwarden:
+    bitwardensecretsmanager:
       auth:
-        privateKey:
-          name: argocd-ssegning
-          key: privateKey.pem
-          namespace: auth-secret
-      installationID: 111824148
-      organization: "vymalo"
-      #repository: "Optional. set this for repository/environment secrets"
-      #environment: "Optional. set this for environment secrets"
+        secretRef:
+          credentials:
+            key: token
+            name: bitwarden-access-token
+            namespace: auth-secret
+      organizationID: 3277a467-a991-4856-8a95-b43500e6ceb7
+      projectID: fa58f07c-43f6-4f7b-9738-b43500e707cf
