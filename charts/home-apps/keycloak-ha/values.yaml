@@ -245,6 +245,7 @@ keycloak:
                     - debug
 
 db:
+  enabled: true
   db:
     rawResources:
       ext-secret:
