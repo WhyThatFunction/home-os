@@ -124,6 +124,7 @@ applications:
                     name: self-signed-ca
                     group: cert-manager.io
             redisinsight-tls:
+              enabled: false
               spec:
                 spec:
                   issuerRef:

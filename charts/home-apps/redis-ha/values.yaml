@@ -366,8 +366,7 @@ ingress:
       cert-manager.io/cluster-issuer: self-signed-ca
       #nginx.ingress.kubernetes.io/auth-url: "https://$host/oauth2/auth"
       #nginx.ingress.kubernetes.io/auth-signin: "https://$host/oauth2/start?rd=$escaped_request_uri"
-      traefik.ingress.kubernetes.io/router.entrypoints: websecure
-      traefik.ingress.kubernetes.io/router.tls: "true"
+      #traefik.ingress.kubernetes.io/router.tls: "true"
       traefik.ingress.kubernetes.io/router.middlewares: "{{ $.Release.Namespace }}-redisinsight-auth@kubernetescrd"
     #className: nginx
     hosts:
