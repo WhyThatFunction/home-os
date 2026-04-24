@@ -24,13 +24,6 @@ version: 0.1.0
 appVersion: "26.6.1"
 
 dependencies:
-  - name: app-template
+  - name: common
     version: '*'
     repository: https://bjw-s-labs.github.io/helm-charts
-    alias: keycloak
-
-  - name: app-db
-    version: "*"
-    repository: "file://../app-db"
-    alias: db
-    condition: db.enabled
