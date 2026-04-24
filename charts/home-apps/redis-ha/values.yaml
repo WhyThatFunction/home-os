@@ -1,12 +1,12 @@
 global:
   redis:
     image:
-      repository: docker.io/redis
-      tag: "8.0.3-trixie"
+      repository: redis
+      tag: "8.6.2-trixie"
   redisinsight:
     image:
-      repository: docker.io/redis/redisinsight
-      tag: "latest"
+      repository: redis/redisinsight
+      tag: "3.4.2"
     dns: redisinsight.example.internal
   oauth2Proxy:
     image:
