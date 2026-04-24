@@ -111,24 +111,27 @@ applications:
           rawResources:
             redis-tls:
               spec:
-                issuerRef:
-                  kind: ClusterIssuer
-                  name: self-signed-ca
-                  group: cert-manager.io
+                spec:
+                  issuerRef:
+                    kind: ClusterIssuer
+                    name: self-signed-ca
+                    group: cert-manager.io
             sentinel-tls:
               spec:
-                issuerRef:
-                  kind: ClusterIssuer
-                  name: self-signed-ca
-                  group: cert-manager.io
+                spec:
+                  issuerRef:
+                    kind: ClusterIssuer
+                    name: self-signed-ca
+                    group: cert-manager.io
             redisinsight-tls:
               spec:
-                issuerRef:
-                  kind: ClusterIssuer
-                  name: cert-cloudflare
-                  group: cert-manager.io
-                dnsNames:
-                  - "redisinsight.ssegning.com"
+                spec:
+                  issuerRef:
+                    kind: ClusterIssuer
+                    name: cert-cloudflare
+                    group: cert-manager.io
+                  dnsNames:
+                    - "redisinsight.ssegning.com"
                 
     destination:
       name: home-remote
