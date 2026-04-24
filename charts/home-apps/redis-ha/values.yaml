@@ -564,26 +564,26 @@ rawResources:
             - X-Auth-Request-Preferred-Username
             - X-Forwarded-User
 
-    oauth2-proxy-secret:
-      enabled: false
-      apiVersion: external-secrets.io/v1
-      kind: ExternalSecret
+  oauth2-proxy-secret:
+    enabled: true
+    apiVersion: external-secrets.io/v1
+    kind: ExternalSecret
+    spec:
       spec:
-        spec:
-          refreshInterval: 1h0m0s
-          secretStoreRef:
-            name: bitwarden
-            kind: ClusterSecretStore
-          target:
-            name: '{{ .Release.Name }}-oauth2-creds'
-            creationPolicy: Owner
-          data:
-            - secretKey: client-id
-              remoteRef:
-                key: redisOauth2ClientId
-            - secretKey: client-secret
-              remoteRef:
-                key: redisOauth2ClientSecret
-            - secretKey: cookie-secret
-              remoteRef:
-                key: redisOauth2CookieSecret
+        refreshInterval: 1h0m0s
+        secretStoreRef:
+          name: bitwarden
+          kind: ClusterSecretStore
+        target:
+          name: '{{ .Release.Name }}-oauth2-creds'
+          creationPolicy: Owner
+        data:
+          - secretKey: client-id
+            remoteRef:
+              key: redisOauth2ClientId
+          - secretKey: client-secret
+            remoteRef:
+              key: redisOauth2ClientSecret
+          - secretKey: cookie-secret
+            remoteRef:
+              key: redisOauth2CookieSecret
