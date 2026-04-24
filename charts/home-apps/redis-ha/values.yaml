@@ -288,6 +288,32 @@ service:
         port: 26379
         protocol: TCP
 
+  redisinsight:
+    controller: redisinsight
+    type: ClusterIP
+    ports:
+      http:
+        port: 5540
+        protocol: TCP
+
+ingress:
+  redisinsight:
+    annotations:
+      cert-manager.io/cluster-issuer: self-signed-ca
+    className: nginx
+    hosts:
+      - host: redisinsight.example.internal
+        paths:
+          - path: /
+            pathType: Prefix
+            service:
+              identifier: redisinsight
+              port: http
+    tls:
+      - secretName: "{{ $.Release.Name }}-redisinsight-tls"
+        hosts:
+          - redisinsight.example.internal
+
 configMaps:
   redis-bootstrap:
     enabled: true
@@ -406,6 +432,7 @@ persistence:
 
 rawResources:
   redis-tls-cert:
+    enabled: true
     apiVersion: cert-manager.io/v1
     kind: Certificate
     nameOverride: "{{ $.Release.Name }}-redis-tls"
@@ -421,6 +448,7 @@ rawResources:
         - "*.{{ $.Release.Name }}-redis-headless.{{ $.Release.Namespace }}.svc.cluster.local"
 
   sentinel-tls-cert:
+    enabled: true
     apiVersion: cert-manager.io/v1
     kind: Certificate
     nameOverride: "{{ $.Release.Name }}-sentinel-tls"
@@ -436,6 +464,7 @@ rawResources:
         - "*.{{ $.Release.Name }}-sentinel-headless.{{ $.Release.Namespace }}.svc.cluster.local"
 
   redisinsight-tls-cert:
+    enabled: true
     apiVersion: cert-manager.io/v1
     kind: Certificate
     nameOverride: "{{ $.Release.Name }}-redisinsight-tls"
