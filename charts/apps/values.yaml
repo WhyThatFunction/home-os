@@ -78,8 +78,6 @@ applications:
         valuesObject:
           db:
             enabled: false
-            backup:
-              enabled: false
           keycloak:
             ingress:
               main:

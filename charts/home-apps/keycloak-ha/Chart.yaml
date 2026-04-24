@@ -33,6 +33,7 @@ dependencies:
     version: "*"
     repository: "file://../app-db"
     alias: db
+    condition: db.enabled
 
   - name: common
     version: "*"
