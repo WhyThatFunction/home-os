@@ -7,6 +7,11 @@ global:
     image:
       repository: docker.io/redis/redisinsight
       tag: "latest"
+    dns: redisinsight.example.internal
+  oauth2Proxy:
+    image:
+      repository: quay.io/oauth2-proxy/oauth2-proxy
+      tag: "v7.8.1"
 
 controllers:
   redis:
@@ -201,8 +206,8 @@ controllers:
     containers:
       app:
         image:
-          repository: "{{ $.Values.global.redis.image.repository }}"
-          tag: "{{ $.Values.global.redis.image.tag }}"
+          repository: "{{ $.Values.global.redisinsight.image.repository }}"
+          tag: "{{ $.Values.global.redisinsight.image.tag }}"
         env:
           RI_APP_HOST: "0.0.0.0"
           RI_APP_PORT: "5540"
@@ -230,6 +235,61 @@ controllers:
           limits:
             memory: 512Mi
 
+      oauth2-proxy:
+        image:
+          repository: "{{ $.Values.global.oauth2Proxy.image.repository }}"
+          tag: "{{ $.Values.global.oauth2Proxy.image.tag }}"
+        args:
+          - --http-address=0.0.0.0:4180
+          - --provider=keycloak-oidc
+          - --cookie-secure=true
+          - --cookie-samesite=lax
+          - --set-xauthrequest=true
+          - --pass-access-token=true
+          - --pass-authorization-header=true
+          - --oidc-issuer-url=$(OAUTH2_PROXY_ISSUER)
+          - --client-id=$(OAUTH2_PROXY_CLIENT_ID)
+          - --client-secret=$(OAUTH2_PROXY_CLIENT_SECRET)
+          - --cookie-secret=$(OAUTH2_PROXY_COOKIE_SECRET)
+          - --redirect-url=$(OAUTH2_PROXY_URL)/oauth2/callback
+          - --reverse-proxy=true
+          - --upstream=static://202
+          - --email-domain=*
+        env:
+          OAUTH2_PROXY_URL: "https://{{ $.Values.global.redisinsight.dns }}"
+          OAUTH2_PROXY_ISSUER: "https://keycloak.example.internal/realms/your_realm"
+          OAUTH2_PROXY_CLIENT_ID:
+            valueFrom:
+              secretKeyRef:
+                name: redisinsight-oauth2
+                key: client-id
+          OAUTH2_PROXY_CLIENT_SECRET:
+            valueFrom:
+              secretKeyRef:
+                name: redisinsight-oauth2
+                key: client-secret
+          OAUTH2_PROXY_COOKIE_SECRET:
+            valueFrom:
+              secretKeyRef:
+                name: redisinsight-oauth2
+                key: cookie-secret
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              tcpSocket:
+                port: 4180
+              initialDelaySeconds: 10
+              periodSeconds: 10
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              tcpSocket:
+                port: 4180
+              initialDelaySeconds: 5
+              periodSeconds: 5
 defaultPodOptions:
   topologySpreadConstraints:
     - maxSkew: 1
@@ -295,15 +355,29 @@ service:
       http:
         port: 5540
         protocol: TCP
+      oauth2:
+        port: 4180
+        protocol: TCP
 
 ingress:
   redisinsight:
+    #className: nginx
     annotations:
       cert-manager.io/cluster-issuer: self-signed-ca
+      #nginx.ingress.kubernetes.io/auth-url: "https://$host/oauth2/auth"
+      #nginx.ingress.kubernetes.io/auth-signin: "https://$host/oauth2/start?rd=$escaped_request_uri"
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: "true"
+      traefik.ingress.kubernetes.io/router.middlewares: "{{ $.Release.Namespace }}-redisinsight-auth@kubernetescrd"
     #className: nginx
     hosts:
-      - host: redisinsight.example.internal
+      - host: "{{ $.Values.global.redisinsight.dns }}"
         paths:
+          - path: /oauth2
+            pathType: Prefix
+            service:
+              identifier: redisinsight
+              port: oauth2
           - path: /
             pathType: Prefix
             service:
@@ -312,7 +386,7 @@ ingress:
     tls:
       - secretName: "{{ $.Release.Name }}-redisinsight-tls"
         hosts:
-          - redisinsight.example.internal
+          - "{{ $.Values.global.redisinsight.dns }}"
 
 configMaps:
   redis-bootstrap:
@@ -436,39 +510,57 @@ rawResources:
     apiVersion: cert-manager.io/v1
     kind: Certificate
     spec:
-      secretName: "{{ $.Release.Name }}-redis-tls"
-      issuerRef:
-        name: some-issuer
-        kind: Issuer
-      dnsNames:
-        - "{{ $.Release.Name }}-redis"
-        - "{{ $.Release.Name }}-redis.{{ $.Release.Namespace }}.svc"
-        - "{{ $.Release.Name }}-redis.{{ $.Release.Namespace }}.svc.cluster.local"
-        - "*.{{ $.Release.Name }}-redis-headless.{{ $.Release.Namespace }}.svc.cluster.local"
+      spec:
+        secretName: "{{ $.Release.Name }}-redis-tls"
+        issuerRef:
+          name: some-issuer
+          kind: Issuer
+        dnsNames:
+          - "{{ $.Release.Name }}-redis"
+          - "{{ $.Release.Name }}-redis.{{ $.Release.Namespace }}.svc"
+          - "{{ $.Release.Name }}-redis.{{ $.Release.Namespace }}.svc.cluster.local"
+          - "*.{{ $.Release.Name }}-redis-headless.{{ $.Release.Namespace }}.svc.cluster.local"
 
   sentinel-tls:
     enabled: true
     apiVersion: cert-manager.io/v1
     kind: Certificate
     spec:
-      secretName: "{{ $.Release.Name }}-sentinel-tls"
-      issuerRef:
-        name: some-issuer
-        kind: Issuer
-      dnsNames:
-        - "{{ $.Release.Name }}-sentinel"
-        - "{{ $.Release.Name }}-sentinel.{{ $.Release.Namespace }}.svc"
-        - "{{ $.Release.Name }}-sentinel.{{ $.Release.Namespace }}.svc.cluster.local"
-        - "*.{{ $.Release.Name }}-sentinel-headless.{{ $.Release.Namespace }}.svc.cluster.local"
+      spec:
+        secretName: "{{ $.Release.Name }}-sentinel-tls"
+        issuerRef:
+          name: some-issuer
+          kind: Issuer
+        dnsNames:
+          - "{{ $.Release.Name }}-sentinel"
+          - "{{ $.Release.Name }}-sentinel.{{ $.Release.Namespace }}.svc"
+          - "{{ $.Release.Name }}-sentinel.{{ $.Release.Namespace }}.svc.cluster.local"
+          - "*.{{ $.Release.Name }}-sentinel-headless.{{ $.Release.Namespace }}.svc.cluster.local"
 
   redisinsight-tls:
     enabled: true
     apiVersion: cert-manager.io/v1
     kind: Certificate
     spec:
-      secretName: "{{ $.Release.Name }}-redisinsight-tls"
-      issuerRef:
-        name: some-issuer
-        kind: Issuer
-      dnsNames:
-        - "redisinsight.example.internal"
+      spec:
+        secretName: "{{ $.Release.Name }}-redisinsight-tls"
+        issuerRef:
+          name: some-issuer
+          kind: Issuer
+        dnsNames:
+          - "{{ $.Values.global.redisinsight.dns }}"
+
+  redisinsight-auth:
+    enabled: true
+    apiVersion: traefik.io/v1alpha1
+    kind: Middleware
+    spec:
+      spec:
+        forwardAuth:
+          address: 'http://{{ $.Release.Name }}-redisinsight:4180'
+          trustForwardHeader: true
+          authResponseHeaders:
+            - X-Auth-Request-User
+            - X-Auth-Request-Email
+            - X-Auth-Request-Preferred-Username
+            - X-Forwarded-User
