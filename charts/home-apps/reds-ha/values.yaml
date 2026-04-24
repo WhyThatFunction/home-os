@@ -1,4 +1,93 @@
 controllers:
+  redis:
+    type: statefulset
+    replicas: 3
+
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 2
+
+    statefulset:
+      podManagementPolicy: Parallel
+      volumeClaimTemplates:
+        - name: data
+          accessMode: ReadWriteOnce
+          size: 5Gi
+          #storageClass: your-rwo-sc
+          globalMounts:
+            - path: /data
+
+    containers:
+      app:
+        image:
+          repository: docker.io/redis
+          tag: "8.0.3-trixie"
+
+        env:
+          POD_NAME:
+            fieldRef:
+              fieldPath: metadata.name
+          POD_NAMESPACE:
+            fieldRef:
+              fieldPath: metadata.namespace
+
+        command:
+          - /bin/sh
+          - -ec
+        args:
+          - |
+            ORDINAL="${POD_NAME##*-}"
+            MASTER_FQDN="{{ $.Release.Name }}-redis-0.{{ $.Release.Name }}-redis-headless.${POD_NAMESPACE}.svc.cluster.local"
+
+            mkdir -p /data
+            cp /bootstrap/redis.conf /data/redis.conf
+
+            {
+              echo "dir /data"
+              echo "appendonly yes"
+              echo "replica-announce-port 6379"
+              echo "replica-announce-ip ${POD_NAME}.{{ $.Release.Name }}-redis-headless.${POD_NAMESPACE}.svc.cluster.local"
+            } >> /data/redis.conf
+
+            if [ "${ORDINAL}" != "0" ]; then
+              echo "replicaof ${MASTER_FQDN} 6379" >> /data/redis.conf
+            fi
+
+            exec redis-server /data/redis.conf
+
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              tcpSocket:
+                port: 6379
+              initialDelaySeconds: 10
+              periodSeconds: 10
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              tcpSocket:
+                port: 6379
+              initialDelaySeconds: 5
+              periodSeconds: 5
+          startup:
+            enabled: true
+            custom: true
+            spec:
+              tcpSocket:
+                port: 6379
+              failureThreshold: 30
+              periodSeconds: 5
+
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            memory: 1Gi
+
   sentinel:
     type: statefulset
     replicas: 3
@@ -7,16 +96,58 @@ controllers:
       enabled: true
       minAvailable: 2
 
+    statefulset:
+      podManagementPolicy: Parallel
+      volumeClaimTemplates:
+        - name: data
+          accessMode: ReadWriteOnce
+          size: 1Gi
+          #storageClass: your-rwo-sc
+          globalMounts:
+            - path: /data
+
     containers:
       app:
         image:
           repository: docker.io/redis
-          tag: "8.6.2-trixie"
+          tag: "8.0.3-trixie"
+
+        env:
+          POD_NAME:
+            fieldRef:
+              fieldPath: metadata.name
+          POD_NAMESPACE:
+            fieldRef:
+              fieldPath: metadata.namespace
+
         command:
           - /bin/sh
           - -ec
         args:
-          - exec redis-sentinel /usr/local/etc/redis/sentinel-base.conf
+          - |
+            MASTER_NAME="{{ $.Release.Name }}"
+            MASTER_FQDN="{{ $.Release.Name }}-redis-0.{{ $.Release.Name }}-redis-headless.${POD_NAMESPACE}.svc.cluster.local"
+            MY_FQDN="${POD_NAME}.{{ $.Release.Name }}-sentinel-headless.${POD_NAMESPACE}.svc.cluster.local"
+
+            mkdir -p /data
+
+            if [ ! -f /data/sentinel.conf ]; then
+              cp /bootstrap/sentinel.conf /data/sentinel.conf
+
+              {
+                echo "sentinel monitor ${MASTER_NAME} ${MASTER_FQDN} 6379 2"
+                echo "sentinel down-after-milliseconds ${MASTER_NAME} 5000"
+                echo "sentinel failover-timeout ${MASTER_NAME} 60000"
+                echo "sentinel parallel-syncs ${MASTER_NAME} 1"
+                echo "sentinel resolve-hostnames yes"
+                echo "sentinel announce-hostnames yes"
+                echo "sentinel announce-ip ${MY_FQDN}"
+                echo "sentinel announce-port 26379"
+              } >> /data/sentinel.conf
+            fi
+
+            exec redis-sentinel /data/sentinel.conf
+
         probes:
           liveness:
             enabled: true
@@ -50,12 +181,6 @@ controllers:
           limits:
             memory: 256Mi
 
-    statefulset:
-      volumeClaimTemplates:
-        - name: data
-          globalMounts:
-            - path: /data
-
 defaultPodOptions:
   topologySpreadConstraints:
     - maxSkew: 1
@@ -63,7 +188,7 @@ defaultPodOptions:
       whenUnsatisfiable: DoNotSchedule
       labelSelector:
         matchLabels:
-          app.kubernetes.io/name: '{{ $.Release.Name }}'
+          app.kubernetes.io/instance: '{{ $.Release.Name }}'
 
   affinity:
     podAntiAffinity:
@@ -73,9 +198,28 @@ defaultPodOptions:
             topologyKey: kubernetes.io/hostname
             labelSelector:
               matchLabels:
-                app.kubernetes.io/name: '{{ $.Release.Name }}'
+                app.kubernetes.io/instance: '{{ $.Release.Name }}'
 
 service:
+  redis:
+    controller: redis
+    primary: true
+    type: ClusterIP
+    ports:
+      redis:
+        port: 6379
+        protocol: TCP
+
+  redis-headless:
+    controller: redis
+    type: ClusterIP
+    clusterIP: None
+    publishNotReadyAddresses: true
+    ports:
+      redis:
+        port: 6379
+        protocol: TCP
+
   sentinel:
     controller: sentinel
     primary: true
@@ -84,38 +228,57 @@ service:
       sentinel:
         port: 26379
         protocol: TCP
-  headless:
+
+  sentinel-headless:
     controller: sentinel
-    primary: true
     type: ClusterIP
-    clusterIp: None
+    clusterIP: None
+    publishNotReadyAddresses: true
     ports:
       sentinel:
         port: 26379
         protocol: TCP
 
 configMaps:
-  sentinel-config:
+  redis-bootstrap:
     enabled: true
     data:
-      sentinel-base.conf: |
+      redis.conf: |
+        bind 0.0.0.0
+        protected-mode yes
+        port 6379
+
+        save 900 1
+        save 300 10
+        save 60 10000
+
+  sentinel-bootstrap:
+    enabled: true
+    data:
+      sentinel.conf: |
         port 26379
         bind 0.0.0.0
         protected-mode yes
 
-        # monitor <name> <host> <port> <quorum>
-        sentinel monitor {{ $.Release.Name }} {{ $.Release.Name }}-0.{{ $.Release.Name }}-headless.{{ $.Release.Namespace }}.svc.cluster.local 6379 2
-
-        sentinel down-after-milliseconds {{ $.Release.Name }} 5000
-        sentinel failover-timeout {{ $.Release.Name }} 60000
-        sentinel parallel-syncs {{ $.Release.Name }} 1
-
 persistence:
-  sentinel-config:
+  redis-bootstrap:
     enabled: true
     type: configMap
-    identifier: sentinel-config
-    globalMounts:
-      - path: /usr/local/etc/redis/sentinel-base.conf
-        subPath: sentinel-base.conf
-        readOnly: true
+    identifier: redis-bootstrap
+    advancedMounts:
+      redis:
+        app:
+          - path: /bootstrap/redis.conf
+            subPath: redis.conf
+            readOnly: true
+
+  sentinel-bootstrap:
+    enabled: true
+    type: configMap
+    identifier: sentinel-bootstrap
+    advancedMounts:
+      sentinel:
+        app:
+          - path: /bootstrap/sentinel.conf
+            subPath: sentinel.conf
+            readOnly: true
