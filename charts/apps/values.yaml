@@ -129,7 +129,7 @@ applications:
                 spec:
                   issuerRef:
                     kind: ClusterIssuer
-                    name: cert-cloudflare
+                    name: cert-home-cert-http
                     group: cert-manager.io
 
     destination:
