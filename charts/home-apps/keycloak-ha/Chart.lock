@@ -4,9 +4,9 @@ dependencies:
   version: 4.6.2
 - name: app-db
   repository: file://../app-db
-  version: 0.1.0
+  version: 0.1.1
 - name: common
   repository: file://../common
   version: 2.31.4
-digest: sha256:c146120a8b1bc837103258b8ab8661ead961e300c237b9f6810f65ab807db6a3
-generated: "2026-04-24T23:17:51.516088+02:00"
+digest: sha256:63649fe2365c8dadb46b78a73a73ae68d7f127262142fea588ece46c727e1091
+generated: "2026-04-24T23:34:58.381695+02:00"
