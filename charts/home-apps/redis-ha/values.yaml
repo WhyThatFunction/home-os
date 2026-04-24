@@ -565,7 +565,7 @@ rawResources:
             - X-Forwarded-User
 
     oauth2-proxy-secret:
-      enabled: true
+      enabled: false
       apiVersion: external-secrets.io/v1
       kind: ExternalSecret
       spec:
