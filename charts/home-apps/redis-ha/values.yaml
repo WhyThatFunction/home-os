@@ -30,6 +30,8 @@ controllers:
           POD_NAMESPACE:
             fieldRef:
               fieldPath: metadata.namespace
+          MASTER_FQDN: "{{ $.Release.Name }}-redis-0.{{ $.Release.Name }}-redis-headless.{{ $.Release.Namespace }}.svc.cluster.local"
+          RELEASE_NAME: "{{ $.Release.Name }}"
 
         command:
           - /bin/sh
@@ -37,7 +39,7 @@ controllers:
         args:
           - |
             ORDINAL="${POD_NAME##*-}"
-            MASTER_FQDN="{{ $.Release.Name }}-redis-0.{{ $.Release.Name }}-redis-headless.${POD_NAMESPACE}.svc.cluster.local"
+            POD_FQDN="${POD_NAME}.${RELEASE_NAME}-redis-headless.${POD_NAMESPACE}.svc.cluster.local"
 
             mkdir -p /data
             cp /bootstrap/redis.conf /data/redis.conf
@@ -46,7 +48,7 @@ controllers:
               echo "dir /data"
               echo "appendonly yes"
               echo "replica-announce-port 6379"
-              echo "replica-announce-ip ${POD_NAME}.{{ $.Release.Name }}-redis-headless.${POD_NAMESPACE}.svc.cluster.local"
+              echo "replica-announce-ip ${POD_FQDN}"
             } >> /data/redis.conf
 
             if [ "${ORDINAL}" != "0" ]; then
@@ -119,15 +121,16 @@ controllers:
           POD_NAMESPACE:
             fieldRef:
               fieldPath: metadata.namespace
+          MASTER_NAME: "{{ $.Release.Name }}"
+          MASTER_FQDN: "{{ $.Release.Name }}-redis-0.{{ $.Release.Name }}-redis-headless.{{ .Release.Namespace }}.svc.cluster.local"
+          RELEASE_NAME: "{{ $.Release.Name }}"
 
         command:
           - /bin/sh
           - -ec
         args:
           - |
-            MASTER_NAME="{{ $.Release.Name }}"
-            MASTER_FQDN="{{ $.Release.Name }}-redis-0.{{ $.Release.Name }}-redis-headless.${POD_NAMESPACE}.svc.cluster.local"
-            MY_FQDN="${POD_NAME}.{{ $.Release.Name }}-sentinel-headless.${POD_NAMESPACE}.svc.cluster.local"
+            POD_FQDN="${POD_NAME}.${RELEASE_NAME}-sentinel-headless.${POD_NAMESPACE}.svc.cluster.local"
 
             mkdir -p /data
 
@@ -141,7 +144,7 @@ controllers:
                 echo "sentinel parallel-syncs ${MASTER_NAME} 1"
                 echo "sentinel resolve-hostnames yes"
                 echo "sentinel announce-hostnames yes"
-                echo "sentinel announce-ip ${MY_FQDN}"
+                echo "sentinel announce-ip ${POD_FQDN}"
                 echo "sentinel announce-port 26379"
               } >> /data/sentinel.conf
             fi
