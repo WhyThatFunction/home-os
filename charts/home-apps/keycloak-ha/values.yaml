@@ -244,6 +244,27 @@ keycloak:
                   exporters:
                     - debug
 
+    ext-secret:
+      enabled: true
+      apiVersion: external-secrets.io/v1
+      kind: ExternalSecret
+      spec:
+        spec:
+          refreshInterval: 1h0m0s
+          secretStoreRef:
+            name: some-store
+            kind: ClusterSecretStore
+          target:
+            name: '{{ .Release.Name }}-s3-creds'
+            creationPolicy: Owner
+          data:
+            - secretKey: accessKeyId
+              remoteRef:
+                key: s3AccessKey
+            - secretKey: secretKeyId
+              remoteRef:
+                key: s3SecretKey
+
 db:
   enabled: true
   db:

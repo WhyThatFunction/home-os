@@ -24,11 +24,6 @@ version: 0.1.1
 appVersion: "1.16.0"
 
 dependencies:
-  - name: app-template
+  - name: common
     version: '*'
     repository: https://bjw-s-labs.github.io/helm-charts
-    alias: db
-
-  - name: common
-    version: "*"
-    repository: "file://../common"
