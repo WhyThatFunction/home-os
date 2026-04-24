@@ -564,7 +564,7 @@ rawResources:
             - X-Auth-Request-Preferred-Username
             - X-Forwarded-User
 
-    ext-secret-redis:
+    oauth2-proxy-secret:
       enabled: true
       apiVersion: external-secrets.io/v1
       kind: ExternalSecret
