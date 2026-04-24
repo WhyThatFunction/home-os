@@ -431,47 +431,44 @@ persistence:
           - path: /data
 
 rawResources:
-  redis-tls-cert:
+  redis-tls:
     enabled: true
     apiVersion: cert-manager.io/v1
     kind: Certificate
-    nameOverride: "{{ $.Release.Name }}-redis-tls"
     spec:
       secretName: "{{ $.Release.Name }}-redis-tls"
       issuerRef:
-        name: self-signed-ca
-        kind: ClusterIssuer
+        name: some-issuer
+        kind: Issuer
       dnsNames:
         - "{{ $.Release.Name }}-redis"
         - "{{ $.Release.Name }}-redis.{{ $.Release.Namespace }}.svc"
         - "{{ $.Release.Name }}-redis.{{ $.Release.Namespace }}.svc.cluster.local"
         - "*.{{ $.Release.Name }}-redis-headless.{{ $.Release.Namespace }}.svc.cluster.local"
 
-  sentinel-tls-cert:
+  sentinel-tls:
     enabled: true
     apiVersion: cert-manager.io/v1
     kind: Certificate
-    nameOverride: "{{ $.Release.Name }}-sentinel-tls"
     spec:
       secretName: "{{ $.Release.Name }}-sentinel-tls"
       issuerRef:
-        name: self-signed-ca
-        kind: ClusterIssuer
+        name: some-issuer
+        kind: Issuer
       dnsNames:
         - "{{ $.Release.Name }}-sentinel"
         - "{{ $.Release.Name }}-sentinel.{{ $.Release.Namespace }}.svc"
         - "{{ $.Release.Name }}-sentinel.{{ $.Release.Namespace }}.svc.cluster.local"
         - "*.{{ $.Release.Name }}-sentinel-headless.{{ $.Release.Namespace }}.svc.cluster.local"
 
-  redisinsight-tls-cert:
+  redisinsight-tls:
     enabled: true
     apiVersion: cert-manager.io/v1
     kind: Certificate
-    nameOverride: "{{ $.Release.Name }}-redisinsight-tls"
     spec:
       secretName: "{{ $.Release.Name }}-redisinsight-tls"
       issuerRef:
-        name: self-signed-ca
-        kind: ClusterIssuer
+        name: some-issuer
+        kind: Issuer
       dnsNames:
         - "redisinsight.example.internal"
