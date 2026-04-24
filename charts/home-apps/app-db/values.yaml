@@ -82,6 +82,9 @@ db:
     certificate-holder:
       apiVersion: v1
       kind: Secret
+      annotations:
+        argocd.argoproj.io/compare-options: IgnoreExtraneous
+        argocd.argoproj.io/sync-options: Prune=false
       labels:
         cnpg.io/reload: ""
       spec:
