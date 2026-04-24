@@ -106,8 +106,7 @@ applications:
               dns: redisinsight.apps.verif.fyi
           ingress:
             redisinsight:
-              annotations:
-                cert-manager.io/cluster-issuer: cert-cloudflare
+              annotations: { }
           rawResources:
             redis-tls:
               spec:
@@ -124,7 +123,6 @@ applications:
                     name: self-signed-ca
                     group: cert-manager.io
             redisinsight-tls:
-              enabled: false
               spec:
                 spec:
                   issuerRef:
