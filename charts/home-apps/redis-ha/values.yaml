@@ -261,17 +261,17 @@ controllers:
           OAUTH2_PROXY_CLIENT_ID:
             valueFrom:
               secretKeyRef:
-                name: redisinsight-oauth2
+                name: '{{ .Release.Name }}-oauth2-creds'
                 key: client-id
           OAUTH2_PROXY_CLIENT_SECRET:
             valueFrom:
               secretKeyRef:
-                name: redisinsight-oauth2
+                name: '{{ .Release.Name }}-oauth2-creds'
                 key: client-secret
           OAUTH2_PROXY_COOKIE_SECRET:
             valueFrom:
               secretKeyRef:
-                name: redisinsight-oauth2
+                name: '{{ .Release.Name }}-oauth2-creds'
                 key: cookie-secret
         probes:
           liveness:
@@ -563,3 +563,27 @@ rawResources:
             - X-Auth-Request-Email
             - X-Auth-Request-Preferred-Username
             - X-Forwarded-User
+
+    ext-secret-redis:
+      enabled: true
+      apiVersion: external-secrets.io/v1
+      kind: ExternalSecret
+      spec:
+        spec:
+          refreshInterval: 1h0m0s
+          secretStoreRef:
+            name: bitwarden
+            kind: ClusterSecretStore
+          target:
+            name: '{{ .Release.Name }}-oauth2-creds'
+            creationPolicy: Owner
+          data:
+            - secretKey: client-id
+              remoteRef:
+                key: redisOauth2ClientId
+            - secretKey: client-secret
+              remoteRef:
+                key: redisOauth2ClientSecret
+            - secretKey: cookie-secret
+              remoteRef:
+                key: redisOauth2CookieSecret
