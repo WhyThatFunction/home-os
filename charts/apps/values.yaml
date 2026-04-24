@@ -80,6 +80,8 @@ applications:
             ingress:
               main:
                 enabled: false
+          db:
+            enabled: true
     destination:
       name: home-remote
       namespace: keycloak
