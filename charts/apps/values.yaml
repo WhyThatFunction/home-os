@@ -130,9 +130,7 @@ applications:
                     kind: ClusterIssuer
                     name: cert-cloudflare
                     group: cert-manager.io
-                  dnsNames:
-                    - "redisinsight.ssegning.com"
-                
+
     destination:
       name: home-remote
       namespace: redis-system
