@@ -93,6 +93,63 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: redis-ha
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: keycloak
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/redis-ha
+      helm:
+        valuesObject:
+          ingress:
+            redisinsight:
+              annotations:
+                cert-manager.io/cluster-issuer: cert-cloudflare
+              #className: nginx
+              hosts:
+                - host: redisinsight.ssegning.com
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      service:
+                        identifier: redisinsight
+                        port: http
+              tls:
+                - secretName: "{{ $.Release.Name }}-redisinsight-tls"
+                  hosts:
+                    - redisinsight.ssegning.com
+          rawResources:
+            redis-tls:
+              spec:
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: self-signed-ca
+                  group: cert-manager.io
+            sentinel-tls:
+              spec:
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: self-signed-ca
+                  group: cert-manager.io
+            redisinsight-tls:
+              spec:
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: cert-cloudflare
+                  group: cert-manager.io
+                dnsNames:
+                  - "redisinsight.ssegning.com"
+                
+    destination:
+      name: home-remote
+      namespace: keycloak
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: endpoints
     finalizers:
       - resources-finalizer.argocd.argoproj.io

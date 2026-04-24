@@ -300,7 +300,7 @@ ingress:
   redisinsight:
     annotations:
       cert-manager.io/cluster-issuer: self-signed-ca
-    className: nginx
+    #className: nginx
     hosts:
       - host: redisinsight.example.internal
         paths:
