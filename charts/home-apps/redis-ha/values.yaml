@@ -1,3 +1,9 @@
+global:
+  redis:
+    image:
+      repository: docker.io/redis
+      tag: "8.0.3-trixie"
+
 controllers:
   redis:
     type: statefulset
@@ -20,8 +26,8 @@ controllers:
     containers:
       app:
         image:
-          repository: docker.io/redis
-          tag: "8.0.3-trixie"
+          repository: "{{ $.Values.global.redis.image.repository }}"
+          tag: "{{ $.Values.global.redis.image.tag }}"
 
         env:
           POD_NAME:
@@ -111,8 +117,8 @@ controllers:
     containers:
       app:
         image:
-          repository: docker.io/redis
-          tag: "8.0.3-trixie"
+          repository: "{{ $.Values.global.redis.image.repository }}"
+          tag: "{{ $.Values.global.redis.image.tag }}"
 
         env:
           POD_NAME:
