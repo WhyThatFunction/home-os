@@ -1,78 +1,6 @@
-global:
-  tags:
-    keycloak: "26.6.1"
-    busybox: "latest"
-
-ingress:
-  main:
-    enabled: false
-    annotations: { }
-    #  cert-manager.io/cluster-issuer: <issuer-name>
-    className: traefik
-    hosts:
-      - host: auth.verif.fyi
-        paths:
-          - path: /
-            pathType: Prefix
-            service:
-              identifier: main
-              port: http
-    tls:
-      - secretName: auth.verif.fyi-tls
-        hosts:
-          - auth.verif.fyi
-
-  legacy:
-    enabled: false
-    annotations: { }
-    #  cert-manager.io/cluster-issuer: <issuer-name>
-    className: traefik
-    hosts:
-      - host: accounts.ssegning.com
-        paths:
-          - path: /
-            pathType: Prefix
-            service:
-              identifier: main
-              port: http
-    tls:
-      - secretName: accounts.ssegning.com-tls
-        hosts:
-          - accounts.ssegning.com
-
-service:
-  main:
-    enabled: true
-    annotations: { }
-    type: ClusterIP
-    controller: main
-    ports:
-      http:
-        enabled: true
-        port: 8080
-        targetPort: 8080
-      management:
-        enabled: true
-        port: 9000
-        targetPort: 9000
-
-  headless:
-    enabled: true
-    annotations: { }
-    type: ClusterIP
-    clusterIP: None
-    controller: main
-    ports:
-      http:
-        enabled: true
-        port: 8080
-        targetPort: 8080
-
-defaultPodOptions:
-  enableServiceLinks: true
-
 controllers:
   main:
+    enabled: false
     type: deployment
     strategy: RollingUpdate
     replicas: 3
@@ -189,32 +117,38 @@ controllers:
               failureThreshold: 30
               periodSeconds: 5
 
-persistence:
-  artifacts-spi:
-    enabled: true
-    type: emptyDir
-    advancedMounts:
-      main:
-        main:
-          - path: /opt/keycloak/providers
-        download-theme:
-          - path: /spi
-
-networkpolicies:
-  main:
-    enabled: true
-    controller: main
-    policyTypes:
-      - Ingress
-      - Egress
-    rules:
-      ingress:
-        - { }
-      egress:
-        - { }
-
 rawResources:
-  otkel:
+  keycloak:
+    apiVersion: k8s.keycloak.org/v2beta1
+    kind: Keycloak
+    spec:
+      spec:
+        instances: 3
+        db:
+          database: app
+          host: "{{ .Release.Name }}-cluster-rw"
+          vendor: postgres
+          usernameSecret:
+            name: "{{ .Release.Name }}-cluster-app"
+            key: username
+          passwordSecret:
+            name: "{{ .Release.Name }}-cluster-app"
+            key: password
+        http:
+          annotations: { }
+            #  cert-manager.io/cluster-issuer: <issuer-name>
+          httpEnabled: false
+          tlsSecret: auth.verif.fyi-tls
+        hostname:
+          hostname: auth.verif.fyi
+        proxy:
+          headers: xforwarded # double check your reverse proxy sets and overwrites the X-Forwarded-* headers
+        #telemetry:
+        #  endpoint: 'https://{{ .Release.Name }}-otel-collector:4317'
+        #tracing:
+        #  endpoint: 'https://{{ .Release.Name }}-otel-collector:4317'
+
+  otel:
     enabled: true
     apiVersion: opentelemetry.io/v1beta1
     kind: OpenTelemetryCollector
