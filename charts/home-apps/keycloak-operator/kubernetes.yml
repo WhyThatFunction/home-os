@@ -181,7 +181,7 @@ subjects:
     namespace: keycloak
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/name: keycloak-operator
@@ -270,13 +270,13 @@ rules:
       - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
   labels:
     app.kubernetes.io/name: keycloak-operator
   name: keycloak-operator-role-binding
 roleRef:
-  kind: Role
+  kind: ClusterRole
   apiGroup: rbac.authorization.k8s.io
   name: keycloak-operator-role
 subjects:
