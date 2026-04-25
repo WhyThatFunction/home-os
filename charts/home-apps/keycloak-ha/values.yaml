@@ -143,10 +143,10 @@ rawResources:
           hostname: auth.verif.fyi
         proxy:
           headers: xforwarded # double check your reverse proxy sets and overwrites the X-Forwarded-* headers
-        #telemetry:
-        #  endpoint: 'https://{{ .Release.Name }}-otel-collector:4317'
-        #tracing:
-        #  endpoint: 'https://{{ .Release.Name }}-otel-collector:4317'
+        telemetry:
+          endpoint: 'https://{{ .Release.Name }}-otel-collector:4317'
+        tracing:
+          endpoint: 'https://{{ .Release.Name }}-otel-collector:4317'
 
   otel:
     enabled: true
