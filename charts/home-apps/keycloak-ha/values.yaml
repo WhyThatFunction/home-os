@@ -135,8 +135,8 @@ rawResources:
             name: "{{ .Release.Name }}-cluster-app"
             key: password
         http:
-          annotations: { }
-            #  cert-manager.io/cluster-issuer: <issuer-name>
+          annotations:
+            cert-manager.io/cluster-issuer: cert-cloudflare
           #httpEnabled: false
           tlsSecret: auth.verif.fyi-tls
         hostname:
