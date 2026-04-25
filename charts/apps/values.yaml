@@ -93,25 +93,6 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: keycloak-operator
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: keycloak
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: charts/home-apps/keycloak-operator
-    destination:
-      name: home-remote
-      namespace: keycloak-system
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-        - ServerSideApply=true
-      automated:
-        prune: true
-        selfHeal: true
-
   - name: redis-ha
     finalizers:
       - resources-finalizer.argocd.argoproj.io
