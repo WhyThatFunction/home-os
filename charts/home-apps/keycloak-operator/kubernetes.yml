@@ -387,9 +387,9 @@ spec:
             - name: RELATED_IMAGE_KEYCLOAK
               value: quay.io/keycloak/keycloak:26.6.1
             - name: QUARKUS_OPERATOR_SDK_CONTROLLERS_KEYCLOAKREALMIMPORTCONTROLLER_NAMESPACES
-              value: JOSDK_WATCH_CURRENT
+              value: JOSDK_ALL_NAMESPACES
             - name: QUARKUS_OPERATOR_SDK_CONTROLLERS_KEYCLOAKCONTROLLER_NAMESPACES
-              value: JOSDK_WATCH_CURRENT
+              value: JOSDK_ALL_NAMESPACES
           image: quay.io/keycloak/keycloak-operator:26.6.1
           imagePullPolicy: Always
           livenessProbe:
