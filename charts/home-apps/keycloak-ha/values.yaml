@@ -118,12 +118,12 @@ controllers:
               periodSeconds: 5
 
 rawResources:
-  keycloak:
+  app:
     apiVersion: k8s.keycloak.org/v2beta1
     kind: Keycloak
     spec:
       spec:
-        instances: 3
+        instances: 1
         db:
           database: app
           host: "{{ .Release.Name }}-cluster-rw"
