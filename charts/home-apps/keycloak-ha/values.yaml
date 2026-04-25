@@ -113,12 +113,12 @@ controllers:
           KC_DB_URL:
             valueFrom:
               secretKeyRef:
-                name: "{{ .Release.Name }}-db-app"
+                name: "{{ .Release.Name }}-cluster-app"
                 key: jdbc-uri
           KC_DB_PASSWORD:
             valueFrom:
               secretKeyRef:
-                name: "{{ .Release.Name }}-db-app"
+                name: "{{ .Release.Name }}-cluster-app"
                 key: password
           KC_HOSTNAME: https://auth.verif.fyi
           KC_HOSTNAME_STRICT: 'false'
