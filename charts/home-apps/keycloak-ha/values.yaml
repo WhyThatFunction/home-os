@@ -102,6 +102,8 @@ controllers:
           repository: quay.io/keycloak/keycloak
           tag: "{{ $.Values.global.tags.keycloak }}"
           pullPolicy: IfNotPresent
+        args:
+          - start
         env:
           PUID: "1000"
           PGID: "1000"
