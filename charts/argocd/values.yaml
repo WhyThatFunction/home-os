@@ -54,6 +54,8 @@ configs:
   cm:
     url: https://argocd.ssegning.me
 
+    exec.enabled: true
+
     # OIDC (OAuth2) configuration using the issuer behind your discovery endpoint
     oidc.config: |
       name: SSegning SSO
