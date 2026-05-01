@@ -187,7 +187,7 @@ rawResources:
       spec:
         refreshInterval: 1h0m0s
         secretStoreRef:
-          name: some-store
+          name: ssegning-aws
           kind: ClusterSecretStore
         target:
           name: '{{ .Release.Name }}-s3-creds'
@@ -195,10 +195,12 @@ rawResources:
         data:
           - secretKey: accessKeyId
             remoteRef:
-              key: s3AccessKey
+              key: "prod/meta/test-app"
+              property: s3_backup_cnpg_client_id
           - secretKey: secretKeyId
             remoteRef:
-              key: s3SecretKey
+              key: "prod/meta/test-app"
+              property: s3_backup_cnpg_secret
 
   scheduled-backup:
     enabled: true
@@ -220,7 +222,8 @@ rawResources:
     spec:
       spec:
         configuration:
-          destinationPath: s3://my-backup-bucket/prod/keycloak-ha
+          destinationPath: s3://ssegning-k8s-state/keycloak-cnpg-backups
+          endpointURL: https://nbg1.your-objectstorage.com
           s3Credentials:
             accessKeyId:
               key: accessKeyId
