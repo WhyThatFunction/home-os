@@ -572,7 +572,7 @@ rawResources:
       spec:
         refreshInterval: 1h0m0s
         secretStoreRef:
-          name: bitwarden
+          name: ssegning-aws
           kind: ClusterSecretStore
         target:
           name: '{{ .Release.Name }}-oauth2-creds'
