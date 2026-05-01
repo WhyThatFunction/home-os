@@ -740,9 +740,7 @@ applications:
       targetRevision: v2.3.0
       chart: external-secrets
       helm:
-        valuesObject:
-          bitwarden-sdk-server:
-            enabled: true
+        valuesObject: { }
     destination:
       name: home-remote
       namespace: external-secrets
