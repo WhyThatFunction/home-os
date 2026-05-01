@@ -1,11 +1,20 @@
 secretStores:
-  bitwarden:
-    bitwardensecretsmanager:
+  ssegning-aws:
+    aws:
+      service: SecretsManager
+      # define a specific role to limit access
+      # to certain secrets.
+      # role is a optional field that
+      # can be omitted for test purposes
+      role: arn:aws:iam::857285833264:user/k8s-cluster-secret-manager
+      region: eu-central-1
       auth:
         secretRef:
-          credentials:
-            key: token
-            name: bitwarden-access-token
-            namespace: auth-secret
-      organizationID: 3277a467-a991-4856-8a95-b43500e6ceb7
-      projectID: fa58f07c-43f6-4f7b-9738-b43500e707cf
+          accessKeyIDSecretRef:
+            name: awssm-secret
+            key: access-key
+            namespace: secret-store-system
+          secretAccessKeySecretRef:
+            name: awssm-secret
+            key: secret-access-key
+            namespace: secret-store-system
