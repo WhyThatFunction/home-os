@@ -6,7 +6,7 @@ secretStores:
       # to certain secrets.
       # role is a optional field that
       # can be omitted for test purposes
-      role: arn:aws:iam::857285833264:user/k8s-cluster-secret-manager
+      role: arn:aws:iam::857285833264:role/secret-manager-k8s
       region: eu-central-1
       auth:
         secretRef:
