@@ -417,7 +417,7 @@ configMaps:
     data:
       redis.conf: |
         bind 0.0.0.0
-        protected-mode yes
+        protected-mode no
 
         port 0
         tls-port 6379
@@ -458,7 +458,7 @@ configMaps:
         # Required for Sentinel -> Redis and Sentinel -> Sentinel TLS
         tls-replication yes
 
-        protected-mode yes
+        protected-mode no
 
 persistence:
   redis-bootstrap:
