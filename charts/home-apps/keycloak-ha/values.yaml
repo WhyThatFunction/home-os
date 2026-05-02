@@ -136,7 +136,7 @@ rawResources:
             key: password
         http:
           #httpEnabled: false
-          tlsSecret: "{{ $.Release.Name }}-auth"
+          tlsSecret: "{{ $.Release.Name }}-auth-tls"
         hostname:
           hostname: auth.verif.fyi
         proxy:
@@ -298,13 +298,13 @@ rawResources:
           kind: ClusterIssuer
           group: cert-manager.io
 
-  auth-certificate:
+  certificate-auth-tls:
     enabled: true
     apiVersion: cert-manager.io/v1
     kind: Certificate
     spec:
       spec:
-        secretName: "{{ $.Release.Name }}-auth"
+        secretName: "{{ $.Release.Name }}-auth-tls"
         issuerRef:
           kind: ClusterIssuer
           name: cert-home-cert-http
