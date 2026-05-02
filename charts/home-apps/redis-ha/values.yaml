@@ -7,7 +7,7 @@ global:
     image:
       repository: redis/redisinsight
       tag: "3.4.2"
-    dns: redisinsight.example.internal
+    dns: redisinsight.apps.verif.fyi
   oauth2Proxy:
     image:
       repository: quay.io/oauth2-proxy/oauth2-proxy
@@ -255,7 +255,7 @@ controllers:
           - --reverse-proxy=true
           - --upstream=static://202
           - --email-domain=*
-          - --code-challenge-method='S256'
+          - --code-challenge-method=S256
         env:
           OAUTH2_PROXY_URL: "https://{{ $.Values.global.redisinsight.dns }}"
           OAUTH2_PROXY_ISSUER: "https://auth.verif.fyi/realms/ssegning-internal"
@@ -361,15 +361,7 @@ service:
         protocol: TCP
 
 ingress:
-  redisinsight:
-    #className: nginx
-    annotations:
-      cert-manager.io/cluster-issuer: self-signed-ca
-      #nginx.ingress.kubernetes.io/auth-url: "https://$host/oauth2/auth"
-      #nginx.ingress.kubernetes.io/auth-signin: "https://$host/oauth2/start?rd=$escaped_request_uri"
-      #traefik.ingress.kubernetes.io/router.tls: "true"
-      traefik.ingress.kubernetes.io/router.middlewares: "{{ $.Release.Namespace }}-{{ $.Release.Name }}-redisinsight-auth@kubernetescrd"
-    #className: nginx
+  redisinsight-auth2:
     hosts:
       - host: "{{ $.Values.global.redisinsight.dns }}"
         paths:
@@ -378,6 +370,16 @@ ingress:
             service:
               identifier: redisinsight
               port: oauth2
+    tls:
+      - secretName: "{{ $.Release.Name }}-redisinsight-tls"
+        hosts:
+          - "{{ $.Values.global.redisinsight.dns }}"
+  redisinsight:
+    annotations:
+      traefik.ingress.kubernetes.io/router.middlewares: "{{ $.Release.Namespace }}-{{ $.Release.Name }}-redisinsight-oauth2-errors@kubernetescrd,{{ $.Release.Namespace }}-{{ $.Release.Name }}-redisinsight-auth@kubernetescrd"
+    hosts:
+      - host: "{{ $.Values.global.redisinsight.dns }}"
+        paths:
           - path: /
             pathType: Prefix
             service:
@@ -513,8 +515,9 @@ rawResources:
       spec:
         secretName: "{{ $.Release.Name }}-redis-tls"
         issuerRef:
-          name: some-issuer
-          kind: Issuer
+          kind: ClusterIssuer
+          name: self-signed-ca
+          group: cert-manager.io
         dnsNames:
           - "{{ $.Release.Name }}-redis"
           - "{{ $.Release.Name }}-redis.{{ $.Release.Namespace }}.svc"
@@ -529,8 +532,9 @@ rawResources:
       spec:
         secretName: "{{ $.Release.Name }}-sentinel-tls"
         issuerRef:
-          name: some-issuer
-          kind: Issuer
+          kind: ClusterIssuer
+          name: self-signed-ca
+          group: cert-manager.io
         dnsNames:
           - "{{ $.Release.Name }}-sentinel"
           - "{{ $.Release.Name }}-sentinel.{{ $.Release.Namespace }}.svc"
@@ -545,8 +549,9 @@ rawResources:
       spec:
         secretName: "{{ $.Release.Name }}-redisinsight-tls"
         issuerRef:
-          name: some-issuer
-          kind: Issuer
+          kind: ClusterIssuer
+          name: self-signed-ca
+          group: cert-manager.io
         dnsNames:
           - "{{ $.Values.global.redisinsight.dns }}"
 
@@ -557,14 +562,28 @@ rawResources:
     spec:
       spec:
         forwardAuth:
-          address: 'http://{{ $.Release.Name }}-redisinsight.{{ $.Release.Namespace }}.svc.cluster.local:4180'
+          address: 'http://{{ $.Release.Name }}-redisinsight.{{ $.Release.Namespace }}.svc.cluster.local:4180/oauth2/auth'
           trustForwardHeader: true
           authResponseHeaders:
             - X-Auth-Request-User
             - X-Auth-Request-Email
             - X-Auth-Request-Preferred-Username
             - X-Forwarded-User
-
+  redisinsight-oauth2-errors:
+    apiVersion: traefik.io/v1alpha1
+    kind: Middleware
+    spec:
+      spec:
+        errors:
+          status:
+            - "401-403"
+          service:
+            name: redis-ha-redisinsight
+            port: 4180
+          query: /oauth2/sign_in?rd={url}
+          statusRewrites:
+            "401": 302
+            "403": 302
   oauth2-proxy-secret:
     enabled: true
     apiVersion: external-secrets.io/v1
