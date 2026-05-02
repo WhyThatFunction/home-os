@@ -48,6 +48,11 @@ controllers:
               fieldPath: metadata.namespace
           MASTER_FQDN: "{{ $.Release.Name }}-redis-0.{{ $.Release.Name }}-redis-headless.{{ $.Release.Namespace }}.svc.cluster.local"
           RELEASE_NAME: "{{ $.Release.Name }}"
+          REDIS_PASSWORD:
+            valueFrom:
+              secretKeyRef:
+                name: "{{ $.Release.Name }}-redis-auth"
+                key: redis-password
 
         command:
           - /bin/sh
@@ -65,6 +70,10 @@ controllers:
               echo "appendonly yes"
               echo "replica-announce-port 6379"
               echo "replica-announce-ip ${POD_FQDN}"
+            
+              echo "user default on >${REDIS_PASSWORD} ~* &* +@all"
+              echo "masteruser default"
+              echo "masterauth ${REDIS_PASSWORD}"
             } >> /data/redis.conf
 
             if [ "${ORDINAL}" != "0" ]; then
@@ -82,7 +91,7 @@ controllers:
                 command:
                   - /bin/sh
                   - -ec
-                  - redis-cli --tls --cacert /tls/ca.crt -h 127.0.0.1 -p 6379 PING | grep PONG
+                  - redis-cli --tls --cacert /tls/ca.crt -h 127.0.0.1 -p 6379 --user default --pass "$REDIS_PASSWORD" PING | grep PONG
               initialDelaySeconds: 10
               periodSeconds: 10
           readiness:
@@ -93,7 +102,7 @@ controllers:
                 command:
                   - /bin/sh
                   - -ec
-                  - redis-cli --tls --cacert /tls/ca.crt -h 127.0.0.1 -p 6379 PING | grep PONG
+                  - redis-cli --tls --cacert /tls/ca.crt -h 127.0.0.1 -p 6379 --user default --pass "$REDIS_PASSWORD" PING | grep PONG
               initialDelaySeconds: 5
               periodSeconds: 5
           startup:
@@ -104,7 +113,7 @@ controllers:
                 command:
                   - /bin/sh
                   - -ec
-                  - redis-cli --tls --cacert /tls/ca.crt -h 127.0.0.1 -p 6379 PING | grep PONG
+                  - redis-cli --tls --cacert /tls/ca.crt -h 127.0.0.1 -p 6379 --user default --pass "$REDIS_PASSWORD" PING | grep PONG
               failureThreshold: 30
               periodSeconds: 5
 
@@ -150,6 +159,11 @@ controllers:
           MASTER_NAME: "{{ $.Release.Name }}"
           MASTER_FQDN: "{{ $.Release.Name }}-redis-0.{{ $.Release.Name }}-redis-headless.{{ $.Release.Namespace }}.svc.cluster.local"
           RELEASE_NAME: "{{ $.Release.Name }}"
+          REDIS_PASSWORD:
+            valueFrom:
+              secretKeyRef:
+                name: "{{ $.Release.Name }}-redis-auth"
+                key: redis-password
 
         command:
           - /bin/sh
@@ -165,6 +179,8 @@ controllers:
 
               {
                 echo "sentinel monitor ${MASTER_NAME} ${MASTER_FQDN} 6379 2"
+                echo "sentinel auth-user ${MASTER_NAME} default"
+                echo "sentinel auth-pass ${MASTER_NAME} ${REDIS_PASSWORD}"
                 echo "sentinel down-after-milliseconds ${MASTER_NAME} 5000"
                 echo "sentinel failover-timeout ${MASTER_NAME} 60000"
                 echo "sentinel parallel-syncs ${MASTER_NAME} 1"
@@ -528,7 +544,7 @@ persistence:
             readOnly: true
 
   redisinsight-data:
-    enabled: false
+    enabled: true
     type: persistentVolumeClaim
     accessMode: ReadWriteOnce
     size: 1Gi
@@ -641,3 +657,21 @@ rawResources:
             remoteRef:
               key: "prod/meta/test-app"
               property: redis_cookie_secret
+  redis-auth-secret:
+    enabled: true
+    apiVersion: external-secrets.io/v1
+    kind: ExternalSecret
+    spec:
+      spec:
+        refreshInterval: 1h0m0s
+        secretStoreRef:
+          name: ssegning-aws
+          kind: ClusterSecretStore
+        target:
+          name: "{{ $.Release.Name }}-redis-auth"
+          creationPolicy: Owner
+          data:
+            - secretKey: redis-password
+              remoteRef:
+                key: "prod/meta/test-app"
+                property: redis_password
