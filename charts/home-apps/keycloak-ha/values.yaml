@@ -31,6 +31,49 @@ rawResources:
           endpoint: 'https://{{ .Release.Name }}-otel-collector:4317'
         tracing:
           endpoint: 'https://{{ .Release.Name }}-otel-collector:4317'
+        unsupported:
+          podTemplate:
+            spec:
+              volumes:
+                - name: spi-volume
+                  emptyDir: { }
+
+              initContainers:
+                - name: install-spi
+                  image: busybox
+                  env:
+                    - name: THEME_VERSION
+                      value: "v86b23a7"
+                    - name: WEBHOOK_VERSION
+                      value: "0.9.1"
+                  command:
+                    - /bin/sh
+                  args:
+                    - -c
+                    - |
+                      set -ex
+                      
+                      wget -O /spi/theme-vaam-01.jar "https://github.com/vymalo/vymalo-keycloak-theme/releases/download/$THEME_VERSION/theme-vaam-01.jar"
+                      wget -O /spi/theme-vymalo-01.jar  "https://github.com/vymalo/vymalo-keycloak-theme/releases/download/$THEME_VERSION/theme-vymalo-01.jar"
+                      wget -O /spi/theme-vymalo-02.jar  "https://github.com/vymalo/vymalo-keycloak-theme/releases/download/$THEME_VERSION/theme-vymalo-02.jar"
+                      wget -O /spi/theme-ssegning-tw-01.jar  "https://github.com/vymalo/vymalo-keycloak-theme/releases/download/$THEME_VERSION/theme-ssegning-tw-01.jar"
+                      
+                      wget -O /spi/keycloak-webhook-provider-core.jar https://github.com/vymalo/keycloak-webhook/releases/download/v$WEBHOOK_VERSION/keycloak-webhook-provider-core-$WEBHOOK_VERSION-all.jar
+                      wget -O /spi/keycloak-webhook-provider-syslog.jar https://github.com/vymalo/keycloak-webhook/releases/download/v$WEBHOOK_VERSION/keycloak-webhook-provider-syslog-$WEBHOOK_VERSION-all.jar
+                      wget -O /spi/keycloak-webhook-provider-http.jar https://github.com/vymalo/keycloak-webhook/releases/download/v$WEBHOOK_VERSION/keycloak-webhook-provider-http-$WEBHOOK_VERSION-all.jar
+                      
+                      echo "Downloaded theme";
+                      ls -lash /spi;
+
+                  volumeMounts:
+                    - name: spi-volume
+                      mountPath: /spi
+
+              containers:
+                - name: keycloak
+                  volumeMounts:
+                    - name: spi-volume
+                      mountPath: /opt/keycloak/providers
 
   otel:
     enabled: true
