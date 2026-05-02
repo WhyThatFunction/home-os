@@ -1174,28 +1174,6 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: opentelemetry-operator
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: infrastructure
-    source:
-      repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
-      targetRevision: 0.106.0
-      chart: opentelemetry-operator
-      helm:
-        releaseName: opentelemetry-operator
-        valuesObject:
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: opentelemetry-system
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-        - ServerSideApply=true
-      automated:
-        prune: true
-        selfHeal: true
-
   - name: otel-operator
     finalizers:
       - resources-finalizer.argocd.argoproj.io
