@@ -494,7 +494,7 @@ persistence:
             readOnly: true
 
   redisinsight-data:
-    enabled: true
+    enabled: false
     type: persistentVolumeClaim
     accessMode: ReadWriteOnce
     size: 1Gi
