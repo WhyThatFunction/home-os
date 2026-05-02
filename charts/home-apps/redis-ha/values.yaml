@@ -516,7 +516,7 @@ rawResources:
         secretName: "{{ $.Release.Name }}-redis-tls"
         issuerRef:
           kind: ClusterIssuer
-          name: cert-home-cert-http
+          name: self-signed-ca
           group: cert-manager.io
         dnsNames:
           - "{{ $.Release.Name }}-redis"
@@ -533,7 +533,7 @@ rawResources:
         secretName: "{{ $.Release.Name }}-sentinel-tls"
         issuerRef:
           kind: ClusterIssuer
-          name: cert-home-cert-http
+          name: self-signed-ca
           group: cert-manager.io
         dnsNames:
           - "{{ $.Release.Name }}-sentinel"
@@ -550,7 +550,7 @@ rawResources:
         secretName: "{{ $.Release.Name }}-redisinsight-tls"
         issuerRef:
           kind: ClusterIssuer
-          name: cert-home-cert-http
+          name: self-signed-ca
           group: cert-manager.io
         dnsNames:
           - "{{ $.Values.global.redisinsight.dns }}"
