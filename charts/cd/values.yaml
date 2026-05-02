@@ -210,13 +210,6 @@ projects:
         kind: "*"
     clusterResourceBlacklist: [ ]
     namespaceResourceBlacklist: [ ]
-#    namespaceResourceBlacklist:
-#      - group: ""
-#        kind: ResourceQuota
-#      - group: ""
-#        kind: LimitRange
-#      - group: ""
-#        kind: NetworkPolicy
     namespaceResourceWhitelist:
       - group: "*"
         kind: "*"
@@ -775,23 +768,64 @@ applications:
     finalizers:
       - resources-finalizer.argocd.argoproj.io
     project: infrastructure
-    source:
-      repoURL: https://bokysan.github.io/docker-postfix
-      targetRevision: 4.4.0
-      chart: mail
-      helm:
-        valuesObject:
-          existingSecret: mail-config
-          config:
-            general:
-              TZ: "Europe/Berlin"
-              ANONYMIZE_EMAILS: "smart"
-          persistence:
-            enabled: true
-            storageClass: longhorn
+    sources:
+      - repoURL: https://bokysan.github.io/docker-postfix
+        targetRevision: 5.1.0
+        chart: mail
+        helm:
+          valuesObject:
+            existingSecret: mail-config
+            config:
+              general:
+                TZ: "Europe/Berlin"
+                ANONYMIZE_EMAILS: "smart"
+            persistence:
+              enabled: true
+              #storageClass: longhorn
+      - repoURL: https://bjw-s-labs.github.io/helm-charts
+        targetRevision: 4.6.2
+        chart: app-template
+        helm:
+          valuesObject:
+            rawResources:
+              redis-auth-secret:
+                enabled: true
+                apiVersion: external-secrets.io/v1
+                kind: ExternalSecret
+                spec:
+                  spec:
+                    refreshInterval: 1h0m0s
+                    secretStoreRef:
+                      name: ssegning-aws
+                      kind: ClusterSecretStore
+                    target:
+                      name: mail-config
+                      creationPolicy: Owner
+                    data:
+                      - secretKey: ALLOWED_SENDER_DOMAINS
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: allowed_sender_domains
+                      - secretKey: RELAYHOST
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: relayhost
+                      - secretKey: RELAYHOST_PASSWORD
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: relayhost_password
+                      - secretKey: RELAYHOST_USERNAME
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: relayhost_username
+                      - secretKey: SMTPD_SASL_USERS
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: smtpd_sasl_users
+
     destination:
-      server: https://kubernetes.default.svc
-      namespace: mail
+      name: home-remote
+      namespace: mail-system
     syncPolicy:
       syncOptions:
         - CreateNamespace=true
