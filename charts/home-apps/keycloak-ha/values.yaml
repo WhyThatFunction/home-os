@@ -140,7 +140,7 @@ rawResources:
           httpEnabled: false
           tlsSecret: "{{ $.Release.Name }}-auth-tls"
           annotations:
-            traefik.ingress.kubernetes.io/service.serverstransport: "{{ $.Release.Name }}-{{ $.Release.Namespace }}-keycloak-transport@kubernetescrd"
+            traefik.ingress.kubernetes.io/service.serverstransport: "{{ $.Release.Namespace }}-{{ $.Release.Namespace }}-keycloak-transport@kubernetescrd"
             traefik.ingress.kubernetes.io/service.serversscheme: "https"
         hostname:
           hostname: auth.verif.fyi
