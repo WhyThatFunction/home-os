@@ -89,10 +89,11 @@ controllers:
             enabled: true
             custom: true
             spec:
-              command:
-                - /bin/sh
-                - -ec
-                - redis-cli --tls --cacert /tls/ca.crt -h 127.0.0.1 -p 6379 PING | grep PONG
+              exec:
+                command:
+                  - /bin/sh
+                  - -ec
+                  - redis-cli --tls --cacert /tls/ca.crt -h 127.0.0.1 -p 6379 PING | grep PONG
               initialDelaySeconds: 5
               periodSeconds: 5
           startup:
