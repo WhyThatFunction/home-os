@@ -89,11 +89,10 @@ controllers:
             enabled: true
             custom: true
             spec:
-              exec:
-                command:
-                  - /bin/sh
-                  - -ec
-                  - redis-cli --tls --cacert /tls/ca.crt -h 127.0.0.1 -p 6379 PING | grep PONG
+              command:
+                - /bin/sh
+                - -ec
+                - redis-cli --tls --cacert /tls/ca.crt -h 127.0.0.1 -p 6379 PING | grep PONG
               initialDelaySeconds: 5
               periodSeconds: 5
           startup:
@@ -501,7 +500,7 @@ persistence:
             readOnly: true
       redisinsight:
         app:
-          - path: /tls/ca.crt
+          - path: /tls/redis-ca.crt
             subPath: ca.crt
             readOnly: true
 
