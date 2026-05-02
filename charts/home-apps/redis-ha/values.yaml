@@ -481,6 +481,11 @@ persistence:
           - path: /tls/ca.crt
             subPath: ca.crt
             readOnly: true
+      redisinsight:
+        app:
+          - path: /tls/redis-ca.crt
+            subPath: ca.crt
+            readOnly: true
 
   sentinel-tls:
     enabled: true
@@ -496,6 +501,11 @@ persistence:
             subPath: tls.key
             readOnly: true
           - path: /tls/ca.crt
+            subPath: ca.crt
+            readOnly: true
+      redisinsight:
+        app:
+          - path: /tls/sentinel-ca.crt
             subPath: ca.crt
             readOnly: true
 
