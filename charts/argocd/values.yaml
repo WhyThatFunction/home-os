@@ -59,7 +59,7 @@ configs:
     # OIDC (OAuth2) configuration using the issuer behind your discovery endpoint
     oidc.config: |
       name: SSegning SSO
-      issuer: https://accounts.ssegning.com/realms/ssegning-dev
+      issuer: https://auth.verif.fyi/realms/ssegning-dev
       clientID: argocd
       clientSecret: $oidc.keycloak.clientSecret
       cliClientID: argocd-cli
