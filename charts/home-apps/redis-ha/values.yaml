@@ -550,7 +550,7 @@ rawResources:
         secretName: "{{ $.Release.Name }}-redisinsight-tls"
         issuerRef:
           kind: ClusterIssuer
-          name: self-signed-ca
+          name: cert-home-cert-http
           group: cert-manager.io
         dnsNames:
           - "{{ $.Values.global.redisinsight.dns }}"
