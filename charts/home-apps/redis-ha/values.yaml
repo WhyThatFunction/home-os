@@ -581,11 +581,11 @@ rawResources:
           - secretKey: client-id
             remoteRef:
               key: "prod/meta/test-app"
-              property: redis_oauth2_clientid
+              property: redis_oauth2_client_id
           - secretKey: client-secret
             remoteRef:
               key: "prod/meta/test-app"
-              property: redis_client_secret
+              property: redis_oauth2_secret
           - secretKey: cookie-secret
             remoteRef:
               key: "prod/meta/test-app"
