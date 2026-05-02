@@ -251,13 +251,14 @@ controllers:
           - --client-id=$(OAUTH2_PROXY_CLIENT_ID)
           - --client-secret=$(OAUTH2_PROXY_CLIENT_SECRET)
           - --cookie-secret=$(OAUTH2_PROXY_COOKIE_SECRET)
-          - --redirect-url=$(OAUTH2_PROXY_URL)/oauth2/callback
+          - --redirect-url=https://$(OAUTH2_PROXY_DOMAIN)/oauth2/callback
           - --reverse-proxy=true
           - --upstream=static://202
           - --email-domain=*
           - --code-challenge-method=S256
+          - --whitelist-domain=$(OAUTH2_PROXY_DOMAIN)
         env:
-          OAUTH2_PROXY_URL: "https://{{ $.Values.global.redisinsight.dns }}"
+          OAUTH2_PROXY_DOMAIN: "{{ $.Values.global.redisinsight.dns }}"
           OAUTH2_PROXY_ISSUER: "https://auth.verif.fyi/realms/ssegning-internal"
           OAUTH2_PROXY_CLIENT_ID:
             valueFrom:
