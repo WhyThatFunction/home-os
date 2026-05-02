@@ -241,9 +241,9 @@ rawResources:
       spec:
         instances: 3
 
-        certificates:
-          serverTLSSecret: '{{ .Release.Name }}-certificate-holder'
-          serverCASecret: '{{ .Release.Name }}-certificate-holder'
+        #certificates:
+        #  serverTLSSecret: '{{ .Release.Name }}-certificate-holder'
+        #  serverCASecret: '{{ .Release.Name }}-certificate-holder'
 
         storage:
           size: 1Gi
