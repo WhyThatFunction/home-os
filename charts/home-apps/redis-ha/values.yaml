@@ -557,7 +557,7 @@ rawResources:
     spec:
       spec:
         forwardAuth:
-          address: 'http://{{ $.Release.Name }}-redisinsight:4180'
+          address: 'http://{{ $.Release.Name }}-redisinsight.{{ $.Release.Namespace }}.cluster.local:4180'
           trustForwardHeader: true
           authResponseHeaders:
             - X-Auth-Request-User
