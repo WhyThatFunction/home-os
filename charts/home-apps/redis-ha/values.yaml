@@ -255,7 +255,7 @@ controllers:
           - --reverse-proxy=true
           - --upstream=static://202
           - --email-domain=*
-          - --code-challenge-method
+          - --code-challenge-method='S256'
         env:
           OAUTH2_PROXY_URL: "https://{{ $.Values.global.redisinsight.dns }}"
           OAUTH2_PROXY_ISSUER: "https://auth.verif.fyi/realms/ssegning-internal"
