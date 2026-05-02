@@ -255,6 +255,7 @@ controllers:
           - --reverse-proxy=true
           - --upstream=static://202
           - --email-domain=*
+          - --code-challenge-method
         env:
           OAUTH2_PROXY_URL: "https://{{ $.Values.global.redisinsight.dns }}"
           OAUTH2_PROXY_ISSUER: "https://auth.verif.fyi/realms/ssegning-internal"
@@ -367,7 +368,7 @@ ingress:
       #nginx.ingress.kubernetes.io/auth-url: "https://$host/oauth2/auth"
       #nginx.ingress.kubernetes.io/auth-signin: "https://$host/oauth2/start?rd=$escaped_request_uri"
       #traefik.ingress.kubernetes.io/router.tls: "true"
-      traefik.ingress.kubernetes.io/router.middlewares: "{{ $.Release.Namespace }}-redisinsight-auth@kubernetescrd"
+      traefik.ingress.kubernetes.io/router.middlewares: "{{ $.Release.Namespace }}-{{ $.Release.Name }}-redisinsight-auth@kubernetescrd"
     #className: nginx
     hosts:
       - host: "{{ $.Values.global.redisinsight.dns }}"
