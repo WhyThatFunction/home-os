@@ -249,11 +249,11 @@ rawResources:
           size: 1Gi
           #storageClass: longhorn
 
-        plugins:
-          - name: barman-cloud.cloudnative-pg.io
-            isWALArchiver: true
-            parameters:
-              barmanObjectName: '{{ .Release.Name }}-cluster'
+        #plugins:
+        #  - name: barman-cloud.cloudnative-pg.io
+        #    isWALArchiver: true
+        #    parameters:
+        #      barmanObjectName: '{{ .Release.Name }}-cluster'
         resources:
           limits:
             cpu: "1"
