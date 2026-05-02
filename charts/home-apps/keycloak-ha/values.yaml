@@ -135,7 +135,7 @@ rawResources:
             name: "{{ .Release.Name }}-cluster-app"
             key: password
         http:
-          #httpEnabled: false
+          httpEnabled: false
           tlsSecret: "{{ $.Release.Name }}-auth-tls"
         hostname:
           hostname: auth.verif.fyi
