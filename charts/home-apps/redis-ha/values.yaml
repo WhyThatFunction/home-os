@@ -257,7 +257,7 @@ controllers:
           - --email-domain=*
         env:
           OAUTH2_PROXY_URL: "https://{{ $.Values.global.redisinsight.dns }}"
-          OAUTH2_PROXY_ISSUER: "https://keycloak.example.internal/realms/your_realm"
+          OAUTH2_PROXY_ISSUER: "https://auth.verif.fyi/realms/ssegning-internal"
           OAUTH2_PROXY_CLIENT_ID:
             valueFrom:
               secretKeyRef:
