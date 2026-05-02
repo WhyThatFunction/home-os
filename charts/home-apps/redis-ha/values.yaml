@@ -139,7 +139,7 @@ controllers:
             fieldRef:
               fieldPath: metadata.namespace
           MASTER_NAME: "{{ $.Release.Name }}"
-          MASTER_FQDN: "{{ $.Release.Name }}-redis-0.{{ $.Release.Name }}-redis-headless.{{ .Release.Namespace }}.svc.cluster.local"
+          MASTER_FQDN: "{{ $.Release.Name }}-redis-0.{{ $.Release.Name }}-redis-headless.{{ $.Release.Namespace }}.svc.cluster.local"
           RELEASE_NAME: "{{ $.Release.Name }}"
 
         command:
