@@ -23,6 +23,7 @@ controllers:
       minAvailable: 2
 
     statefulset:
+      serviceName: "{{ $.Release.Name }}-redis-headless"
       podManagementPolicy: Parallel
       volumeClaimTemplates:
         - name: data
@@ -114,6 +115,7 @@ controllers:
       minAvailable: 2
 
     statefulset:
+      serviceName: "{{ $.Release.Name }}-sentinel-headless"
       podManagementPolicy: Parallel
       volumeClaimTemplates:
         - name: data
@@ -579,7 +581,7 @@ rawResources:
           status:
             - "401-403"
           service:
-            name: redis-ha-redisinsight
+            name: "{{ $.Release.Name }}-redisinsight"
             port: 4180
           query: /oauth2/sign_in?rd={url}
           statusRewrites:
