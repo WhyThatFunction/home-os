@@ -78,24 +78,33 @@ controllers:
             enabled: true
             custom: true
             spec:
-              tcpSocket:
-                port: 6379
+              exec:
+                command:
+                  - /bin/sh
+                  - -ec
+                  - redis-cli --tls --cacert /tls/ca.crt -h 127.0.0.1 -p 6379 PING | grep PONG
               initialDelaySeconds: 10
               periodSeconds: 10
           readiness:
             enabled: true
             custom: true
             spec:
-              tcpSocket:
-                port: 6379
+              exec:
+                command:
+                  - /bin/sh
+                  - -ec
+                  - redis-cli --tls --cacert /tls/ca.crt -h 127.0.0.1 -p 6379 PING | grep PONG
               initialDelaySeconds: 5
               periodSeconds: 5
           startup:
             enabled: true
             custom: true
             spec:
-              tcpSocket:
-                port: 6379
+              exec:
+                command:
+                  - /bin/sh
+                  - -ec
+                  - redis-cli --tls --cacert /tls/ca.crt -h 127.0.0.1 -p 6379 PING | grep PONG
               failureThreshold: 30
               periodSeconds: 5
 
@@ -173,24 +182,33 @@ controllers:
             enabled: true
             custom: true
             spec:
-              tcpSocket:
-                port: 26379
+              exec:
+                command:
+                  - /bin/sh
+                  - -ec
+                  - redis-cli --tls --cacert /tls/ca.crt -h 127.0.0.1 -p 26379 PING | grep PONG
               initialDelaySeconds: 10
               periodSeconds: 10
           readiness:
             enabled: true
             custom: true
             spec:
-              tcpSocket:
-                port: 26379
+              exec:
+                command:
+                  - /bin/sh
+                  - -ec
+                  - redis-cli --tls --cacert /tls/ca.crt -h 127.0.0.1 -p 26379 PING | grep PONG
               initialDelaySeconds: 5
               periodSeconds: 5
           startup:
             enabled: true
             custom: true
             spec:
-              tcpSocket:
-                port: 26379
+              exec:
+                command:
+                  - /bin/sh
+                  - -ec
+                  - redis-cli --tls --cacert /tls/ca.crt -h 127.0.0.1 -p 26379 PING | grep PONG
               failureThreshold: 30
               periodSeconds: 5
 
@@ -483,7 +501,7 @@ persistence:
             readOnly: true
       redisinsight:
         app:
-          - path: /tls/redis-ca.crt
+          - path: /tls/ca.crt
             subPath: ca.crt
             readOnly: true
 
