@@ -134,9 +134,13 @@ rawResources:
           passwordSecret:
             name: "{{ .Release.Name }}-cluster-app"
             key: password
+        ingress:
+          tlsSecret: "{{ $.Release.Name }}-auth-tls"
         http:
           httpEnabled: false
           tlsSecret: "{{ $.Release.Name }}-auth-tls"
+          annotations:
+            traefik.ingress.kubernetes.io/service.serversscheme: "https"
         hostname:
           hostname: auth.verif.fyi
         proxy:
