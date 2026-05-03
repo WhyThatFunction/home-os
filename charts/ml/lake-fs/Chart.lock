@@ -1,9 +1,0 @@
-dependencies:
-- name: lakefs
-  repository: https://charts.lakefs.io
-  version: 1.8.1
-- name: common
-  repository: file://../../home-apps/common
-  version: 2.31.4
-digest: sha256:38c513f2e1c9996a05f78fab465bfec305e764b8e51e51c8078aaa3b052b4d4a
-generated: "2026-03-28T22:10:53.80799+01:00"

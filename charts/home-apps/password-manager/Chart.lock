@@ -1,9 +1,0 @@
-dependencies:
-- name: vaultwarden
-  repository: https://charts.gabe565.com
-  version: 0.16.1
-- name: common
-  repository: file://../common
-  version: 2.31.4
-digest: sha256:a7b0aef0c51a3926d7de8e9d34578b0e28ac1434a4d3f4606fe1cf49c1cac7ce
-generated: "2026-01-15T18:26:55.209829+01:00"

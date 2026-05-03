@@ -692,7 +692,6 @@ applications:
                 ANONYMIZE_EMAILS: "smart"
             persistence:
               enabled: true
-              #storageClass: longhorn
       - repoURL: https://bjw-s-labs.github.io/helm-charts
         targetRevision: 4.6.2
         chart: app-template
