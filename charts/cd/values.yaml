@@ -878,6 +878,7 @@ applications:
       namespace: gh-runners-sky
     syncPolicy:
       syncOptions:
+        - CreateNamespace=true
         - ServerSideApply=true
       automated:
         prune: true
@@ -977,6 +978,7 @@ applications:
       namespace: gh-runners-sky
     syncPolicy:
       syncOptions:
+        - CreateNamespace=true
         - ServerSideApply=true
       automated:
         prune: true
@@ -1077,6 +1079,7 @@ applications:
       namespace: gh-runners-vaam
     syncPolicy:
       syncOptions:
+        - CreateNamespace=true
         - ServerSideApply=true
       automated:
         prune: true
@@ -1178,6 +1181,7 @@ applications:
       namespace: gh-runners-gis
     syncPolicy:
       syncOptions:
+        - CreateNamespace=true
         - ServerSideApply=true
       automated:
         prune: true
