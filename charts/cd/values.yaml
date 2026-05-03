@@ -781,7 +781,7 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: sky-runners
+  - name: sky-runners-bff
     finalizers:
       - resources-finalizer.argocd.argoproj.io
     project: arc-runner
@@ -849,30 +849,6 @@ applications:
                   - name: work
                     emptyDir: { }
 
-      - repoURL: https://bjw-s-labs.github.io/helm-charts
-        targetRevision: 4.6.2
-        chart: app-template
-        helm:
-          valuesObject:
-            rawResources:
-              redis-auth-secret:
-                enabled: true
-                apiVersion: external-secrets.io/v1
-                kind: ExternalSecret
-                spec:
-                  spec:
-                    refreshInterval: 0h10m0s
-                    secretStoreRef:
-                      name: ssegning-aws
-                      kind: ClusterSecretStore
-                    target:
-                      name: gh-runner-secret-pat
-                      creationPolicy: Owner
-                    data:
-                      - secretKey: github_token
-                        remoteRef:
-                          key: "prod/meta/test-app"
-                          property: github_token
     destination:
       name: home-remote
       namespace: gh-runners-sky
