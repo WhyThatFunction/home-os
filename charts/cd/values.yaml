@@ -43,7 +43,7 @@ projects:
       - "*"
     destinations:
       - namespace: "*"
-        server: https://kubernetes.default.svc
+        name: home-remote
     clusterResourceWhitelist:
       - group: "*"
         kind: "*"
