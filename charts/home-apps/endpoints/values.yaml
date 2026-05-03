@@ -34,7 +34,7 @@ customServices:
     domain: mini-pc.home.ssegning
     usePriority: ~
   - name: adguard
-    ip: 10.10.0.215
+    ip: 10.10.0.73
     port: 80
     useHttps: false
     selfSigned: true
