@@ -174,13 +174,7 @@ projects:
       - group: "*"
         kind: "*"
     clusterResourceBlacklist: [ ]
-    namespaceResourceBlacklist:
-      - group: ""
-        kind: ResourceQuota
-      - group: ""
-        kind: LimitRange
-      - group: ""
-        kind: NetworkPolicy
+    namespaceResourceBlacklist: [ ]
     namespaceResourceWhitelist:
       - group: "*"
         kind: "*"
@@ -216,39 +210,6 @@ projects:
     syncWindows: [ ]
     sourceNamespaces:
       - "*"
-  - name: ml
-    additionalLabels: { }
-    additionalAnnotations: { }
-    permitOnlyProjectScopedClusters: false
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    description: ML Applications
-    sourceRepos:
-      - "*"
-    destinations:
-      - namespace: "*"
-        server: https://kubernetes.default.svc
-      - namespace: "*"
-        name: "lke560142-ctx"
-    clusterResourceWhitelist:
-      - group: "*"
-        kind: "*"
-    clusterResourceBlacklist: [ ]
-    namespaceResourceBlacklist:
-      - group: ""
-        kind: ResourceQuota
-      - group: ""
-        kind: LimitRange
-      - group: ""
-        kind: NetworkPolicy
-    namespaceResourceWhitelist:
-      - group: "*"
-        kind: "*"
-    orphanedResources: { }
-    roles: [ ]
-    syncWindows: [ ]
-    sourceNamespaces:
-      - "*"
   - name: base-apps
     additionalLabels: { }
     additionalAnnotations: { }
@@ -265,13 +226,7 @@ projects:
       - group: "*"
         kind: "*"
     clusterResourceBlacklist: [ ]
-    namespaceResourceBlacklist:
-      - group: ""
-        kind: ResourceQuota
-      - group: ""
-        kind: LimitRange
-      - group: ""
-        kind: NetworkPolicy
+    namespaceResourceBlacklist: [ ]
     namespaceResourceWhitelist:
       - group: "*"
         kind: "*"
@@ -297,13 +252,7 @@ projects:
       - group: "*"
         kind: "*"
     clusterResourceBlacklist: [ ]
-    namespaceResourceBlacklist:
-      - group: ""
-        kind: ResourceQuota
-      - group: ""
-        kind: LimitRange
-      - group: ""
-        kind: NetworkPolicy
+    namespaceResourceBlacklist: [ ]
     namespaceResourceWhitelist:
       - group: "*"
         kind: "*"
@@ -331,13 +280,7 @@ projects:
       - group: "*"
         kind: "*"
     clusterResourceBlacklist: [ ]
-    namespaceResourceBlacklist:
-      - group: ""
-        kind: ResourceQuota
-      - group: ""
-        kind: LimitRange
-      - group: ""
-        kind: NetworkPolicy
+    namespaceResourceBlacklist: [ ]
     namespaceResourceWhitelist:
       - group: "*"
         kind: "*"
