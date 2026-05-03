@@ -871,7 +871,7 @@ applications:
                     data:
                       - secretKey: github_token
                         remoteRef:
-                          key: "prod/meta/gh-runner"
+                          key: "prod/meta/test-app"
                           property: github_token
     destination:
       name: home-remote
@@ -971,7 +971,7 @@ applications:
                     data:
                       - secretKey: github_token
                         remoteRef:
-                          key: "prod/meta/gh-runner"
+                          key: "prod/meta/test-app"
                           property: github_token
     destination:
       name: home-remote
@@ -1072,7 +1072,7 @@ applications:
                     data:
                       - secretKey: github_token
                         remoteRef:
-                          key: "prod/meta/gh-runner"
+                          key: "prod/meta/test-app"
                           property: github_token
     destination:
       name: home-remote
@@ -1173,7 +1173,7 @@ applications:
                     data:
                       - secretKey: github_token
                         remoteRef:
-                          key: "prod/meta/gh-runner"
+                          key: "prod/meta/test-app"
                           property: github_token
 
     destination:
