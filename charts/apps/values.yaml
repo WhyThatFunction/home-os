@@ -32,22 +32,6 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: keycloak
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: keycloak
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: charts/home-apps/keycloak
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: keycloak
-    syncPolicy:
-      automated:
-        prune: true
-        selfHeal: true
-
   - name: keycloak-ha
     finalizers:
       - resources-finalizer.argocd.argoproj.io
