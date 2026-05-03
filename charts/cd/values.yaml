@@ -673,36 +673,6 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: redis
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: base-apps
-    source:
-      repoURL: registry-1.docker.io/bitnamicharts
-      targetRevision: 24.0.0
-      chart: redis
-      helm:
-        valuesObject:
-          global:
-            defaultStorageClass: longhorn-local
-          auth:
-            enabled: false
-          image:
-            repository: bitnamilegacy/redis
-          architecture: replication
-          replica:
-            replicaCount: 2
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: database
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-        - ServerSideApply=true
-      automated:
-        prune: true
-        selfHeal: true
-
   - name: knative-operator
     finalizers:
       - resources-finalizer.argocd.argoproj.io
