@@ -913,16 +913,22 @@ applications:
                     env:
                       - name: DOCKER_HOST
                         value: tcp://localhost:2375
+                      - name: RUNNER_TOOL_CACHE
+                        value: /home/runner/hostedtoolcache
                     securityContext:
                       runAsUser: 1001
                       runAsGroup: 1001
                     volumeMounts:
                       - name: work
                         mountPath: /home/runner/_work
+                      - name: tool-cache
+                        mountPath: /home/runner/hostedtoolcache
                 volumes:
                   - name: docker-graph
                     emptyDir: { }
                   - name: work
+                    emptyDir: { }
+                  - name: tool-cache
                     emptyDir: { }
 
       - repoURL: https://bjw-s-labs.github.io/helm-charts
