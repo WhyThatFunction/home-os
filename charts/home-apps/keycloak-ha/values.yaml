@@ -182,7 +182,7 @@ rawResources:
           - name: barman-cloud.cloudnative-pg.io
             isWALArchiver: true
             parameters:
-              barmanObjectName: '{{ .Release.Name }}-cluster'
+              barmanObjectName: '{{ .Release.Name }}-object-store'
         resources:
           limits:
             cpu: "1"
