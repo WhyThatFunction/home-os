@@ -160,6 +160,8 @@ rawResources:
               name: '{{ .Release.Name }}-s3-creds'
           wal:
             compression: gzip
+          data:
+            compression: gzip
         retentionPolicy: 30d
 
   cluster:
@@ -178,11 +180,11 @@ rawResources:
           size: 1Gi
           #storageClass: longhorn
 
-        plugins:
-          - name: barman-cloud.cloudnative-pg.io
-            isWALArchiver: true
-            parameters:
-              barmanObjectName: '{{ .Release.Name }}-object-store'
+        #plugins:
+        #  - name: barman-cloud.cloudnative-pg.io
+        #    isWALArchiver: true
+        #    parameters:
+        #      barmanObjectName: '{{ .Release.Name }}-object-store'
         resources:
           limits:
             cpu: "1"
