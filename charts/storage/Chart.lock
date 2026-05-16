@@ -1,12 +1,12 @@
 dependencies:
 - name: longhorn
   repository: https://charts.longhorn.io
-  version: 1.10.1
+  version: 1.11.2
 - name: common
-  repository: https://charts.bitnami.com/bitnami
+  repository: file://../home-apps/common
   version: 2.31.4
 - name: nfs-subdir-external-provisioner
   repository: https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner
   version: 4.0.18
-digest: sha256:26493c67aaf6fae08b5608ae11af857234664eb41bb7b3e84b0b51f903ea1725
-generated: "2026-01-05T11:57:19.875222+01:00"
+digest: sha256:0042c4a5446341a29d2ab3c01822bcc95062ef8d1a42156dad5fa369b9b6b267
+generated: "2026-05-17T01:37:54.365665+02:00"

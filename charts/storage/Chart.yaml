@@ -27,10 +27,10 @@ dependencies:
   - name: longhorn
     version: '1.*'
     repository: https://charts.longhorn.io
-    
+
   - name: common
-    version: '*'
-    repository: https://charts.bitnami.com/bitnami
+    version: "*"
+    repository: "file://../home-apps/common"
 
   - name: nfs-subdir-external-provisioner
     version: '*'
