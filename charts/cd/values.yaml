@@ -1273,7 +1273,7 @@ applications:
       targetRevision: "4.6.2"
       chart: "app-template"
       helm:
-        releaseName: knative
+        releaseName: knative-serving
         valuesObject:
           rawResources:
             serving:
