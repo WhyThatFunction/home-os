@@ -1263,3 +1263,29 @@ applications:
       automated:
         prune: true
         selfHeal: true
+
+  - name: poc-tools
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: "https://bjw-s-labs.github.io/helm-charts"
+      targetRevision: "4.6.2"
+      chart: "app-template"
+      helm:
+        releaseName: knative
+        valuesObject:
+          rawResources:
+            serving:
+              apiVersion: operator.knative.dev/v1beta1
+              kind: KnativeServing
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: knative-serving
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
