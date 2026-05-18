@@ -1247,7 +1247,7 @@ applications:
       - resources-finalizer.argocd.argoproj.io
     project: infrastructure
     source:
-      repoURL: "oci://ghcr.io/kserve/charts/kserve"
+      repoURL: "oci://ghcr.io/kserve/charts/kserve-resources"
       targetRevision: v0.17.0
       chart: "."
       helm:
