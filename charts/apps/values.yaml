@@ -78,7 +78,7 @@ applications:
       automated:
         prune: true
         selfHeal: true
-        
+
   - name: endpoints
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -166,19 +166,17 @@ applications:
                 size: 30Gi
                 retain: false
             rbac:
-              roles:
-                llm-role:
-                bindings:
-                  llm-binding:
-                    enabled: true
-                    type: RoleBinding
-                    forceRename: llm-binding
-                    subjects:
-                      - kind: ServiceAccount
-                        name: llm-serviceaccount
-                        namespace: converse-poc
-                    roleRef:
-                      identifier: llm-role
+              bindings:
+                llm-binding:
+                  enabled: true
+                  type: RoleBinding
+                  forceRename: llm-binding
+                  subjects:
+                    - kind: ServiceAccount
+                      name: llm-serviceaccount
+                      namespace: converse-poc
+                  roleRef:
+                    identifier: llm-role
 
             rawResources:
               phi2:
