@@ -1279,6 +1279,8 @@ applications:
             serving:
               apiVersion: operator.knative.dev/v1beta1
               kind: KnativeServing
+              spec:
+                spec: { }
     destination:
       server: https://kubernetes.default.svc
       namespace: knative-serving
