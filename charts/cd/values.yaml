@@ -1284,9 +1284,9 @@ applications:
                   ingress:
                     gateway-api:
                       enabled: true
-                    config:
-                      network:
-                        ingress-class: "gateway-api.ingress.networking.knative.dev"
+                  config:
+                    network:
+                      ingress-class: "gateway-api.ingress.networking.knative.dev"
     destination:
       server: https://kubernetes.default.svc
       namespace: knative-serving
