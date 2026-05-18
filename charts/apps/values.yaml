@@ -208,6 +208,17 @@ applications:
               args:
                 device: gpu
 
+            models:
+              phi2:
+                inferenceService: vllm-phi2
+                resources:
+                  requests:
+                    cpu: "1"
+                    memory: 2Gi
+                  limits:
+                    cpu: "2"
+                    memory: 4Gi
+
     destination:
       server: https://kubernetes.default.svc
       namespace: converse-poc
