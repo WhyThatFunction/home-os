@@ -1226,7 +1226,7 @@ applications:
     project: infrastructure
     source:
       repoURL: "oci://ghcr.io/kserve/charts/kserve-crd"
-      targetRevision: v0.16.0
+      targetRevision: v0.17.0
       chart: "."
       helm:
         releaseName: kserve-crd
@@ -1248,7 +1248,7 @@ applications:
     project: infrastructure
     source:
       repoURL: "oci://ghcr.io/kserve/charts/kserve"
-      targetRevision: v0.16.0
+      targetRevision: v0.17.0
       chart: "."
       helm:
         releaseName: kserve
