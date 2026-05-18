@@ -1198,3 +1198,47 @@ applications:
       automated:
         prune: true
         selfHeal: true
+
+  - name: kserve-crd
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: ghcr.io/kserve/charts/kserve-crd
+      targetRevision: v0.16.0
+      chart: "."
+      helm:
+        releaseName: kserve-crd
+        valuesObject: { }
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: kserve
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: kserve
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: ghcr.io/kserve/charts/kserve
+      targetRevision: v0.16.0
+      chart: "."
+      helm:
+        releaseName: kserve
+        valuesObject: { }
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: kserve
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
