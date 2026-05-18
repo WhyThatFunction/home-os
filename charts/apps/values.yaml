@@ -146,86 +146,86 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: ai-poc-model-deployment
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: ai
-    source:
-      repoURL: https://github.com/ADORSYS-GIS/ai-helm
-      targetRevision: HEAD
-      path: charts/model-deployment
-      helm:
-        releaseName: model
-        valuesObject:
-          serving:
-            configMaps:
-              llm-config:
-                enabled: false
-            persistence:
-              model-cache:
-                size: 30Gi
-                retain: false
-                storageClass: longhorn
-            rbac:
-              bindings:
-                llm-binding:
-                  subjects:
-                    - kind: ServiceAccount
-                      name: llm-serviceaccount
-                      namespace: converse-poc
-
-            rawResources:
-              phi2:
-                spec:
-                  spec:
-                    predictor:
-                      runtimeClassName: nvidia
-                      nodeSelector:
-                        gpu-node: "true"
-
-              dialogpt:
-                enabled: false
-
-              traefik-ingress:
-                spec:
-                  spec:
-                    entryPoints:
-                      - web
-                      - websecure
-                    routes:
-                      - match: Host(`phi2.sls.ssegning.com`)
-                        kind: Rule
-                        services:
-                          - name: kourier
-                            kind: Service
-                            namespace: kourier-system
-                            port: 80
-
-            vllm:
-              image:
-                repository: vllm/vllm-openai
-                tag: latest
-              args:
-                device: gpu
-
-            models:
-              phi2:
-                inferenceService: vllm-phi2
-                resources:
-                  requests:
-                    cpu: "1"
-                    memory: 2Gi
-                  limits:
-                    cpu: "2"
-                    memory: 4Gi
-
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: converse-poc
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-        - ServerSideApply=true
-      automated:
-        prune: true
-        selfHeal: true
+    #  - name: ai-poc-model-deployment
+    #    finalizers:
+    #      - resources-finalizer.argocd.argoproj.io
+    #    project: ai
+    #    source:
+    #      repoURL: https://github.com/ADORSYS-GIS/ai-helm
+    #      targetRevision: HEAD
+    #      path: charts/model-deployment
+    #      helm:
+    #        releaseName: model
+    #        valuesObject:
+    #          serving:
+    #            configMaps:
+    #              llm-config:
+    #                enabled: false
+    #            persistence:
+    #              model-cache:
+    #                size: 30Gi
+    #                retain: false
+    #                storageClass: longhorn
+    #            rbac:
+    #              bindings:
+    #                llm-binding:
+    #                  subjects:
+    #                    - kind: ServiceAccount
+    #                      name: llm-serviceaccount
+    #                      namespace: converse-poc
+    #
+    #            rawResources:
+    #              phi2:
+    #                spec:
+    #                  spec:
+    #                    predictor:
+    #                      runtimeClassName: nvidia
+    #                      nodeSelector:
+    #                        gpu-node: "true"
+    #
+    #              dialogpt:
+    #                enabled: false
+    #
+    #              traefik-ingress:
+    #                spec:
+    #                  spec:
+    #                    entryPoints:
+    #                      - web
+    #                      - websecure
+    #                    routes:
+    #                      - match: Host(`phi2.sls.ssegning.com`)
+    #                        kind: Rule
+    #                        services:
+    #                          - name: kourier
+    #                            kind: Service
+    #                            namespace: kourier-system
+    #                            port: 80
+    #
+    #            vllm:
+    #              image:
+    #                repository: vllm/vllm-openai
+    #                tag: latest
+    #              args:
+    #                device: gpu
+    #
+    #            models:
+    #              phi2:
+    #                inferenceService: vllm-phi2
+    #                resources:
+    #                  requests:
+    #                    cpu: "1"
+    #                    memory: 2Gi
+    #                  limits:
+    #                    cpu: "2"
+    #                    memory: 4Gi
+    #
+    #    destination:
+    #      server: https://kubernetes.default.svc
+    #      namespace: converse-poc
+    #    syncPolicy:
+    #      syncOptions:
+    #        - CreateNamespace=true
+    #        - ServerSideApply=true
+    #      automated:
+    #        prune: true
+    #        selfHeal: true
