@@ -1264,7 +1264,7 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: poc-tools
+  - name: knative-serving
     finalizers:
       - resources-finalizer.argocd.argoproj.io
     project: infrastructure
