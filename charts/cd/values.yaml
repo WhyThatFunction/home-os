@@ -1280,7 +1280,13 @@ applications:
               apiVersion: operator.knative.dev/v1beta1
               kind: KnativeServing
               spec:
-                spec: { }
+                spec:
+                  ingress:
+                    gateway-api:
+                      enabled: true
+                    config:
+                      network:
+                        ingress-class: "gateway-api.ingress.networking.knative.dev"
     destination:
       server: https://kubernetes.default.svc
       namespace: knative-serving
