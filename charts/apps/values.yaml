@@ -165,6 +165,7 @@ applications:
               model-cache:
                 size: 30Gi
                 retain: false
+                storageClass: longhorn
             rbac:
               bindings:
                 llm-binding:
