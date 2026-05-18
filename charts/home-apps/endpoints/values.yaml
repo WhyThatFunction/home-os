@@ -6,13 +6,13 @@ customServices:
   #    selfSigned: false
   #    domain: killer.ssegning.me
   #    usePriority: ~
-  - name: killer-home
-    ip: 10.10.0.227
-    port: 8006
-    useHttps: true
-    selfSigned: true
-    domain: killer.home.ssegning
-    usePriority: ~
+  # - name: killer-home
+  #   ip: 10.10.0.227
+  #   port: 8006
+  #   useHttps: true
+  #   selfSigned: true
+  #   domain: killer.home.ssegning
+  #   usePriority: ~
   #  - name: silent
   #    ip: 10.10.0.50
   #    port: 8006
