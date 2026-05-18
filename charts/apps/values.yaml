@@ -78,7 +78,7 @@ applications:
       automated:
         prune: true
         selfHeal: true
-
+        
   - name: endpoints
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -158,6 +158,9 @@ applications:
         releaseName: model
         valuesObject:
           serving:
+            configMaps:
+              llm-config:
+                enabled: false
             persistence:
               model-cache:
                 size: 30Gi
@@ -203,6 +206,22 @@ applications:
                             kind: Service
                             namespace: kourier-system
                             port: 80
+
+            vllm:
+              image:
+                repository: vllm/vllm-openai
+                tag: latest
+                pullPolicy: IfNotPresent
+              args:
+                host: 0.0.0.0
+                port: 8080
+                portName: http1
+                device: gpu
+                dtype: float32
+              env:
+                HF_HOME: /hf-cache
+                HF_HUB_DOWNLOAD_TIMEOUT: "600"
+                VLLM_CPU_KVCACHE_SPACE: "4"
 
     destination:
       server: https://kubernetes.default.svc
