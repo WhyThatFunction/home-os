@@ -635,6 +635,27 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: local-knative-operator
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://knative.github.io/operator
+      targetRevision: v1.18.1
+      chart: knative-operator
+      helm:
+        releaseName: knative-operator
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: knative-operator
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: external-secrets
     finalizers:
       - resources-finalizer.argocd.argoproj.io

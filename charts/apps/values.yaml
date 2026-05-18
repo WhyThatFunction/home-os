@@ -156,7 +156,54 @@ applications:
       path: charts/model-deployment
       helm:
         releaseName: model
-        valuesObject: { }
+        valuesObject:
+          serving:
+            persistence:
+              model-cache:
+                size: 30Gi
+                retain: false
+            rbac:
+              roles:
+                llm-role:
+                bindings:
+                  llm-binding:
+                    enabled: true
+                    type: RoleBinding
+                    forceRename: llm-binding
+                    subjects:
+                      - kind: ServiceAccount
+                        name: llm-serviceaccount
+                        namespace: converse-poc
+                    roleRef:
+                      identifier: llm-role
+
+            rawResources:
+              phi2:
+                spec:
+                  spec:
+                    predictor:
+                      runtimeClassName: nvidia
+                      nodeSelector:
+                        gpu-node: "true"
+
+              dialogpt:
+                enabled: false
+
+              traefik-ingress:
+                spec:
+                  spec:
+                    entryPoints:
+                      - web
+                      - websecure
+                    routes:
+                      - match: Host(`phi2.sls.ssegning.com`)
+                        kind: Rule
+                        services:
+                          - name: kourier
+                            kind: Service
+                            namespace: kourier-system
+                            port: 80
+
     destination:
       server: https://kubernetes.default.svc
       namespace: converse-poc
