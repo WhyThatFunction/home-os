@@ -145,3 +145,25 @@ applications:
       automated:
         prune: true
         selfHeal: true
+
+  - name: ai-poc-model-deployment
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: ai
+    source:
+      repoURL: https://github.com/ADORSYS-GIS/ai-helm
+      targetRevision: HEAD
+      path: charts/model-deployment
+      helm:
+        releaseName: model
+        valuesObject: { }
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: converse-poc
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
