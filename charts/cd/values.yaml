@@ -1011,7 +1011,7 @@ applications:
             template:
               spec:
                 imagePullSecrets:
-                  - name: gh-runner-secret-pat
+                  - name: ghcr-pull-secret
                 containers:
                   - name: dind
                     image: docker:29-dind
@@ -1079,6 +1079,46 @@ applications:
                         remoteRef:
                           key: "prod/meta/test-app"
                           property: github_token
+              gh-pull-token:
+                enabled: true
+                apiVersion: external-secrets.io/v1
+                kind: ExternalSecret
+                spec:
+                  spec:
+                    refreshInterval: 0h10m0s
+                    secretStoreRef:
+                      name: ssegning-aws
+                      kind: ClusterSecretStore
+                    target:
+                      name: ghcr-pull-secret
+                      creationPolicy: Owner
+                      template:
+                        type: kubernetes.io/dockerconfigjson
+                        data:
+                          .dockerconfigjson: |
+                            {
+                              "auths": {
+                                "ghcr.io": {
+                                  "username": "{{ .github_username }}",
+                                  "password": "{{ .github_token }}",
+                                  "email": "{{ .github_email }}",
+                                  "auth": "{{ printf "%s:%s" .github_username .github_password | b64enc }}"
+                                }
+                              }
+                            }
+                    data:
+                      - secretKey: github_username
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: github_username
+                      - secretKey: github_token
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: github_token
+                      - secretKey: github_email
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: github_email
     destination:
       name: home-remote
       namespace: gh-runners-vaam
