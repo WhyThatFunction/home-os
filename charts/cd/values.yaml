@@ -1010,6 +1010,8 @@ applications:
 
             template:
               spec:
+                imagePullSecrets:
+                  - name: gh-runner-secret-pat
                 containers:
                   - name: dind
                     image: docker:29-dind
