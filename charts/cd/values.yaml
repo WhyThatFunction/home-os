@@ -1100,10 +1100,10 @@ applications:
                             {
                               "auths": {
                                 "ghcr.io": {
-                                  "username": "{{ .github_username }}",
-                                  "password": "{{ .github_token }}",
-                                  "email": "{{ .github_email }}",
-                                  "auth": "{{ printf "%s:%s" .github_username .github_token | b64enc }}"
+                                  "username": "{{ `{{ .github_username }}` }}",
+                                  "password": "{{ `{{ .github_token }}` }}",
+                                  "email": "{{ `{{ .github_email }}` }}",
+                                  "auth": "{{ `{{ printf "%s:%s" .github_username .github_token | b64enc }}` }}"
                                 }
                               }
                             }
