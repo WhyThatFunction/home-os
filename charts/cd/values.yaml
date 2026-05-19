@@ -1090,6 +1090,7 @@ applications:
                       name: ssegning-aws
                       kind: ClusterSecretStore
                     target:
+                      engineVersion: v2
                       name: ghcr-pull-secret
                       creationPolicy: Owner
                       template:
@@ -1102,7 +1103,7 @@ applications:
                                   "username": "{{ .github_username }}",
                                   "password": "{{ .github_token }}",
                                   "email": "{{ .github_email }}",
-                                  "auth": "{{ printf "%s:%s" .github_username .github_password | b64enc }}"
+                                  "auth": "{{ printf "%s:%s" .github_username .github_token | b64enc }}"
                                 }
                               }
                             }
