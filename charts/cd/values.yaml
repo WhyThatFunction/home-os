@@ -1034,7 +1034,7 @@ applications:
                         mountPath: /home/runner/_work
 
                   - name: runner
-                    image: ghcr.io/actions/actions-runner:latest
+                    image: ghcr.io/vaam-store/vaam-arc-runner:110863c
                     command: [ "/bin/sh", "-c" ]
                     args:
                       - sleep 15; exec /home/runner/run.sh
