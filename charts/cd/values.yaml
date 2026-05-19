@@ -1090,10 +1090,10 @@ applications:
                       name: ssegning-aws
                       kind: ClusterSecretStore
                     target:
-                      engineVersion: v2
                       name: ghcr-pull-secret
                       creationPolicy: Owner
                       template:
+                        engineVersion: v2
                         type: kubernetes.io/dockerconfigjson
                         data:
                           .dockerconfigjson: |
