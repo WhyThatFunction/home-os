@@ -444,6 +444,7 @@ applications:
               allowCrossNamespace: true
             kubernetesGateway:
               enabled: true
+              experimentalChannel: true
             knative:
               enabled: true
 
