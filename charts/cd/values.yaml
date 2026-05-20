@@ -629,7 +629,7 @@ applications:
     project: infrastructure
     source:
       repoURL: https://knative.github.io/operator
-      targetRevision: v1.18.1
+      targetRevision: v1.22.0
       chart: knative-operator
     destination:
       name: home-remote
@@ -648,7 +648,7 @@ applications:
     project: infrastructure
     source:
       repoURL: https://knative.github.io/operator
-      targetRevision: v1.18.1
+      targetRevision: v1.22.0
       chart: knative-operator
       helm:
         releaseName: knative-operator
@@ -1367,6 +1367,16 @@ applications:
               kind: KnativeServing
               spec:
                 spec:
+                  workloads:
+                    - name: controller
+                      resources:
+                        - container: controller
+                          requests:
+                            cpu: 300m
+                            memory: 100Mi
+                          limits:
+                            cpu: 1000m
+                            memory: 250Mi
                   ingress:
                     gateway-api:
                       enabled: true
