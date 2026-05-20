@@ -525,6 +525,7 @@ applications:
                 commonName: sls.ssegning.com
                 dnsNames: 
                   - "*.ssegning.com"
+                  - sls.ssegning.com
     destination:
       server: https://kubernetes.default.svc
       namespace: kube-system
