@@ -1339,7 +1339,8 @@ applications:
                       sls.ssegning.com: ""
                     network:
                       ingress-class: traefik.ingress.networking.knative.dev
-                      system-internal-tls: Enabled
+                      system-internal-tls: "Enabled"
+                      domain-template: "{{.Name}}-{{.Namespace}}.{{.Domain}}"
                     certmanager:
                       issuerRef: |
                         kind: ClusterIssuer
@@ -1397,7 +1398,8 @@ applications:
                     network:
                       ingress-class: traefik.ingress.networking.knative.dev
                       namespace-wildcard-cert-selector: "{}"
-                      system-internal-tls: Enabled
+                      system-internal-tls: "Enabled"
+                      domain-template: "{{.Name}}-{{.Namespace}}.{{.Domain}}"
                     certmanager:
                       issuerRef: |
                         kind: ClusterIssuer
