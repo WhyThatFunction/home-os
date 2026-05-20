@@ -471,8 +471,8 @@ applications:
 
           gateway:
             namespacePolicy: All
-            annotations:
-              cert-manager.io/cluster-issuer: cert-cloudflare
+            #annotations:
+            #  cert-manager.io/cluster-issuer: cert-cloudflare
             listeners:
               web:
                 port: 80
@@ -484,7 +484,7 @@ applications:
               #  namespacePolicy:
               #    from: All
               #  certificateRefs:
-              #    - name: 'websecure-tls'
+              #    - name: 'wildcard-sls-ssegning-com-tls'
               #      kind: Secret
               #      group: ''
               #  mode: Terminate
