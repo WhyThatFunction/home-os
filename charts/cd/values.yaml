@@ -1343,6 +1343,7 @@ applications:
                       domain-template: "{{ `{{ .Name }}` }}-{{ `{{ .Namespace }}` }}--{{ `{{ .Domain }}` }}"
                       cluster-local-domain-tls: "Enabled"
                       external-domain-tls: Enabled
+                      http-protocol: Redirected
                     certmanager:
                       issuerRef: |
                         kind: ClusterIssuer
@@ -1404,6 +1405,7 @@ applications:
                       domain-template: "{{ `{{ .Name }}` }}-{{ `{{ .Namespace }}` }}--{{ `{{ .Domain }}` }}"
                       cluster-local-domain-tls: "Enabled"
                       external-domain-tls: Enabled
+                      http-protocol: Redirected
                     certmanager:
                       issuerRef: |
                         kind: ClusterIssuer
