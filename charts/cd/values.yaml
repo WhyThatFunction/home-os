@@ -1376,9 +1376,9 @@ applications:
                       ingress-class: gateway-api.ingress.networking.knative.dev
                       #system-internal-tls: "Enabled"
                       domain-template: "{{ `{{ .Name }}` }}-{{ `{{ .Namespace }}` }}--{{ `{{ .Domain }}` }}"
-                      cluster-local-domain-tls: "Enabled"
-                      external-domain-tls: "Enabled"
-                      http-protocol: "Redirected"
+                      #cluster-local-domain-tls: "Enabled"
+                      #external-domain-tls: "Enabled"
+                      #http-protocol: "Redirected"
                     certmanager:
                       issuerRef: |
                         kind: ClusterIssuer
@@ -1435,12 +1435,12 @@ applications:
                       "serverless.vaam.store": ""
                     network:
                       ingress-class: gateway-api.ingress.networking.knative.dev
-                      namespace-wildcard-cert-selector: "{}"
+                      #namespace-wildcard-cert-selector: "{}"
                       #system-internal-tls: "Enabled"
                       domain-template: "{{ `{{ .Name }}` }}-{{ `{{ .Namespace }}` }}--{{ `{{ .Domain }}` }}"
-                      cluster-local-domain-tls: "Enabled"
-                      external-domain-tls: "Enabled"
-                      http-protocol: "Redirected"
+                      #cluster-local-domain-tls: "Enabled"
+                      #external-domain-tls: "Enabled"
+                      #http-protocol: "Redirected"
                     certmanager:
                       issuerRef: |
                         kind: ClusterIssuer
