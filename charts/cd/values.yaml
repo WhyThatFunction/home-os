@@ -475,11 +475,11 @@ applications:
               cert-manager.io/cluster-issuer: cert-cloudflare
             listeners:
               web:
-                port: 8000
+                port: 80
                 namespacePolicy:
                   from: All
               #websecure:
-              #  port: 8443
+              #  port: 443
               #  protocol: HTTPS
               #  namespacePolicy:
               #    from: All
