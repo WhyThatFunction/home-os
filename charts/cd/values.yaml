@@ -522,10 +522,10 @@ applications:
                   kind: ClusterIssuer
                   name: cert-cloudflare
                   group: cert-manager.io
-                commonName: sls.ssegning.com
+                #commonName: sls.ssegning.com
                 dnsNames: 
                   - "*.ssegning.com"
-                  - sls.ssegning.com
+                  #- sls.ssegning.com
     destination:
       server: https://kubernetes.default.svc
       namespace: kube-system
