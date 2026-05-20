@@ -30,7 +30,7 @@ patches:
             # URL Knative assigns to the share-backend KSvc in this cluster.
             # Discoverable with `kubectl -n opfs get ksvc opfs-share-backend
             # -o jsonpath='{.status.url}'`.
-            shareBackendUrl: https://opfs-share-backend-opfs.sls.ssegning.com
+            shareBackendUrl: https://opfs-share-backend-opfs-sls.ssegning.com
       #- op: replace
       #  path: /metadata/annotations/argocd-image-updater.argoproj.io~1git-repository
       #  # TODO: your GitOps repo URL. The example pointed at
@@ -61,7 +61,7 @@ patches:
             # the browser's `Origin:` header carries on cross-origin
             # POSTs to the share-backend. An empty allow-list rejects
             # every Origin'd request with 403, so this MUST be set.
-            allowedOrigins: https://opfs-web-opfs.sls.ssegning.com
+            allowedOrigins: https://opfs-web-opfs-sls.ssegning.com
       #- op: replace
       #  path: /metadata/annotations/argocd-image-updater.argoproj.io~1git-repository
       #  value: https://github.com/stephane-segning/<your-gitops-repo>.git
