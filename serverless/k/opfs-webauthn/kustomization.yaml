@@ -1,0 +1,3 @@
+resources:
+  - web.yaml
+  - backend.yaml

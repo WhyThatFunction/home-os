@@ -146,6 +146,24 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: opfs-webauthn
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: serverless/k/opfs-webauthn
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: serverless-opfs-webauthn
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
     #  - name: ai-poc-model-deployment
     #    finalizers:
     #      - resources-finalizer.argocd.argoproj.io

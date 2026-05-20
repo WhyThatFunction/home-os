@@ -1,0 +1,77 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: opfs-share-backend
+  namespace: argocd
+  annotations:
+    # Track the mutable `:latest` container tag explicitly; the
+    # `digest` strategy then resolves to an immutable digest pin.
+    argocd-image-updater.argoproj.io/image-list: >-
+      backend=ghcr.io/stephane-segning/opfs-share-backend:latest
+    argocd-image-updater.argoproj.io/backend.update-strategy: digest
+    # Map the resolved digest into the chart's `image.tag` value
+    # via Helm — chart-aware write-back instead of Kustomize.
+    argocd-image-updater.argoproj.io/backend.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/backend.helm.image-tag: image.tag
+
+    # Sigstore keyless verification. Image Updater refuses to
+    # promote a digest that wasn't signed by THIS repo's deploy
+    # workflow on `main`.
+    argocd-image-updater.argoproj.io/backend.signature-type: cosign
+    argocd-image-updater.argoproj.io/backend.cosign.certificate-oidc-issuer: >-
+      https://token.actions.githubusercontent.com
+    argocd-image-updater.argoproj.io/backend.cosign.certificate-identity-regexp: >-
+      ^https://github\.com/stephane-segning/opfs-webauthn/\.github/workflows/deploy-share-backend\.yml@.*$
+
+    # Persist digest pins to Git. ArgoCD Image Updater's `git`
+    # write-back mode clones `.spec.source.repoURL` by default —
+    # but that field here is an OCI Helm registry, which is not a
+    # Git URL. So we MUST set `git-repository` (and the matching
+    # `write-back-target`) explicitly; without it the updater logs
+    # "source is not a Git repository" and digest pins never land
+    # in source control.
+    #
+    # Point this at the apps/GitOps repo that holds the per-env
+    # values overlay this `Application` reads from. The example
+    # uses a sibling repo and writes to
+    # `envs/production/opfs-share-backend.values.yaml` — adjust
+    # for your layout.
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/git-repository: >-
+      git@github.com:stephane-segning/opfs-webauthn-gitops.git
+    argocd-image-updater.argoproj.io/write-back-target: >-
+      helmvalues:envs/production/opfs-share-backend.values.yaml
+    argocd-image-updater.argoproj.io/git-credentials: >-
+      secret:argocd/opfs-webauthn-deploy
+spec:
+  project: external
+  source:
+    # OCI Helm chart. ArgoCD pulls + renders the chart on each
+    # sync; cluster never has direct Git access to the source
+    # repo (it doesn't need it — the chart artifact is the
+    # release boundary).
+    repoURL: ghcr.io/stephane-segning/charts
+    chart: opfs-share-backend
+    # Pick a real published version. The build workflow rewrites
+    # `Chart.yaml` `version` to `0.1.<run_number>` on every push to
+    # main, so the registry has `0.1.42`, `0.1.43`, … — never the
+    # `0.1.0` placeholder that's in the source tree.
+    targetRevision: 0.1.*
+    helm:
+      # Per-env overrides on top of the chart defaults. Sized down
+      # to "what staging would actually need to change"; production
+      # uses the chart defaults verbatim.
+      values: |
+        env:
+          allowedOrigins: https://ocs.vaam.store
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: opfs
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
