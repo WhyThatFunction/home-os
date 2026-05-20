@@ -475,7 +475,6 @@ applications:
             #  cert-manager.io/cluster-issuer: cert-cloudflare
             listeners:
               web:
-                port: 80
                 namespacePolicy:
                   from: All
               #websecure:
