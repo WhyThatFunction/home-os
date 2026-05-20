@@ -482,7 +482,7 @@ applications:
                 #protocol: HTTP
                 # -- (object) Routes are restricted to namespace of the gateway [by default](https://gateway-api.sigs.k8s.io/reference/spec/#gateway.networking.k8s.io/v1.FromNamespaces
                 namespacePolicy: # @schema type:[object, null]
-                  - from: All
+                  from: All
               # websecure listener is disabled by default because certificateRefs needs to be added,
               # or you may specify TLS protocol with Passthrough mode and add "--providers.kubernetesGateway.experimentalChannel=true" in additionalArguments section.
               #websecure:
