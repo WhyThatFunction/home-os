@@ -30,17 +30,17 @@ patches:
             # URL Knative assigns to the share-backend KSvc in this cluster.
             # Discoverable with `kubectl -n opfs get ksvc opfs-share-backend
             # -o jsonpath='{.status.url}'`.
-            shareBackendUrl: http://opfs-share-backend-opfs.sls.ssegning.com
-      - op: replace
-        path: /metadata/annotations/argocd-image-updater.argoproj.io~1git-repository
-        # TODO: your GitOps repo URL. The example pointed at
-        # `opfs-webauthn-gitops` which doesn't exist.
-        value: https://github.com/stephane-segning/<your-gitops-repo>.git
-      - op: replace
-        path: /metadata/annotations/argocd-image-updater.argoproj.io~1write-back-target
-        # TODO: path inside the GitOps repo to the values file Image
-        # Updater should rewrite. Adjust to your layout.
-        value: helmvalues:envs/production/opfs-web.values.yaml
+            shareBackendUrl: https://opfs-share-backend-opfs.sls.ssegning.com
+      #- op: replace
+      #  path: /metadata/annotations/argocd-image-updater.argoproj.io~1git-repository
+      #  # TODO: your GitOps repo URL. The example pointed at
+      #  # `opfs-webauthn-gitops` which doesn't exist.
+      #  value: https://github.com/stephane-segning/<your-gitops-repo>.git
+      #- op: replace
+      #  path: /metadata/annotations/argocd-image-updater.argoproj.io~1write-back-target
+      #  # TODO: path inside the GitOps repo to the values file Image
+      #  # Updater should rewrite. Adjust to your layout.
+      #  value: helmvalues:envs/production/opfs-web.values.yaml
 
   # ─── opfs-share-backend ─────────────────────────────────────
   - target:
@@ -61,10 +61,10 @@ patches:
             # the browser's `Origin:` header carries on cross-origin
             # POSTs to the share-backend. An empty allow-list rejects
             # every Origin'd request with 403, so this MUST be set.
-            allowedOrigins: http://opfs-web-opfs.sls.ssegning.com
-      - op: replace
-        path: /metadata/annotations/argocd-image-updater.argoproj.io~1git-repository
-        value: https://github.com/stephane-segning/<your-gitops-repo>.git
-      - op: replace
-        path: /metadata/annotations/argocd-image-updater.argoproj.io~1write-back-target
-        value: helmvalues:envs/production/opfs-share-backend.values.yaml
+            allowedOrigins: https://opfs-web-opfs.sls.ssegning.com
+      #- op: replace
+      #  path: /metadata/annotations/argocd-image-updater.argoproj.io~1git-repository
+      #  value: https://github.com/stephane-segning/<your-gitops-repo>.git
+      #- op: replace
+      #  path: /metadata/annotations/argocd-image-updater.argoproj.io~1write-back-target
+      #  value: helmvalues:envs/production/opfs-share-backend.values.yaml
