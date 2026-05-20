@@ -629,7 +629,7 @@ applications:
     project: infrastructure
     source:
       repoURL: https://knative.github.io/operator
-      targetRevision: v1.22.0
+      targetRevision: v1.22.1
       chart: knative-operator
     destination:
       name: home-remote
@@ -648,7 +648,7 @@ applications:
     project: infrastructure
     source:
       repoURL: https://knative.github.io/operator
-      targetRevision: v1.22.0
+      targetRevision: v1.22.1
       chart: knative-operator
       helm:
         releaseName: knative-operator
