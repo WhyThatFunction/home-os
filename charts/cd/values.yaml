@@ -1335,6 +1335,7 @@ applications:
                   #ingress:
                   #  gateway-api:
                   #    enabled: true
+                  version: "1.22"
                   manifests:
                     - URL: https://github.com/knative/serving/releases/download/knative-v1.22.0/serving-crds.yaml
                     - URL: https://github.com/knative/serving/releases/download/knative-v1.22.0/serving-core.yaml
