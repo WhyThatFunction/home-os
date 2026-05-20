@@ -442,14 +442,14 @@ applications:
           providers:
             kubernetesCRD:
               allowCrossNamespace: true
-            #kubernetesGateway:
-            #  enabled: false
-            #  experimentalChannel: false
-            knative:
+            kubernetesGateway:
               enabled: true
+              experimentalChannel: false
+            #knative:
+            #  enabled: true
 
-          experimental:
-            knative: true
+          #experimental:
+          #  knative: true
 
           gateway:
             namespacePolicy: All
@@ -1335,10 +1335,9 @@ applications:
                   #ingress:
                   #  gateway-api:
                   #    enabled: true
-                  version: "1.22"
+                  #version: "1.22"
                   manifests:
-                    - URL: https://github.com/knative/serving/releases/download/knative-v1.22.0/serving-crds.yaml
-                    - URL: https://github.com/knative/serving/releases/download/knative-v1.22.0/serving-core.yaml
+                    - URL: https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml
                   config:
                     domain:
                       sls.ssegning.com: ""
