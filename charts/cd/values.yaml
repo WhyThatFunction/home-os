@@ -484,7 +484,7 @@ applications:
                 namespacePolicy:
                   from: All
                 certificateRefs:
-                  - name: '{{ include "core-gateway.fullname" . }}-api-tls'
+                  - name: 'websecure-tls'
                     kind: Secret
                     group: ''
                 mode: Terminate
