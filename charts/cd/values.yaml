@@ -1369,7 +1369,7 @@ applications:
                       "serverless.vaam.store": ""
                     network:
                       ingress-class: traefik.ingress.networking.knative.dev
-                      namespace-wildcard-cert-selector: {}
+                      namespace-wildcard-cert-selector: "{}"
     destination:
       name: home-remote
       namespace: knative-serving
