@@ -1334,14 +1334,11 @@ applications:
                   ingress:
                     gateway-api:
                       enabled: true
-                    config:
-                      network:
-                        ingress-class: "traefik.ingress.networking.knative.dev"
                   config:
                     domain:
                       sls.ssegning.com: ""
-                    #network:
-                    #  ingress-class: traefik.ingress.networking.knative.dev
+                    network:
+                      ingress-class: traefik.ingress.networking.knative.dev
     destination:
       server: https://kubernetes.default.svc
       namespace: knative-serving
@@ -1373,14 +1370,11 @@ applications:
                   ingress:
                     gateway-api:
                       enabled: true
-                    config:
-                      network:
-                        ingress-class: "traefik.ingress.networking.knative.dev"
                   config:
                     domain:
                       "serverless.vaam.store": ""
                     network:
-                      #ingress-class: traefik.ingress.networking.knative.dev
+                      ingress-class: traefik.ingress.networking.knative.dev
                       namespace-wildcard-cert-selector: "{}"
     destination:
       name: home-remote
