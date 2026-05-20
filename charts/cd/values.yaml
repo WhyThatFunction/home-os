@@ -1342,6 +1342,7 @@ applications:
                       system-internal-tls: "Enabled"
                       domain-template: "{{ `{{ .Name }}` }}-{{ `{{ .Namespace }}` }}--{{ `{{ .Domain }}` }}"
                       cluster-local-domain-tls: "Enabled"
+                      external-domain-tls: Enabled
                     certmanager:
                       issuerRef: |
                         kind: ClusterIssuer
@@ -1402,6 +1403,7 @@ applications:
                       system-internal-tls: "Enabled"
                       domain-template: "{{ `{{ .Name }}` }}-{{ `{{ .Namespace }}` }}--{{ `{{ .Domain }}` }}"
                       cluster-local-domain-tls: "Enabled"
+                      external-domain-tls: Enabled
                     certmanager:
                       issuerRef: |
                         kind: ClusterIssuer
