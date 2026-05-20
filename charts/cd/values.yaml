@@ -1374,11 +1374,7 @@ applications:
                       sls.ssegning.com: ""
                     network:
                       ingress-class: gateway-api.ingress.networking.knative.dev
-                      #system-internal-tls: "Enabled"
                       domain-template: "{{ `{{ .Name }}` }}-{{ `{{ .Namespace }}` }}--{{ `{{ .Domain }}` }}"
-                      #cluster-local-domain-tls: "Enabled"
-                      #external-domain-tls: "Enabled"
-                      #http-protocol: "Redirected"
                     certmanager:
                       issuerRef: |
                         kind: ClusterIssuer
@@ -1436,11 +1432,7 @@ applications:
                     network:
                       ingress-class: gateway-api.ingress.networking.knative.dev
                       #namespace-wildcard-cert-selector: "{}"
-                      #system-internal-tls: "Enabled"
                       domain-template: "{{ `{{ .Name }}` }}-{{ `{{ .Namespace }}` }}--{{ `{{ .Domain }}` }}"
-                      #cluster-local-domain-tls: "Enabled"
-                      #external-domain-tls: "Enabled"
-                      #http-protocol: "Redirected"
                     certmanager:
                       issuerRef: |
                         kind: ClusterIssuer
