@@ -442,7 +442,12 @@ applications:
               allowCrossNamespace: true
             kubernetesGateway:
               enabled: true
-          
+            knative:
+              enabled: true
+
+          experimental:
+            knative: true
+
           gateway:
             namespacePolicy: All
           
@@ -1307,36 +1312,33 @@ applications:
         prune: true
         selfHeal: true
 
-  #  - name: knative-serving
-  #    finalizers:
-  #      - resources-finalizer.argocd.argoproj.io
-  #    project: infrastructure
-  #    source:
-  #      repoURL: "https://bjw-s-labs.github.io/helm-charts"
-  #      targetRevision: "4.6.2"
-  #      chart: "app-template"
-  #      helm:
-  #        releaseName: knative-serving
-  #        valuesObject:
-  #          rawResources:
-  #            serving:
-  #              apiVersion: operator.knative.dev/v1beta1
-  #              kind: KnativeServing
-  #              spec:
-  #                spec:
-  #                  ingress:
-  #                    gateway-api:
-  #                      enabled: true
-  #                  config:
-  #                    network:
-  #                      ingress-class: "gateway-api.ingress.networking.knative.dev"
-  #    destination:
-  #      server: https://kubernetes.default.svc
-  #      namespace: knative-serving
-  #    syncPolicy:
-  #      syncOptions:
-  #        - CreateNamespace=true
-  #        - ServerSideApply=true
-  #      automated:
-  #        prune: true
-  #        selfHeal: true
+  - name: knative-serving
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: "https://bjw-s-labs.github.io/helm-charts"
+      targetRevision: "4.6.2"
+      chart: "app-template"
+      helm:
+        releaseName: knative-serving
+        valuesObject:
+          rawResources:
+            serving:
+              apiVersion: operator.knative.dev/v1beta1
+              kind: KnativeServing
+              spec:
+                spec:
+                  config:
+                    ingress:
+                      class: traefik.ingress.networking.knative.dev
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: knative-serving
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
