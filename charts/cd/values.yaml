@@ -476,18 +476,18 @@ applications:
             listeners:
               web:
                 port: 8000
-                namespacePolicy: # @schema type:[object, null]
-                  from: All
-              websecure:
-                port: 8443
-                protocol: HTTPS
                 namespacePolicy:
                   from: All
-                certificateRefs:
-                  - name: 'websecure-tls'
-                    kind: Secret
-                    group: ''
-                mode: Terminate
+              #websecure:
+              #  port: 8443
+              #  protocol: HTTPS
+              #  namespacePolicy:
+              #    from: All
+              #  certificateRefs:
+              #    - name: 'websecure-tls'
+              #      kind: Secret
+              #      group: ''
+              #  mode: Terminate
           
           ingressRoute:
             dashboard:
