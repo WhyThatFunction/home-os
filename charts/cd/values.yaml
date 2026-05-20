@@ -1372,6 +1372,15 @@ applications:
                   config:
                     domain:
                       sls.ssegning.com: ""
+                    gateway:
+                      external-gateways: |
+                        - class: traefik
+                          gateway: kube-system/traefik-gateway
+                          service: kube-system/traefik
+                      local-gateways: |
+                        - class: traefik
+                          gateway: kube-system/traefik-gateway
+                          service: kube-system/traefik
                     network:
                       ingress-class: gateway-api.ingress.networking.knative.dev
                       domain-template: "{{ `{{ .Name }}` }}-{{ `{{ .Namespace }}` }}--{{ `{{ .Domain }}` }}"
@@ -1429,6 +1438,15 @@ applications:
                   config:
                     domain:
                       "serverless.vaam.store": ""
+                    gateway:
+                      external-gateways: |
+                        - class: traefik
+                          gateway: kube-system/traefik-gateway
+                          service: kube-system/traefik
+                      local-gateways: |
+                        - class: traefik
+                          gateway: kube-system/traefik-gateway
+                          service: kube-system/traefik
                     network:
                       ingress-class: gateway-api.ingress.networking.knative.dev
                       #namespace-wildcard-cert-selector: "{}"
