@@ -1332,9 +1332,9 @@ applications:
               kind: KnativeServing
               spec:
                 spec:
-                  ingress:
-                    gateway-api:
-                      enabled: true
+                  #ingress:
+                  #  gateway-api:
+                  #    enabled: true
                   config:
                     domain:
                       sls.ssegning.com: ""
@@ -1393,9 +1393,9 @@ applications:
                           limits:
                             cpu: 1000m
                             memory: 250Mi
-                  ingress:
-                    gateway-api:
-                      enabled: true
+                  #ingress:
+                  #  gateway-api:
+                  #    enabled: true
                   config:
                     domain:
                       "serverless.vaam.store": ""
