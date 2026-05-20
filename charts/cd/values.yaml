@@ -443,7 +443,7 @@ applications:
             kubernetesCRD:
               allowCrossNamespace: true
             kubernetesGateway:
-              enabled: true
+              enabled: false
               experimentalChannel: true
             knative:
               enabled: true
