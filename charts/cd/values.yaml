@@ -339,6 +339,24 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: gateway-api-crds
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://github.com/kubernetes-sigs/gateway-api.git
+      targetRevision: v1.5.1
+      path: config/crd
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: kube-system
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: nvidia
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -1332,17 +1350,14 @@ applications:
               kind: KnativeServing
               spec:
                 spec:
-                  #ingress:
-                  #  gateway-api:
-                  #    enabled: true
-                  #version: "1.22"
-                  manifests:
-                    - URL: https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml
+                  ingress:
+                    gateway-api:
+                      enabled: true
                   config:
                     domain:
                       sls.ssegning.com: ""
                     network:
-                      ingress-class: traefik.ingress.networking.knative.dev
+                      ingress-class: gateway-api.ingress.networking.knative.dev
                       #system-internal-tls: "Enabled"
                       domain-template: "{{ `{{ .Name }}` }}-{{ `{{ .Namespace }}` }}--{{ `{{ .Domain }}` }}"
                       cluster-local-domain-tls: "Enabled"
@@ -1396,14 +1411,14 @@ applications:
                           limits:
                             cpu: 1000m
                             memory: 250Mi
-                  #ingress:
-                  #  gateway-api:
-                  #    enabled: true
+                  ingress:
+                    gateway-api:
+                      enabled: true
                   config:
                     domain:
                       "serverless.vaam.store": ""
                     network:
-                      ingress-class: traefik.ingress.networking.knative.dev
+                      ingress-class: gateway-api.ingress.networking.knative.dev
                       namespace-wildcard-cert-selector: "{}"
                       #system-internal-tls: "Enabled"
                       domain-template: "{{ `{{ .Name }}` }}-{{ `{{ .Namespace }}` }}--{{ `{{ .Domain }}` }}"
