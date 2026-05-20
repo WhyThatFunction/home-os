@@ -1340,7 +1340,7 @@ applications:
                     network:
                       ingress-class: traefik.ingress.networking.knative.dev
                       system-internal-tls: "Enabled"
-                      domain-template: "{{ `{{.Name }}` }}-{{ `{{.Namespace }}` }}.{{ `{{ .Domain }}` }}"
+                      domain-template: "{{ `{{ .Name }}` }}-{{ `{{ .Namespace }}` }}.{{ `{{ .Domain }}` }}"
                       cluster-local-domain-tls: "Enabled"
                     certmanager:
                       issuerRef: |
@@ -1400,7 +1400,7 @@ applications:
                       ingress-class: traefik.ingress.networking.knative.dev
                       namespace-wildcard-cert-selector: "{}"
                       system-internal-tls: "Enabled"
-                      domain-template: "{{ `{{.Name }}` }}-{{ `{{.Namespace }}` }}.{{ `{{ .Domain }}` }}"
+                      domain-template: "{{ `{{ .Name }}` }}-{{ `{{ .Namespace }}` }}.{{ `{{ .Domain }}` }}"
                       cluster-local-domain-tls: "Enabled"
                     certmanager:
                       issuerRef: |
