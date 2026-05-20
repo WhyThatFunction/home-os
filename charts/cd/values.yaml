@@ -1364,11 +1364,17 @@ applications:
               kind: KnativeServing
               spec:
                 spec:
+                  ingress:
+                    gateway-api:
+                      enabled: true
+                    config:
+                      network:
+                        ingress-class: "traefik.ingress.networking.knative.dev"
                   config:
                     domain:
                       "serverless.vaam.store": ""
                     network:
-                      ingress-class: traefik.ingress.networking.knative.dev
+                      #ingress-class: traefik.ingress.networking.knative.dev
                       namespace-wildcard-cert-selector: "{}"
     destination:
       name: home-remote
