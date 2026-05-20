@@ -1339,6 +1339,16 @@ applications:
                       sls.ssegning.com: ""
                     network:
                       ingress-class: traefik.ingress.networking.knative.dev
+                    certmanager:
+                      issuerRef: |
+                        kind: ClusterIssuer
+                        name: cert-cloudflare
+                      clusterLocalIssuerRef: |
+                        kind: ClusterIssuer
+                        name: self-signed-ca
+                      systemInternalIssuerRef: |
+                        kind: ClusterIssuer
+                        name: self-signed-ca
     destination:
       server: https://kubernetes.default.svc
       namespace: knative-serving
@@ -1386,6 +1396,16 @@ applications:
                     network:
                       ingress-class: traefik.ingress.networking.knative.dev
                       namespace-wildcard-cert-selector: "{}"
+                    certmanager:
+                      issuerRef: |
+                        kind: ClusterIssuer
+                        name: cert-home-cert-http
+                      clusterLocalIssuerRef: |
+                        kind: ClusterIssuer
+                        name: self-signed-ca
+                      systemInternalIssuerRef: |
+                        kind: ClusterIssuer
+                        name: self-signed-ca
     destination:
       name: home-remote
       namespace: knative-serving
