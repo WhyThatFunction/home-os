@@ -487,6 +487,7 @@ applications:
                   - name: '{{ include "core-gateway.fullname" . }}-api-tls'
                     kind: Secret
                     group: ''
+                mode: Terminate
           
           ingressRoute:
             dashboard:
