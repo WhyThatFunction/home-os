@@ -1,3 +1,70 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: argocd
+
 resources:
   - https://raw.githubusercontent.com/stephane-segning/opfs-webauthn/refs/heads/main/apps/web/helm/argocd-application.example.yaml
   - https://raw.githubusercontent.com/stephane-segning/opfs-webauthn/refs/heads/main/apps/share-backend/helm/argocd-application.example.yaml
+
+patches:
+  # ─── opfs-web ───────────────────────────────────────────────
+  - target:
+      group: argoproj.io
+      version: v1alpha1
+      kind: Application
+      name: opfs-web
+    patch: |
+      - op: replace
+        path: /spec/source/helm/values
+        value: |
+          # `image.tag: latest` is a temporary override to work around
+          # chart 0.1.<n>'s appVersion pointing at a short SHA that the
+          # build never pushed (the workflow used the full SHA at that
+          # time). Drop this once a chart published from f0e6c3b+ is
+          # the targetRevision — that AppVersion matches the pushed
+          # image tag, so the chart's default wins on its own.
+          image:
+            tag: latest
+          env:
+            # URL Knative assigns to the share-backend KSvc in this cluster.
+            # Discoverable with `kubectl -n opfs get ksvc opfs-share-backend
+            # -o jsonpath='{.status.url}'`.
+            shareBackendUrl: http://opfs-share-backend-opfs.sls.ssegning.com
+      - op: replace
+        path: /metadata/annotations/argocd-image-updater.argoproj.io~1git-repository
+        # TODO: your GitOps repo URL. The example pointed at
+        # `opfs-webauthn-gitops` which doesn't exist.
+        value: https://github.com/stephane-segning/<your-gitops-repo>.git
+      - op: replace
+        path: /metadata/annotations/argocd-image-updater.argoproj.io~1write-back-target
+        # TODO: path inside the GitOps repo to the values file Image
+        # Updater should rewrite. Adjust to your layout.
+        value: helmvalues:envs/production/opfs-web.values.yaml
+
+  # ─── opfs-share-backend ─────────────────────────────────────
+  - target:
+      group: argoproj.io
+      version: v1alpha1
+      kind: Application
+      name: opfs-share-backend
+    patch: |
+      - op: replace
+        path: /spec/source/helm/values
+        value: |
+          # Same image.tag override as opfs-web — drop once the
+          # chart's appVersion matches a pushed image short-SHA.
+          image:
+            tag: latest
+          env:
+            # URL Knative assigns to the frontend KSvc — this is what
+            # the browser's `Origin:` header carries on cross-origin
+            # POSTs to the share-backend. An empty allow-list rejects
+            # every Origin'd request with 403, so this MUST be set.
+            allowedOrigins: http://opfs-web-opfs.sls.ssegning.com
+      - op: replace
+        path: /metadata/annotations/argocd-image-updater.argoproj.io~1git-repository
+        value: https://github.com/stephane-segning/<your-gitops-repo>.git
+      - op: replace
+        path: /metadata/annotations/argocd-image-updater.argoproj.io~1write-back-target
+        value: helmvalues:envs/production/opfs-share-backend.values.yaml
