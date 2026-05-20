@@ -471,22 +471,20 @@ applications:
 
           gateway:
             namespacePolicy: All
-            #annotations:
-            #  cert-manager.io/cluster-issuer: cert-cloudflare
             listeners:
               web:
                 namespacePolicy:
                   from: All
-              #websecure:
-              #  port: 443
-              #  protocol: HTTPS
-              #  namespacePolicy:
-              #    from: All
-              #  certificateRefs:
-              #    - name: 'wildcard-sls-ssegning-com-tls'
-              #      kind: Secret
-              #      group: ''
-              #  mode: Terminate
+              websecure:
+                port: 443
+                protocol: HTTPS
+                namespacePolicy:
+                  from: All
+                certificateRefs:
+                  - name: 'wildcard-sls-ssegning-com-tls'
+                    kind: Secret
+                    group: ''
+                mode: Terminate
           
           ingressRoute:
             dashboard:
@@ -513,6 +511,20 @@ applications:
                 commonName: traefik.home.ssegning
                 dnsNames: 
                   - traefik.home.ssegning
+            - |
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: wildcard-sls-ssegning-com-certificate
+              spec:
+                secretName: wildcard-sls-ssegning-com-tls
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: cert-cloudflare
+                  group: cert-manager.io
+                commonName: sls.ssegning.com
+                dnsNames: 
+                  - "*.ssegning.com"
     destination:
       server: https://kubernetes.default.svc
       namespace: kube-system
