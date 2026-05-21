@@ -16,11 +16,11 @@ global:
 controllers:
   redis:
     type: statefulset
-    replicas: 3
+    replicas: 2
 
     podDisruptionBudget:
       enabled: true
-      minAvailable: 2
+      minAvailable: 1
 
     statefulset:
       serviceName: "{{ $.Release.Name }}-redis-headless"
@@ -126,11 +126,11 @@ controllers:
 
   sentinel:
     type: statefulset
-    replicas: 3
+    replicas: 2
 
     podDisruptionBudget:
       enabled: true
-      minAvailable: 2
+      minAvailable: 1
 
     statefulset:
       serviceName: "{{ $.Release.Name }}-sentinel-headless"
