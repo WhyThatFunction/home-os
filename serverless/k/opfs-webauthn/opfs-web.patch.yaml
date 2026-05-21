@@ -30,7 +30,7 @@
   # TODO: change to your GitOps repo URL. HTTPS form because the
   # repo-creds Secret is a GitHub App (HTTPS basic-auth via
   # installation token); SSH bypasses that path entirely.
-  value: https://github.com/stephane-segning/<your-gitops-repo>.git
+  value: https://github.com/stephane-segning/opfs-webauthn.git
 
 - op: replace
   path: /metadata/annotations/argocd-image-updater.argoproj.io~1write-back-target
