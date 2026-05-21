@@ -116,7 +116,7 @@ notifications:
         # tracking the upstream project directly, this is
         # `https://github.com/stephane-segning/opfs-webauthn`; for
         # forks, point at your fork.
-        repoURLPath: '{{ "https://github.com/<your-org>/<your-repo>" }}'
+        repoURLPath: '{{ "https://github.com/stephane-segning/opfs-webauthn" }}'
         revisionPath: '{{ "main" }}'
         deployment:
           # The Environment shown in the GitHub UI. Per-app, so
@@ -153,7 +153,7 @@ notifications:
         # tracking the upstream project directly, this is
         # `https://github.com/stephane-segning/opfs-webauthn`; for
         # forks, point at your fork.
-        repoURLPath: '{{ "https://github.com/<your-org>/<your-repo>" }}'
+        repoURLPath: '{{ "https://github.com/stephane-segning/opfs-webauthn" }}'
         revisionPath: '{{ "main" }}'
         deployment:
           environment: '{{.app.metadata.name}}'
@@ -168,19 +168,19 @@ notifications:
     # `oncePer: app.status.sync.revision` makes sure we don't spam
     # GitHub with one Deployment per reconcile — only one per commit.
     #
-    # `?.` optional chaining on `operationState`: ArgoCD's
+    # Guard `operationState` explicitly: ArgoCD's
     # `app.status.operationState` is unset on fresh Applications
     # before the first sync (and during certain reconcile gaps).
     # A direct dereference would throw an expression-eval error
     # and the trigger would silently fail to fire for that cycle.
-    # The notifications expression language (`expr-lang/expr`)
-    # supports `?.` for safe-navigate; an unset chain evaluates to
-    # `nil`, which `in ['Succeeded']` correctly returns false on.
+    # Keeping the nil check separate also avoids controller-version
+    # differences in optional-chaining behavior.
     trigger.on-deployed: |
       - description: Application is synced and healthy. Once per commit.
         oncePer: app.status.sync.revision
         send: [app-deployed]
-        when: app.status?.operationState.phase in ['Succeeded']
+        when: app.status.operationState != nil
+                and app.status.operationState.phase in ['Succeeded']
                 and app.status?.health.status == 'Healthy'
 
     # No `oncePer` on failure — every fresh failure should re-stamp,
@@ -188,7 +188,8 @@ notifications:
     trigger.on-deploy-failed: |
       - description: Sync failed or app went unhealthy.
         send: [app-deployed-failed]
-        when: app.status?.operationState.phase in ['Error', 'Failed']
+        when: (app.status.operationState != nil
+                and app.status.operationState.phase in ['Error', 'Failed'])
                 or app.status?.health.status in ['Degraded', 'Missing']
 
 

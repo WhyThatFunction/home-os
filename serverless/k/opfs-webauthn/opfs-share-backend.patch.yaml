@@ -31,10 +31,10 @@
 
 # ─── argocd-notifications subscriptions ─────────────────────────
 - op: add
-  path: /metadata/annotations/notifications.argoproj.io~1subscribe.on-deployed.github.stephane-segning
+  path: /metadata/annotations/notifications.argoproj.io~1subscribe.on-deployed.stephane-segning
   value: ""
 - op: add
-  path: /metadata/annotations/notifications.argoproj.io~1subscribe.on-deploy-failed.github.stephane-segning
+  path: /metadata/annotations/notifications.argoproj.io~1subscribe.on-deploy-failed.stephane-segning
   value: ""
 
 - op: add

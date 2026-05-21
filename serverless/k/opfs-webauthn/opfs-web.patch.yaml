@@ -2,7 +2,7 @@
 #
 # `~1` is the JSON Pointer escape for `/`; that's why annotation
 # keys with slashes (argocd-image-updater.argoproj.io/git-repository,
-# notifications.argoproj.io/subscribe.on-deployed.github, etc.) all
+# notifications.argoproj.io/subscribe.on-deployed.stephane-segning, etc.) all
 # carry `~1` in the path.
 
 # ─── Helm values overlay ────────────────────────────────────────
@@ -38,10 +38,10 @@
 
 # ─── argocd-notifications subscriptions ─────────────────────────
 - op: add
-  path: /metadata/annotations/notifications.argoproj.io~1subscribe.on-deployed.github.stephane-segning
+  path: /metadata/annotations/notifications.argoproj.io~1subscribe.on-deployed.stephane-segning
   value: ""
 - op: add
-  path: /metadata/annotations/notifications.argoproj.io~1subscribe.on-deploy-failed.github.stephane-segning
+  path: /metadata/annotations/notifications.argoproj.io~1subscribe.on-deploy-failed.stephane-segning
   value: ""
 
 # Per-app URL annotation. The notifications template reads this
