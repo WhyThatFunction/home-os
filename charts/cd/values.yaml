@@ -815,7 +815,7 @@ applications:
         helm:
           valuesObject:
             rawResources:
-              redis-auth-secret:
+              mail-secret:
                 enabled: true
                 apiVersion: external-secrets.io/v1
                 kind: ExternalSecret
@@ -1054,7 +1054,7 @@ applications:
         helm:
           valuesObject:
             rawResources:
-              redis-auth-secret:
+              auth-secret:
                 enabled: true
                 apiVersion: external-secrets.io/v1
                 kind: ExternalSecret
@@ -1157,7 +1157,7 @@ applications:
         helm:
           valuesObject:
             rawResources:
-              redis-auth-secret:
+              auth-secret:
                 enabled: true
                 apiVersion: external-secrets.io/v1
                 kind: ExternalSecret
@@ -1299,7 +1299,7 @@ applications:
         helm:
           valuesObject:
             rawResources:
-              redis-auth-secret:
+              auth-secret:
                 enabled: true
                 apiVersion: external-secrets.io/v1
                 kind: ExternalSecret
@@ -1439,6 +1439,15 @@ applications:
                           initialDelaySeconds: 60
                           periodSeconds: 10
                           failureThreshold: 6
+                    - name: controller
+                      resources:
+                        - container: controller
+                          requests:
+                            cpu: 300m
+                            memory: 100Mi
+                          limits:
+                            cpu: 1000m
+                            memory: 250Mi
                   ingress:
                     gateway-api:
                       enabled: true
@@ -1496,6 +1505,20 @@ applications:
               spec:
                 spec:
                   workloads:
+                    - name: net-gateway-api-webhook
+                      resources:
+                        - container: webhook
+                          requests:
+                            cpu: 100m
+                            memory: 100Mi
+                          limits:
+                            cpu: 500m
+                            memory: 500Mi
+                      livenessProbes:
+                        - container: webhook
+                          initialDelaySeconds: 60
+                          periodSeconds: 10
+                          failureThreshold: 6
                     - name: controller
                       resources:
                         - container: controller
@@ -1522,7 +1545,6 @@ applications:
                           service: kube-system/traefik
                     network:
                       ingress-class: gateway-api.ingress.networking.knative.dev
-                      #namespace-wildcard-cert-selector: "{}"
                       domain-template: "{{ `{{ .Name }}` }}-{{ `{{ .Namespace }}` }}--{{ `{{ .Domain }}` }}"
                     certmanager:
                       issuerRef: |
