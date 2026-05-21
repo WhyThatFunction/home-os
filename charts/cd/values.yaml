@@ -562,6 +562,12 @@ applications:
       path: charts/cert
       helm:
         releaseName: cert
+        valuesObject:
+          cert-manager:
+            tolerations:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
+                effect: NoSchedule
     destination:
       name: home-remote
       namespace: kube-system
@@ -576,11 +582,15 @@ applications:
     project: infrastructure
     source:
       repoURL: https://cloudnative-pg.github.io/charts
-      targetRevision: 0.27.1
+      targetRevision: 0.28.2
       chart: cloudnative-pg
       helm:
         releaseName: cnpg
         valuesObject:
+          tolerations:
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
+              effect: NoSchedule
           resources:
             limits:
               cpu: 100m
@@ -609,6 +619,11 @@ applications:
       chart: plugin-barman-cloud
       helm:
         releaseName: cnpg-barman-cloud
+        valuesObject:
+          tolerations:
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
+              effect: NoSchedule
     destination:
       name: home-remote
       namespace: cnpg-system
@@ -679,6 +694,19 @@ applications:
       repoURL: https://knative.github.io/operator
       targetRevision: v1.22.1
       chart: knative-operator
+      helm:
+        valuesObject:
+          knative_operator:
+            knative_operator:
+              tolerations:
+                - key: node-role.kubernetes.io/control-plane
+                  operator: Exists
+                  effect: NoSchedule
+            operator_webhook:
+              tolerations:
+                - key: node-role.kubernetes.io/control-plane
+                  operator: Exists
+                  effect: NoSchedule
     destination:
       name: home-remote
       namespace: knative-operator
@@ -717,10 +745,23 @@ applications:
     project: infrastructure
     source:
       repoURL: https://charts.external-secrets.io
-      targetRevision: v2.3.0
+      targetRevision: v2.5.0
       chart: external-secrets
       helm:
-        valuesObject: { }
+        valuesObject:
+          tolerations:
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
+              effect: NoSchedule
+          webhook:
+            certManager:
+              enabled: true
+              cert:
+                create: true
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: self-signed-ca
+                  group: cert-manager.io
     destination:
       name: home-remote
       namespace: external-secrets
@@ -1294,11 +1335,15 @@ applications:
     project: infrastructure
     source:
       repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
-      targetRevision: 0.106.0
+      targetRevision: 0.113.1
       chart: opentelemetry-operator
       helm:
         releaseName: opentelemetry-operator
         valuesObject:
+          tolerations:
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
+              effect: NoSchedule
           admissionWebhooks:
             autoGenerateCert:
               enabled: false
