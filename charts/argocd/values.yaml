@@ -1,3 +1,6 @@
+global:
+  domain: argocd.ssegning.me
+
 controller:
   replicas: 2
   pdb:
@@ -43,10 +46,36 @@ dex:
     minAvailable: 1
 
 notifications:
-  argocdUrl: https://argocd.ssegning.me
   pdb:
     enabled: true
     minAvailable: 1
+  secret:
+    create: false
+  notifiers:
+    service.github.whythatfunction: |
+      appID: 2926172
+      installationID: 111823929
+      privateKey: $github-privateKey
+    service.github.vymalo: |
+      appID: 2926172
+      installationID: 111824148
+      privateKey: $github-privateKey
+    service.github.stephane-segning: |
+      appID: 2926172
+      installationID: 111820839
+      privateKey: $github-privateKey
+    service.github.vaam-store: |
+      appID: 2926172
+      installationID: 111824144
+      privateKey: $github-privateKey
+    service.github.adorsys-gis: |
+      appID: 2926172
+      installationID: 112379420
+      privateKey: $github-privateKey
+    service.github.ndefokou: |
+      appID: 2926172
+      installationID: 115122720
+      privateKey: $github-privateKey
 
 commitServer:
   enabled: true

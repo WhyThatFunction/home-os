@@ -1,0 +1,56 @@
+# JSON6902 patches for the opfs-web Application.
+#
+# `~1` is the JSON Pointer escape for `/`; that's why annotation
+# keys with slashes (argocd-image-updater.argoproj.io/git-repository,
+# notifications.argoproj.io/subscribe.on-deployed.github, etc.) all
+# carry `~1` in the path.
+
+# ─── Helm values overlay ────────────────────────────────────────
+- op: replace
+  path: /spec/source/helm/values
+  value: |
+    # `image.tag: latest` is a temporary unblock. The chart's
+    # AppVersion already resolves to a real short-SHA image tag
+    # since the PR-#37 + PR-#38 fixes, so this override can be
+    # dropped once you're confident the published chart points at
+    # a tag you'd actually want pinned. ArgoCD Image Updater
+    # rewrites this value anyway on every promotion.
+    image:
+      tag: latest
+    env:
+      # URL Knative assigns to the share-backend KSvc in this
+      # cluster. Discover with:
+      #   kubectl -n opfs get ksvc opfs-share-backend \
+      #     -o jsonpath='{.status.url}'
+      shareBackendUrl: https://opfs-share-backend-opfs--sls.ssegning.com
+
+# ─── Image Updater write-back target ────────────────────────────
+- op: replace
+  path: /metadata/annotations/argocd-image-updater.argoproj.io~1git-repository
+  # TODO: change to your GitOps repo URL. HTTPS form because the
+  # repo-creds Secret is a GitHub App (HTTPS basic-auth via
+  # installation token); SSH bypasses that path entirely.
+  value: https://github.com/stephane-segning/<your-gitops-repo>.git
+
+- op: replace
+  path: /metadata/annotations/argocd-image-updater.argoproj.io~1write-back-target
+  # TODO: path inside the GitOps repo to the values file Image
+  # Updater rewrites on each promotion. Adjust to your layout.
+  value: helmvalues:envs/production/opfs-web.values.yaml
+
+# ─── argocd-notifications subscriptions ─────────────────────────
+- op: add
+  path: /metadata/annotations/notifications.argoproj.io~1subscribe.on-deployed.github
+  value: ""
+- op: add
+  path: /metadata/annotations/notifications.argoproj.io~1subscribe.on-deploy-failed.github
+  value: ""
+
+# Per-app URL annotation. The notifications template reads this
+# and stamps it as the GitHub Deployment's `environmentURL`, so
+# each Application surfaces its own URL in the GitHub Environments
+# UI. Drop or rename if you'd rather have one shared "production"
+# environment pointing at the frontend URL.
+- op: add
+  path: /metadata/annotations/opfs.vaam.store~1url
+  value: https://opfs-web-opfs--sls.ssegning.com

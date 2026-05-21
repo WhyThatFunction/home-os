@@ -1,0 +1,42 @@
+# JSON6902 patches for the opfs-share-backend Application.
+# Same shape as the opfs-web patch, with the share-backend side
+# of the URL pair.
+
+# ─── Helm values overlay ────────────────────────────────────────
+- op: replace
+  path: /spec/source/helm/values
+  value: |
+    # Same image.tag override as opfs-web — drop once the chart's
+    # AppVersion matches a pushed image short-SHA you'd want pinned.
+    image:
+      tag: latest
+    env:
+      # CORS allow-list. The browser sends `Origin: <frontend>` on
+      # cross-origin POSTs; matching this entry passes the check.
+      # Empty default = every Origin'd request gets 403, so this
+      # MUST be set. Discover with:
+      #   kubectl -n opfs get ksvc opfs-web \
+      #     -o jsonpath='{.status.url}'
+      # Comma-separate for preview / staging environments.
+      allowedOrigins: https://opfs-web-opfs--sls.ssegning.com
+
+# ─── Image Updater write-back target ────────────────────────────
+- op: replace
+  path: /metadata/annotations/argocd-image-updater.argoproj.io~1git-repository
+  value: https://github.com/stephane-segning/opfs-webauthn.git
+
+- op: replace
+  path: /metadata/annotations/argocd-image-updater.argoproj.io~1write-back-target
+  value: helmvalues:envs/production/opfs-share-backend.values.yaml
+
+# ─── argocd-notifications subscriptions ─────────────────────────
+- op: add
+  path: /metadata/annotations/notifications.argoproj.io~1subscribe.on-deployed.github.stephane-segning
+  value: ""
+- op: add
+  path: /metadata/annotations/notifications.argoproj.io~1subscribe.on-deploy-failed.github.stephane-segning
+  value: ""
+
+- op: add
+  path: /metadata/annotations/opfs.vaam.store~1url
+  value: https://opfs-share-backend-opfs--sls.ssegning.com
