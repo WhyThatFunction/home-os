@@ -27,23 +27,21 @@
 # ─── Image Updater write-back target ────────────────────────────
 - op: replace
   path: /metadata/annotations/argocd-image-updater.argoproj.io~1git-repository
-  # TODO: change to your GitOps repo URL. HTTPS form because the
   # repo-creds Secret is a GitHub App (HTTPS basic-auth via
   # installation token); SSH bypasses that path entirely.
   value: https://github.com/stephane-segning/opfs-webauthn.git
 
 - op: replace
   path: /metadata/annotations/argocd-image-updater.argoproj.io~1write-back-target
-  # TODO: path inside the GitOps repo to the values file Image
   # Updater rewrites on each promotion. Adjust to your layout.
   value: helmvalues:envs/production/opfs-web.values.yaml
 
 # ─── argocd-notifications subscriptions ─────────────────────────
 - op: add
-  path: /metadata/annotations/notifications.argoproj.io~1subscribe.on-deployed.github
+  path: /metadata/annotations/notifications.argoproj.io~1subscribe.on-deployed.github.stephane-segning
   value: ""
 - op: add
-  path: /metadata/annotations/notifications.argoproj.io~1subscribe.on-deploy-failed.github
+  path: /metadata/annotations/notifications.argoproj.io~1subscribe.on-deploy-failed.github.stephane-segning
   value: ""
 
 # Per-app URL annotation. The notifications template reads this
