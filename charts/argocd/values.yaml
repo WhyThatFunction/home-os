@@ -76,6 +76,10 @@ notifications:
       appID: 2926172
       installationID: 115122720
       privateKey: $github-privateKey
+    service.github.cratestack: |
+      appID: 2926172
+      installationID: 134478086
+      privateKey: $github-privateKey
 
   templates:
     template.app-deployed: |
