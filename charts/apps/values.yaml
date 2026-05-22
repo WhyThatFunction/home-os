@@ -175,6 +175,14 @@ applications:
       helm:
         releaseName: model
         valuesObject:
+          servingRuntime:
+            resources:
+              limits:
+                cpu: "2"
+                memory: "4Gi"
+              requests:
+                cpu: "1"
+                memory: "2Gi"
           inferenceService:
             nodeSelector:
               gpu-node: "true"
