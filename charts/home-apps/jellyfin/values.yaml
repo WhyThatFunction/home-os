@@ -175,7 +175,7 @@ jellyfin:
                 periodSeconds: 5
 
     jackett:
-      enabled: true
+      enabled: false
       type: statefulset
       strategy: RollingUpdate
       replicas: 1
@@ -256,10 +256,10 @@ jellyfin:
       accessMode: ReadWriteOnce
       storageClass: longhorn
       size: 10Gi
-      advancedMounts:
-        jellyfin:
-          jellyfin:
-            - path: /config
+      #advancedMounts:
+      #  jellyfin:
+      #    jellyfin:
+      #      - path: /config
 
     jellyfin-cache:
       enabled: true
@@ -267,10 +267,10 @@ jellyfin:
       accessMode: ReadWriteMany
       storageClass: sstorage
       size: 50Gi
-      advancedMounts:
-        jellyfin:
-          jellyfin:
-            - path: /config/cache
+      #advancedMounts:
+      #  jellyfin:
+      #    jellyfin:
+      #      - path: /config/cache
 
     jellyfin-media:
       enabled: true
@@ -278,10 +278,10 @@ jellyfin:
       accessMode: ReadWriteMany
       storageClass: sstorage
       size: 1Ti
-      advancedMounts:
-        jellyfin:
-          jellyfin:
-            - path: /data
+      #advancedMounts:
+      #  jellyfin:
+      #    jellyfin:
+      #      - path: /data
 
     jackett-config:
       enabled: true
@@ -289,10 +289,10 @@ jellyfin:
       accessMode: ReadWriteOnce
       storageClass: longhorn
       size: 5Gi
-      advancedMounts:
-        jackett:
-          jackett:
-            - path: /config
+      #advancedMounts:
+      #  jackett:
+      #    jackett:
+      #      - path: /config
 
     jellyseerr-config:
       enabled: false
@@ -300,7 +300,7 @@ jellyfin:
       accessMode: ReadWriteOnce
       storageClass: longhorn
       size: 5Gi
-      advancedMounts:
-        jellyseerr:
-          jellyseerr:
-            - path: /app/config
+      #advancedMounts:
+      #  jellyseerr:
+      #    jellyseerr:
+      #      - path: /app/config
