@@ -199,11 +199,11 @@ applications:
             #  - --max-model-len=2048
             resources:
               limits:
-                cpu: "2"
-                memory: "4Gi"
+                cpu: "4"
+                memory: "12Gi"
               requests:
-                cpu: "1"
-                memory: "2Gi"
+                cpu: "2"
+                memory: "8Gi"
             nodeSelector:
               gpu-node: "true"
           inferenceService:
