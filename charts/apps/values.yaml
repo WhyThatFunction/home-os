@@ -177,7 +177,7 @@ applications:
         valuesObject:
           model:
             args:
-              - --chat-template=/chat-template/chat_template.jinja
+              #- --chat-template=/chat-template/chat_template.jinja
               - --dtype=float32
               - --host=0.0.0.0
               - --max-model-len=2048
