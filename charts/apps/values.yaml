@@ -180,6 +180,10 @@ applications:
               repository: vllm/vllm-openai
               tag: latest
               pullPolicy: Always
+            args:
+              - --tensor-parallel-size=1
+              - --dtype=float32
+              - --max-model-len=2048
             resources:
               limits:
                 cpu: "2"
