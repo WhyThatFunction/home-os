@@ -176,6 +176,10 @@ applications:
         releaseName: model
         valuesObject:
           servingRuntime:
+            image:
+              repository: vllm/vllm-openai
+              tag: latest
+              pullPolicy: Always
             resources:
               limits:
                 cpu: "2"
