@@ -206,6 +206,7 @@ applications:
               gpu-node: "true"
           inferenceService:
             runtimeClassName: nvidia
+            maxReplicas: 1
     destination:
       server: https://kubernetes.default.svc
       namespace: converse-poc
