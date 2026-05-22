@@ -1453,6 +1453,7 @@ applications:
                       enabled: true
                   config:
                     features:
+                      kubernetes.podspec-runtimeclassname: "enabled"
                       kubernetes.podspec-nodeselector: "enabled"
                       kubernetes.podspec-persistent-volume-claim: "enabled"
                       kubernetes.podspec-persistent-volume-write: "enabled"
