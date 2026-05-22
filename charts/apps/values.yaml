@@ -204,6 +204,8 @@ applications:
                 memory: "2Gi"
             nodeSelector:
               gpu-node: "true"
+          inferenceService:
+            runtimeClassName: nvidia
     destination:
       server: https://kubernetes.default.svc
       namespace: converse-poc
