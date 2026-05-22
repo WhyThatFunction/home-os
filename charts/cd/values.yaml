@@ -1452,6 +1452,10 @@ applications:
                     gateway-api:
                       enabled: true
                   config:
+                    features:
+                      kubernetes.podspec-nodeselector: "enabled"
+                      kubernetes.podspec-persistent-volume-claim: "enabled"
+                      kubernetes.podspec-persistent-volume-write: "enabled"
                     domain:
                       sls.ssegning.com: ""
                     gateway:
@@ -1532,6 +1536,10 @@ applications:
                     gateway-api:
                       enabled: true
                   config:
+                    features:
+                      kubernetes.podspec-nodeselector: "enabled"
+                      kubernetes.podspec-persistent-volume-claim: "enabled"
+                      kubernetes.podspec-persistent-volume-write: "enabled"
                     domain:
                       "serverless.vaam.store": ""
                     gateway:
