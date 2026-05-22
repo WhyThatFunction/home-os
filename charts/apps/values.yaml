@@ -178,9 +178,11 @@ applications:
           model:
             args:
               #- --chat-template=/chat-template/chat_template.jinja
-              - --dtype=float32
-              - --host=0.0.0.0
+              - --dtype=float16
+              - --gpu-memory-utilization=0.65
               - --max-model-len=2048
+              - --enforce-eager
+              - --host=0.0.0.0
               - --port=8080
               - microsoft/phi-2
           servingRuntime:
