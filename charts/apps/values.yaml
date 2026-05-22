@@ -176,14 +176,17 @@ applications:
         releaseName: model
         valuesObject:
           servingRuntime:
+            env:
+              NVIDIA_DRIVER_CAPABILITIES: "all"
+              NVIDIA_VISIBLE_DEVICES: "all"
             image:
               repository: vllm/vllm-openai
               tag: latest
               pullPolicy: Always
-            args:
-              - --tensor-parallel-size=1
-              - --dtype=float32
-              - --max-model-len=2048
+            #args:
+            #  - --tensor-parallel-size=1
+            #  - --dtype=float32
+            #  - --max-model-len=2048
             resources:
               limits:
                 cpu: "2"
