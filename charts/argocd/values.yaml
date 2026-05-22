@@ -86,46 +86,22 @@ notifications:
       message: |
         Application {{.app.metadata.name}} is synced and healthy.
       github:
-        # `repoURLPath` and `revisionPath` are Go template
-        # expressions evaluated against `.app`. They have to return
-        # *strings*; an unquoted YAML token would be parsed as a
-        # path. Both knobs below resolve to literals via the
-        # `{{ "string" }}` template form — the dynamic alternatives
-        # are wrong for this Application'a shape:
+        # Application-specific GitHub Deployment fields. The
+        # Application that subscribes to this template must provide:
         #
-        #   * `.app.spec.source.repoURL` is the OCI Helm registry
-        #     (`ghcr.io/stephane-segning/charts`), not a GitHub repo
-        #     — the GitHub service would 404 trying to POST a
-        #     Deployment there.
-        #   * `.app.status.operationState.syncResult.revision` is
-        #     the chart's OCI digest (`sha256:...`), which GitHub's
-        #     Deployments API rejects as `ref`. The clean way to
-        #     anchor per-commit would be to surface the chart's
-        #     `AppVersion` (the short SHA) in `app.status`, but
-        #     ArgoCD doesn't expose it there; resolving it would
-        #     require a webhook listener.
-        #
-        # Anchoring at `main` accepts that the Deployment points
-        # at "head of main at sync time" rather than a specific
-        # commit. For per-app URL + Environment surfacing — what
-        # the GitHub UI cares about — that's enough.
-        # The repo the GitHub service POSTs Deployments to. **Must
-        # be a repo your App is installed on with `Deployments: write`**
-        # — if the App can't reach this URL the controller logs
-        # 403/404 and no Deployment is created. For consumers
-        # tracking the upstream project directly, this is
-        # `https://github.com/stephane-segning/opfs-webauthn`; for
-        # forks, point at your fork.
-        repoURLPath: '{{ "https://github.com/stephane-segning/opfs-webauthn" }}'
-        revisionPath: '{{ "main" }}'
+        #   notifications.ssegning.me/github-repo-url:
+        #     GitHub repository URL the App installation can write to.
+        #   notifications.ssegning.me/github-revision:
+        #     GitHub ref to attach the Deployment to, usually `main`
+        #     for OCI/chart-sourced Applications whose ArgoCD revision
+        #     is not a GitHub commit.
+        #   notifications.ssegning.me/environment-url:
+        #     URL shown for the GitHub Environment.
+        repoURLPath: '{{index .app.metadata.annotations "notifications.ssegning.me/github-repo-url"}}'
+        revisionPath: '{{index .app.metadata.annotations "notifications.ssegning.me/github-revision"}}'
         deployment:
-          # The Environment shown in the GitHub UI. Per-app, so
-          # opfs-web and opfs-share-backend get separate entries.
           environment: '{{.app.metadata.name}}'
-          # Pulled from the per-Application annotation set by the
-          # patch files.
-          environmentURL: '{{index .app.metadata.annotations "opfs.vaam.store/url"}}'
-          # Link back into the ArgoCD UI for this Application.
+          environmentURL: '{{index .app.metadata.annotations "notifications.ssegning.me/environment-url"}}'
           logURL: '{{.context.argocdUrl}}/applications/{{.app.metadata.name}}'
           # `success` for healthy syncs; the failed-template flips
           # this to `failure` (see below).
@@ -146,18 +122,11 @@ notifications:
       message: |
         Application {{.app.metadata.name}} sync failed or app is unhealthy.
       github:
-        # The repo the GitHub service POSTs Deployments to. **Must
-        # be a repo your App is installed on with `Deployments: write`**
-        # — if the App can't reach this URL the controller logs
-        # 403/404 and no Deployment is created. For consumers
-        # tracking the upstream project directly, this is
-        # `https://github.com/stephane-segning/opfs-webauthn`; for
-        # forks, point at your fork.
-        repoURLPath: '{{ "https://github.com/stephane-segning/opfs-webauthn" }}'
-        revisionPath: '{{ "main" }}'
+        repoURLPath: '{{index .app.metadata.annotations "notifications.ssegning.me/github-repo-url"}}'
+        revisionPath: '{{index .app.metadata.annotations "notifications.ssegning.me/github-revision"}}'
         deployment:
           environment: '{{.app.metadata.name}}'
-          environmentURL: '{{index .app.metadata.annotations "opfs.vaam.store/url"}}'
+          environmentURL: '{{index .app.metadata.annotations "notifications.ssegning.me/environment-url"}}'
           logURL: '{{.context.argocdUrl}}/applications/{{.app.metadata.name}}'
           state: failure
           requiredContexts: []

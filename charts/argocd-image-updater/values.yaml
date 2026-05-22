@@ -1,0 +1,17 @@
+config:
+  argocd.namespace: argocd
+  log.level: info
+  watch.namespaces: argocd-image-updater,argocd
+
+extraObjects:
+  - apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+    kind: ImageUpdater
+    metadata:
+      name: opfs-webauthn
+      namespace: argocd
+    spec:
+      applicationRefs:
+        - namePattern: opfs-web
+          useAnnotations: true
+        - namePattern: opfs-share-backend
+          useAnnotations: true

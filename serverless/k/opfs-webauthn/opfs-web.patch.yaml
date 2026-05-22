@@ -5,36 +5,46 @@
 # notifications.argoproj.io/subscribe.on-deployed.stephane-segning, etc.) all
 # carry `~1` in the path.
 
-# ─── Helm values overlay ────────────────────────────────────────
-- op: replace
-  path: /spec/source/helm/values
-  value: |
-    # `image.tag: latest` is a temporary unblock. The chart's
-    # AppVersion already resolves to a real short-SHA image tag
-    # since the PR-#37 + PR-#38 fixes, so this override can be
-    # dropped once you're confident the published chart points at
-    # a tag you'd actually want pinned. ArgoCD Image Updater
-    # rewrites this value anyway on every promotion.
-    image:
-      tag: latest
-    env:
-      # URL Knative assigns to the share-backend KSvc in this
-      # cluster. Discover with:
-      #   kubectl -n opfs get ksvc opfs-share-backend \
-      #     -o jsonpath='{.status.url}'
-      shareBackendUrl: https://opfs-share-backend-opfs--sls.ssegning.com
+# ─── Helm sources and values overlay ────────────────────────────
+- op: remove
+  path: /spec/source
+
+- op: add
+  path: /spec/sources
+  value:
+    - repoURL: ghcr.io/stephane-segning/charts
+      chart: opfs-web
+      targetRevision: 0.1.*
+      helm:
+        valueFiles:
+          - $values/envs/production/opfs-web.values.yaml
+        ignoreMissingValueFiles: true
+        values: |
+          env:
+            # URL Knative assigns to the share-backend KSvc in this
+            # cluster. Discover with:
+            #   kubectl -n opfs get ksvc opfs-share-backend \
+            #     -o jsonpath='{.status.url}'
+            shareBackendUrl: https://opfs-share-backend-opfs--sls.ssegning.com
+    - repoURL: https://github.com/stephane-segning/opfs-webauthn-gitops.git
+      targetRevision: main
+      ref: values
 
 # ─── Image Updater write-back target ────────────────────────────
 - op: replace
   path: /metadata/annotations/argocd-image-updater.argoproj.io~1git-repository
   # repo-creds Secret is a GitHub App (HTTPS basic-auth via
   # installation token); SSH bypasses that path entirely.
-  value: https://github.com/stephane-segning/opfs-webauthn.git
+  value: https://github.com/stephane-segning/opfs-webauthn-gitops.git
 
 - op: replace
   path: /metadata/annotations/argocd-image-updater.argoproj.io~1write-back-target
   # Updater rewrites on each promotion. Adjust to your layout.
   value: helmvalues:envs/production/opfs-web.values.yaml
+
+- op: add
+  path: /metadata/annotations/argocd-image-updater.argoproj.io~1web.force-update
+  value: "true"
 
 # ─── argocd-notifications subscriptions ─────────────────────────
 - op: add
@@ -44,11 +54,14 @@
   path: /metadata/annotations/notifications.argoproj.io~1subscribe.on-deploy-failed.stephane-segning
   value: ""
 
-# Per-app URL annotation. The notifications template reads this
-# and stamps it as the GitHub Deployment's `environmentURL`, so
-# each Application surfaces its own URL in the GitHub Environments
-# UI. Drop or rename if you'd rather have one shared "production"
-# environment pointing at the frontend URL.
+# Per-app notification metadata. The shared notifications template
+# reads these and stamps a GitHub Deployment for this Application.
 - op: add
-  path: /metadata/annotations/opfs.vaam.store~1url
+  path: /metadata/annotations/notifications.ssegning.me~1github-repo-url
+  value: https://github.com/stephane-segning/opfs-webauthn
+- op: add
+  path: /metadata/annotations/notifications.ssegning.me~1github-revision
+  value: main
+- op: add
+  path: /metadata/annotations/notifications.ssegning.me~1environment-url
   value: https://opfs-web-opfs--sls.ssegning.com
