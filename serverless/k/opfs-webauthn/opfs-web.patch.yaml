@@ -26,7 +26,7 @@
             #   kubectl -n opfs get ksvc opfs-share-backend \
             #     -o jsonpath='{.status.url}'
             shareBackendUrl: https://opfs-share-backend-opfs--sls.ssegning.com
-    - repoURL: https://github.com/stephane-segning/opfs-webauthn-gitops.git
+    - repoURL: https://github.com/stephane-segning/opfs-webauthn.git
       targetRevision: main
       ref: values
 
@@ -35,7 +35,7 @@
   path: /metadata/annotations/argocd-image-updater.argoproj.io~1git-repository
   # repo-creds Secret is a GitHub App (HTTPS basic-auth via
   # installation token); SSH bypasses that path entirely.
-  value: https://github.com/stephane-segning/opfs-webauthn-gitops.git
+  value: https://github.com/stephane-segning/opfs-webauthn.git
 
 - op: replace
   path: /metadata/annotations/argocd-image-updater.argoproj.io~1write-back-target

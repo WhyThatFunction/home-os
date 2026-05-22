@@ -26,14 +26,14 @@
             #     -o jsonpath='{.status.url}'
             # Comma-separate for preview / staging environments.
             allowedOrigins: https://opfs-web-opfs--sls.ssegning.com
-    - repoURL: https://github.com/stephane-segning/opfs-webauthn-gitops.git
+    - repoURL: https://github.com/stephane-segning/opfs-webauthn.git
       targetRevision: main
       ref: values
 
 # ─── Image Updater write-back target ────────────────────────────
 - op: replace
   path: /metadata/annotations/argocd-image-updater.argoproj.io~1git-repository
-  value: https://github.com/stephane-segning/opfs-webauthn-gitops.git
+  value: https://github.com/stephane-segning/opfs-webauthn.git
 
 - op: replace
   path: /metadata/annotations/argocd-image-updater.argoproj.io~1write-back-target
