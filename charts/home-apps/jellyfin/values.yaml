@@ -1,7 +1,7 @@
 jellyfin:
   ingress:
     jellyfin:
-      enabled: true
+      enabled: false
       annotations:
         cert-manager.io/cluster-issuer: cert-cloudflare
       className: traefik
@@ -19,7 +19,7 @@ jellyfin:
             - tv.ssegning.me
 
     jellyfin-local:
-      enabled: true
+      enabled: false
       annotations:
         cert-manager.io/cluster-issuer: self-signed-ca
       className: traefik
@@ -55,7 +55,7 @@ jellyfin:
             - tv-requests.home.ssegning
 
     jackett:
-      enabled: true
+      enabled: false
       annotations:
         cert-manager.io/cluster-issuer: self-signed-ca
       className: traefik
@@ -73,7 +73,7 @@ jellyfin:
             - jackett.home.ssegning
   service:
     jellyfin:
-      enabled: true
+      enabled: false
       annotations: { }
       type: LoadBalancer
       controller: jellyfin
@@ -96,7 +96,7 @@ jellyfin:
           targetPort: 1900
 
     jackett:
-      enabled: true
+      enabled: false
       annotations: { }
       type: ClusterIP
       controller: jackett
@@ -119,6 +119,7 @@ jellyfin:
 
   controllers:
     jellyfin:
+      enabled: false
       type: statefulset
       strategy: RollingUpdate
       replicas: 1
@@ -174,6 +175,7 @@ jellyfin:
                 periodSeconds: 5
 
     jackett:
+      enabled: false
       type: statefulset
       strategy: RollingUpdate
       replicas: 1
