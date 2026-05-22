@@ -181,8 +181,8 @@ applications:
               - --dtype=float32
               - --host=0.0.0.0
               - --max-model-len=2048
-              - --model=microsoft/phi-2
               - --port=8080
+              - microsoft/phi-2
           servingRuntime:
             env:
               NVIDIA_DRIVER_CAPABILITIES: "all"
