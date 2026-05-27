@@ -333,24 +333,24 @@ controllers:
                 port: 4180
               initialDelaySeconds: 5
               periodSeconds: 5
-defaultPodOptions:
-  topologySpreadConstraints:
-    - maxSkew: 1
-      topologyKey: kubernetes.io/hostname
-      whenUnsatisfiable: DoNotSchedule
-      labelSelector:
-        matchLabels:
-          app.kubernetes.io/instance: '{{ $.Release.Name }}'
-
-  affinity:
-    podAntiAffinity:
-      preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          podAffinityTerm:
-            topologyKey: kubernetes.io/hostname
-            labelSelector:
-              matchLabels:
-                app.kubernetes.io/instance: '{{ $.Release.Name }}'
+#defaultPodOptions:
+#  topologySpreadConstraints:
+#    - maxSkew: 1
+#      topologyKey: kubernetes.io/hostname
+#      whenUnsatisfiable: DoNotSchedule
+#      labelSelector:
+#        matchLabels:
+#          app.kubernetes.io/instance: '{{ $.Release.Name }}'
+#
+#  affinity:
+#    podAntiAffinity:
+#      preferredDuringSchedulingIgnoredDuringExecution:
+#        - weight: 100
+#          podAffinityTerm:
+#            topologyKey: kubernetes.io/hostname
+#            labelSelector:
+#              matchLabels:
+#                app.kubernetes.io/instance: '{{ $.Release.Name }}'
 
 service:
   redis:
