@@ -95,39 +95,6 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: keycloak-backup
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: keycloak
-    source:
-      repoURL: https://github.com/ADORSYS-GIS/ai-helm
-      targetRevision: HEAD
-      path: charts/keycloak-backup
-      helm:
-        releaseName: keycloak-backup
-        valueFiles:
-          - values.yaml
-        valuesObject:
-          app-template:
-            adminSecret: keycloak-pg-app
-            dbSecret: keycloak-pg-app
-            s3Secret: keycloak-s3
-            controller:
-              main:
-                initContainer:
-                  exporter:
-                    image:
-                      tag: "26.0"
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: keycloak
-    syncPolicy:
-      syncOptions:
-        - ServerSideApply=true
-      automated:
-        prune: true
-        selfHeal: true
-
   - name: music
     finalizers:
       - resources-finalizer.argocd.argoproj.io
