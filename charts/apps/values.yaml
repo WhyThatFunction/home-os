@@ -131,6 +131,26 @@ applications:
         prune: true
         selfHeal: true
 
+  # Named distinctly from the child Application it deploys (vymalo-shop) to
+  # avoid an argocd-namespace name collision / self-referential sync loop.
+  - name: vymalo-shop-deployer
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: serverless/k/vymalo-shop
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: serverless-vymalo-shop
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
     #  - name: ai-poc-model-deployment
     #    finalizers:
     #      - resources-finalizer.argocd.argoproj.io

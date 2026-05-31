@@ -1,0 +1,76 @@
+# ArgoCD Application for the vymalo-shop storefront (Knative + Helm/OCI).
+#
+# Unlike opfs-web (public repo, pulled from a raw.githubusercontent URL),
+# vymalo/vymalo-shop is PRIVATE — a raw fetch can't authenticate — so the
+# Application is committed here in full as a local resource. The chart
+# (ghcr.io/vymalo/charts) and the $values git repo are private too, so ArgoCD
+# needs read creds for both (see this dir's note / repo README):
+#   - github-app-creds--vymalo  : repo-creds Secret (App 2926172, install
+#     111824148) for cloning the private $values repo AND Image Updater
+#     git write-back. Provisioned out-of-band (holds the App private key).
+#   - an OCI Helm repo cred for ghcr.io/vymalo/charts (or make that package
+#     public; the image stays private via the chart's ghcr-pull ExternalSecret).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vymalo-shop
+  namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: >-
+      app=ghcr.io/vymalo/vymalo-shop:latest
+    argocd-image-updater.argoproj.io/app.update-strategy: digest
+    argocd-image-updater.argoproj.io/app.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: image.tag
+    argocd-image-updater.argoproj.io/app.force-update: "true"
+
+    # cosign keyless verification — Image Updater refuses any digest not
+    # signed by this repo's CI workflow on main (Fulcio + Rekor).
+    argocd-image-updater.argoproj.io/app.signature-type: cosign
+    argocd-image-updater.argoproj.io/app.cosign.certificate-oidc-issuer: >-
+      https://token.actions.githubusercontent.com
+    argocd-image-updater.argoproj.io/app.cosign.certificate-identity-regexp: >-
+      ^https://github\.com/vymalo/vymalo-shop/\.github/workflows/ci\.yml@.*$
+
+    # git write-back: the source is an OCI registry (not a git URL), so an
+    # explicit HTTPS git-repository + creds are required. The vymalo GitHub
+    # App install (111824148) has Contents: read & write on the repo.
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/git-repository: >-
+      https://github.com/vymalo/vymalo-shop.git
+    argocd-image-updater.argoproj.io/write-back-target: >-
+      helmvalues:deploy/envs/production/vymalo-shop.values.yaml
+    argocd-image-updater.argoproj.io/git-credentials: >-
+      secret:argocd/github-app-creds--vymalo
+
+    # ─── argocd-notifications → GitHub Deployment ────────────────────
+    # Recipient `vymalo` = the service.github.vymalo notifier (install
+    # 111824148) that can write Deployments to the vymalo org.
+    notifications.argoproj.io/subscribe.on-deployed.vymalo: ""
+    notifications.argoproj.io/subscribe.on-deploy-failed.vymalo: ""
+    notifications.ssegning.me/github-repo-url: https://github.com/vymalo/vymalo-shop
+    notifications.ssegning.me/github-revision: main
+    notifications.ssegning.me/environment-url: https://shop.vymalo.com
+spec:
+  project: default
+  sources:
+    - repoURL: ghcr.io/vymalo/charts
+      chart: vymalo-shop
+      targetRevision: 0.1.*
+      helm:
+        valueFiles:
+          - $values/deploy/envs/production/vymalo-shop.values.yaml
+        ignoreMissingValueFiles: true
+    - repoURL: https://github.com/vymalo/vymalo-shop.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vymalo
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
