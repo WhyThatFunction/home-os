@@ -164,6 +164,24 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: vymalo-shop
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: serverless/k/vymalo-shop
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: serverless-vymalo-shop
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
     #  - name: ai-poc-model-deployment
     #    finalizers:
     #      - resources-finalizer.argocd.argoproj.io

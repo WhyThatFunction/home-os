@@ -43,3 +43,12 @@ extraObjects:
           useAnnotations: true
         - namePattern: opfs-share-backend
           useAnnotations: true
+  - apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+    kind: ImageUpdater
+    metadata:
+      name: vymalo-shop
+      namespace: argocd
+    spec:
+      applicationRefs:
+        - namePattern: vymalo-shop
+          useAnnotations: true
