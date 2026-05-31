@@ -93,7 +93,15 @@ minio:
             resources:
               - "arn:aws:s3:::ai-ops-backups/*"
               - "arn:aws:s3:::ai-ops-backups"
-    
+      - name: vymalo-cnpg-backups-policy
+        statements:
+          - actions:
+              - "s3:*"
+            effect: "Allow"
+            resources:
+              - "arn:aws:s3:::vymalo-cnpg-backups/*"
+              - "arn:aws:s3:::vymalo-cnpg-backups"
+
     usersExistingSecrets:
       - minio-users
     
@@ -107,6 +115,8 @@ minio:
       - name: argo-artifacts
         withLock: false
       - name: ai-ops-backups
+        withLock: false
+      - name: vymalo-cnpg-backups
         withLock: false
 
 provision_minio_buckets_policies:
