@@ -197,6 +197,8 @@ projects:
         server: https://kubernetes.default.svc
       - namespace: "*"
         name: "lke560142-ctx"
+      - namespace: "*"
+        name: "home-remote"
     clusterResourceWhitelist:
       - group: "*"
         kind: "*"
