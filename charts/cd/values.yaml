@@ -773,6 +773,68 @@ applications:
         prune: true
         selfHeal: true
 
+  # ESO on the local (homeos) cluster — same chart/version as the home-remote
+  # `external-secrets` app. Needed because vymalo-shop runs on homeos (Knative)
+  # and pulls its secrets via ExternalSecrets. The self-signed-ca ClusterIssuer
+  # already exists on homeos.
+  - name: local-external-secrets
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://charts.external-secrets.io
+      targetRevision: v2.5.0
+      chart: external-secrets
+      helm:
+        releaseName: external-secrets
+        valuesObject:
+          tolerations:
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
+              effect: NoSchedule
+          webhook:
+            certManager:
+              enabled: true
+              cert:
+                create: true
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: self-signed-ca
+                  group: cert-manager.io
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: external-secrets
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  # The ssegning-aws ClusterSecretStore on homeos (same chart as the
+  # home-remote `secret-store` app). Requires the `awssm-secret` AWS-creds
+  # Secret in the secret-store-system namespace on homeos (provisioned
+  # out-of-band, e.g. via the home-secrets app).
+  - name: local-secret-store
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/secret-store
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: secret-store-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: keycloak-operator
     finalizers:
       - resources-finalizer.argocd.argoproj.io
