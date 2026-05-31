@@ -8,3 +8,5 @@ namespace: argocd
 # Application from a raw.githubusercontent URL — it's committed locally here.
 resources:
   - argocd-application.yaml
+  # ArgoCD repo cred (ESO) so it can pull the PRIVATE OCI Helm chart.
+  - argocd-charts-oci-repo.externalsecret.yaml
