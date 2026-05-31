@@ -839,6 +839,20 @@ applications:
                       name: awssm-secret
                       key: secret-access-key
                       namespace: secret-store-system
+            vaam-secret-store:
+              aws:
+                service: SecretsManager
+                region: eu-central-1
+                auth:
+                  secretRef:
+                    accessKeyIDSecretRef:
+                      name: awssm-secret
+                      key: access-key
+                      namespace: secret-store-system
+                    secretAccessKeySecretRef:
+                      name: awssm-secret
+                      key: secret-access-key
+                      namespace: secret-store-system
     destination:
       server: https://kubernetes.default.svc
       namespace: secret-store-system
