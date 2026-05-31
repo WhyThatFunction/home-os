@@ -2,12 +2,26 @@ global:
   domain: argocd.ssegning.me
 
 controller:
-  replicas: 2
+  replicas: 2 # = number of destination clusters; the controller shards by cluster, not by app count
   pdb:
     enabled: true
     minAvailable: 1
+  resources:
+    requests:
+      cpu: 1
+      memory: 2Gi
+    limits:
+      memory: 4Gi # no CPU limit — let it burst during sync storms
+  env:
+    - name: ARGOCD_CONTROLLER_REPLICAS # required for sharding to actually distribute clusters across replicas
+      value: "2"
 
+# Single redis is a SPOF and a reconcile/UI latency source (cache rebuild on restart).
+# redis-ha gives a 3-node sentinel cluster; it is mutually exclusive with `redis`.
 redis:
+  enabled: false
+
+redis-ha:
   enabled: true
 
 server:
@@ -16,6 +30,12 @@ server:
     minReplicas: 2
     maxReplicas: 3
     targetCPUUtilizationPercentage: 80
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
   ingress:
     enabled: true
     ingressClassName: traefik
@@ -28,14 +48,26 @@ repoServer:
   autoscaling:
     enabled: true
     minReplicas: 2
-    maxReplicas: 3
+    maxReplicas: 5 # render is bursty and CPU-bound; raise the ceiling
     targetCPUUtilizationPercentage: 80
+  resources:
+    requests:
+      cpu: 1
+      memory: 1Gi
+    limits:
+      memory: 2Gi
   pdb:
     enabled: true
-    minAvailable: 2
+    minAvailable: 1 # minAvailable:2 with minReplicas:2 blocks ALL voluntary disruption (drains/rollouts hang)
 
 applicationSet:
   replicas: 3
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
   pdb:
     enabled: true
     minAvailable: 2
@@ -166,10 +198,26 @@ commitServer:
   enabled: true
 
 configs:
+  # Tuning for a large app count (~140 apps). The application controller
+  # shards by destination cluster, so a single cluster's apps are all
+  # carried by one controller pod — the levers below tune that loop rather
+  # than adding pods.
+  params:
+    controller.status.processors: "50" # default 20 — concurrent app diffs
+    controller.operation.processors: "25" # default 10 — concurrent syncs
+    controller.sharding.algorithm: round-robin # better balance than the legacy hash
+    controller.kubectl.parallelism.limit: "20"
+    reposerver.parallelism.limit: "10" # default 0 = unlimited (can OOM); cap per pod
+
   secret:
     createSecret: true
   cm:
     url: https://argocd.ssegning.me
+
+    # Keep the default poll interval — lowering it multiplies controller,
+    # repo-server and git load by the app count. Rely on webhooks for the
+    # fast-sync path instead.
+    timeout.reconciliation: 180s
 
     exec.enabled: true
 
