@@ -1005,6 +1005,22 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: ai-apps-v2
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: ai
+    source:
+      repoURL: https://github.com/ADORSYS-GIS/ai-helm
+      targetRevision: claude/magical-bohr-390242
+      path: charts/apps
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: argocd
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: arc-runners
     finalizers:
       - resources-finalizer.argocd.argoproj.io
