@@ -1016,7 +1016,7 @@ applications:
       targetRevision: claude/magical-bohr-390242
       path: charts/apps
     destination:
-      name: home-remote
+      server: https://kubernetes.default.svc
       namespace: argocd
     syncPolicy:
       automated:
@@ -1034,7 +1034,7 @@ applications:
       helm:
         releaseName: arc
     destination:
-      server: https://kubernetes.default.svc
+      name: home-remote
       namespace: arc-systems
     syncPolicy:
       syncOptions:
