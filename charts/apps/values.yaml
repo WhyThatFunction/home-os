@@ -164,7 +164,9 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: vymalo-shop
+  # Named distinctly from the child Application it deploys (vymalo-shop) to
+  # avoid an argocd-namespace name collision / self-referential sync loop.
+  - name: vymalo-shop-deployer
     finalizers:
       - resources-finalizer.argocd.argoproj.io
     project: external
