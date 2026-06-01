@@ -27,3 +27,12 @@ commonAnnotations:
 
 cert-manager:
   installCRDs: true
+  # Enable cert-manager's Gateway API integration: lets it solve ACME HTTP-01
+  # via `gatewayHTTPRoute` solvers and honour `cert-manager.io/cluster-issuer`
+  # annotations on Gateways (the gateway-shim). Off by default. The AI platform's
+  # core-gateway (ai-helm) uses an HTTP-01 gatewayHTTPRoute Issuer to get TLS for
+  # api.ai-v2.camer.digital without a DNS token.
+  config:
+    apiVersion: controller.config.cert-manager.io/v1alpha1
+    kind: ControllerConfiguration
+    enableGatewayAPI: true
