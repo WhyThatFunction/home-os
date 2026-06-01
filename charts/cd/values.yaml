@@ -637,6 +637,44 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: kube-state-metrics
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://prometheus-community.github.io/helm-charts
+      targetRevision: "*"
+      chart: kube-state-metrics
+    destination:
+      name: home-remote
+      namespace: observability
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: local-kube-state-metrics
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://prometheus-community.github.io/helm-charts
+      targetRevision: "*"
+      chart: kube-state-metrics
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: observability
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: s3
     finalizers:
       - resources-finalizer.argocd.argoproj.io
