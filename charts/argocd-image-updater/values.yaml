@@ -50,5 +50,8 @@ extraObjects:
       namespace: argocd
     spec:
       applicationRefs:
-        - namePattern: vymalo-shop
+        # The storefront was split into 3 apps; only the knative app carries
+        # the image-updater annotations, so target it exactly (a bare pattern
+        # is an exact match — `vymalo-shop` no longer selects anything).
+        - namePattern: vymalo-shop-knative
           useAnnotations: true
