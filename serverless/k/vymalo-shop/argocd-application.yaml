@@ -37,6 +37,7 @@ spec:
       chart: vymalo-shop
       targetRevision: 0.1.*
       helm:
+        releaseName: vymalo-shop
         parameters:
           - name: role
             value: externalsecrets
@@ -80,6 +81,7 @@ spec:
       chart: vymalo-shop
       targetRevision: 0.1.*
       helm:
+        releaseName: vymalo-shop
         parameters:
           - name: role
             value: cnpg
@@ -129,6 +131,9 @@ metadata:
 
     argocd-image-updater.argoproj.io/image-list: >-
       app=ghcr.io/vymalo/vymalo-shop:latest
+    # Multi-source app: tell Image Updater which source carries the Helm
+    # image params (the OCI chart at index 0, not the $values git source).
+    argocd-image-updater.argoproj.io/app.source-index: "0"
     argocd-image-updater.argoproj.io/app.update-strategy: digest
     argocd-image-updater.argoproj.io/app.helm.image-name: image.repository
     argocd-image-updater.argoproj.io/app.helm.image-tag: image.tag
@@ -166,6 +171,7 @@ spec:
       chart: vymalo-shop
       targetRevision: 0.1.*
       helm:
+        releaseName: vymalo-shop
         parameters:
           - name: role
             value: knative
