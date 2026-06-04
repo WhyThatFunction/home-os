@@ -126,6 +126,7 @@ minio:
       # ESO-materialized (see templates/vymalo-backup-user.externalsecret.yaml):
       # the vymalo-backup user (CNPG barman backups) with vymalo-cnpg-backups-policy.
       - vymalo-minio-users
+      - vaam-minio-users
 
     buckets:
       - name: monitoring
