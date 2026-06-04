@@ -37,6 +37,7 @@ spec:
       chart: vymalo-shop
       targetRevision: 0.1.*
       helm:
+        releaseName: vymalo-shop
         parameters:
           - name: role
             value: externalsecrets
@@ -80,6 +81,7 @@ spec:
       chart: vymalo-shop
       targetRevision: 0.1.*
       helm:
+        releaseName: vymalo-shop
         parameters:
           - name: role
             value: cnpg
@@ -166,6 +168,7 @@ spec:
       chart: vymalo-shop
       targetRevision: 0.1.*
       helm:
+        releaseName: vymalo-shop
         parameters:
           - name: role
             value: knative
