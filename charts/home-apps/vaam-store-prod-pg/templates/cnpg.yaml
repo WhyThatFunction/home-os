@@ -1,0 +1,144 @@
+{{- $c := .Values.cluster -}}
+{{- $b := .Values.backup -}}
+{{- $certs := .Values.certificates -}}
+---
+# barman-cloud ObjectStore for CNPG backups + WAL archival. Points at the
+# self-hosted MinIO at s3.ssegning.me (path-style).
+{{- if $b.enabled }}
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: {{ $c.name }}-object-store
+  labels:
+    app.kubernetes.io/part-of: vaam-store-prod
+spec:
+  configuration:
+    destinationPath: s3://{{ $b.bucket }}{{ $b.path }}
+    endpointURL: {{ $b.endpoint | quote }}
+    s3Credentials:
+      accessKeyId:
+        name: vaam-prod-cnpg-s3-creds
+        key: accessKeyId
+      secretAccessKey:
+        name: vaam-prod-cnpg-s3-creds
+        key: secretKey
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+  retentionPolicy: {{ $b.retention | quote }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: {{ $c.name }}-scheduled-backup
+  labels:
+    app.kubernetes.io/part-of: vaam-store-prod
+spec:
+  cluster:
+    name: {{ $c.name }}
+  schedule: {{ $b.schedule | quote }}
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+{{- end }}
+---
+{{- if $certs.enabled }}
+# Empty Secret CNPG will fill via the bound Certificate; labelled cnpg.io/reload
+# so the operator restarts pods on cert rotation.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $c.name }}-certificate-holder
+  labels:
+    cnpg.io/reload: ""
+    app.kubernetes.io/part-of: vaam-store-prod
+type: Opaque
+data: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $c.name }}-certificate
+  labels:
+    app.kubernetes.io/part-of: vaam-store-prod
+spec:
+  secretName: {{ $c.name }}-certificate-holder
+  usages:
+    - server auth
+  dnsNames:
+    - {{ $c.name }}-cluster-rw
+    - {{ $c.name }}-cluster-rw.{{ .Release.Namespace }}
+    - {{ $c.name }}-cluster-rw.{{ .Release.Namespace }}.svc
+    - {{ $c.name }}-cluster-r
+    - {{ $c.name }}-cluster-r.{{ .Release.Namespace }}
+    - {{ $c.name }}-cluster-r.{{ .Release.Namespace }}.svc
+    - {{ $c.name }}-cluster-ro
+    - {{ $c.name }}-cluster-ro.{{ .Release.Namespace }}
+    - {{ $c.name }}-cluster-ro.{{ .Release.Namespace }}.svc
+  issuerRef:
+    name: {{ $certs.issuerName }}
+    kind: {{ $certs.issuerKind }}
+    group: cert-manager.io
+{{- end }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ $c.name }}
+  labels:
+    app.kubernetes.io/part-of: vaam-store-prod
+spec:
+  instances: {{ $c.instances }}
+  {{- with $c.imageName }}
+  imageName: {{ . | quote }}
+  {{- end }}
+
+  # CNPG will use this Secret as the bootstrap owner + app role credential.
+  # The same username+password ends up in the auto-generated
+  # `<cluster>-app` Secret that the vaam-service chart's compose mode reads,
+  # giving us URL-safe passwords by construction (operator-controlled).
+  bootstrap:
+    initdb:
+      database: app                        # bootstrap DB; per-service DBs are
+                                           # created by the Database CRs below
+      owner: vaam
+      secret:
+        name: vaam-prod-pg-bootstrap
+
+  {{- if $certs.enabled }}
+  certificates:
+    serverTLSSecret: {{ $c.name }}-certificate-holder
+    serverCASecret:  {{ $c.name }}-certificate-holder
+  {{- end }}
+
+  storage:
+    size: {{ $c.storageSize }}
+    {{- with $c.storageClass }}
+    storageClass: {{ . | quote }}
+    {{- end }}
+
+  resources:
+    {{- toYaml $c.resources | nindent 4 }}
+
+  {{- if $b.enabled }}
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: {{ $c.name }}-object-store
+  {{- end }}
+{{- range .Values.databases }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: {{ $c.name }}-{{ . | replace "_" "-" }}
+  labels:
+    app.kubernetes.io/part-of: vaam-store-prod
+spec:
+  name: {{ . }}
+  owner: vaam
+  cluster:
+    name: {{ $c.name }}
+{{- end }}

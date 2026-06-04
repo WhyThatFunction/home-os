@@ -1,0 +1,104 @@
+# Three ExternalSecrets, all sourcing AWS SM `prod/vaam/env` via the
+# home-os ssegning-aws ClusterSecretStore.
+#
+#   1) vaam-prod-pg-bootstrap    — username + password CNPG uses to create the
+#                                  bootstrap superuser + app role. The chart's
+#                                  Cluster.spec.bootstrap.initdb.secret refs
+#                                  this; CNPG copies the same creds into the
+#                                  auto-generated <cluster>-app Secret that
+#                                  the vaam-service chart's compose mode then
+#                                  reads.
+#
+#   2) vaam-prod-redis-auth      — password the Redis StatefulSet's args use
+#                                  and the vaam-service chart's compose mode
+#                                  reads. Includes a "host" key so the same
+#                                  Secret can fully service compose mode.
+#
+#   3) vaam-prod-cnpg-s3-creds   — access + secret key the CNPG ObjectStore
+#                                  uses for barman-cloud uploads to MinIO.
+#                                  Reuses the same vaam-store MinIO user the
+#                                  applications themselves use.
+#
+# Required AWS SM properties (under secret prod/vaam/env):
+#   - postgres_username       (e.g. "vaam"; URL-safe)
+#   - postgres_password       (URL-safe random)
+#   - redis_password          (URL-safe random)
+#   - object_storage_access_key  (already present)
+#   - object_storage_secret_key  (already present)
+#
+# Plus the per-service properties the vaam-service chart's ExternalSecrets
+# reference directly (signature_trusted_keys, <svc>_signing_key, etc.).
+
+rawResources:
+  ext-secret-pg-bootstrap:
+    enabled: true
+    apiVersion: external-secrets.io/v1
+    kind: ExternalSecret
+    spec:
+      spec:
+        refreshInterval: 1h0m0s
+        secretStoreRef:
+          name: ssegning-aws
+          kind: ClusterSecretStore
+        target:
+          name: vaam-prod-pg-bootstrap
+          creationPolicy: Owner
+        data:
+          - secretKey: username
+            remoteRef:
+              key: prod/vaam/env
+              property: postgres_username
+          - secretKey: password
+            remoteRef:
+              key: prod/vaam/env
+              property: postgres_password
+
+  ext-secret-redis-auth:
+    enabled: true
+    apiVersion: external-secrets.io/v1
+    kind: ExternalSecret
+    spec:
+      spec:
+        refreshInterval: 1h0m0s
+        secretStoreRef:
+          name: ssegning-aws
+          kind: ClusterSecretStore
+        target:
+          name: vaam-prod-redis-auth
+          creationPolicy: Owner
+          template:
+            engineVersion: v2
+            data:
+              # The vaam-service chart's compose mode reads `host` from this
+              # Secret. The Redis StatefulSet's headless Service is
+              # vaam-prod-redis (declared in vaam-store-prod-pg chart).
+              host: "vaam-prod-redis.vaam-prod.svc.cluster.local"
+              password: "{{ `{{ .password }}` }}"
+        data:
+          - secretKey: password
+            remoteRef:
+              key: prod/vaam/env
+              property: redis_password
+
+  ext-secret-cnpg-s3-creds:
+    enabled: true
+    apiVersion: external-secrets.io/v1
+    kind: ExternalSecret
+    spec:
+      spec:
+        refreshInterval: 1h0m0s
+        secretStoreRef:
+          name: ssegning-aws
+          kind: ClusterSecretStore
+        target:
+          name: vaam-prod-cnpg-s3-creds
+          creationPolicy: Owner
+        data:
+          - secretKey: accessKeyId
+            remoteRef:
+              key: prod/vaam/env
+              property: object_storage_access_key
+          - secretKey: secretKey
+            remoteRef:
+              key: prod/vaam/env
+              property: object_storage_secret_key

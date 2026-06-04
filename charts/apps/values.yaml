@@ -151,6 +151,28 @@ applications:
         prune: true
         selfHeal: true
 
+  # vaam-store-prod umbrella. Deploys three child Applications (sync-waved):
+  #   secrets (0) → pg + redis (5) → app (10)
+  # Children defined under charts/home-apps/vaam-store-prod-deployer.
+  - name: vaam-store-prod-deployer
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/vaam-store-prod-deployer
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: argocd                # the 3 child Application CRs land here
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=false
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
     #  - name: ai-poc-model-deployment
     #    finalizers:
     #      - resources-finalizer.argocd.argoproj.io

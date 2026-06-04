@@ -1,0 +1,29 @@
+{{- /*
+  Render each enabled entry in .Values.rawResources as a flat manifest.
+  Mirrors the keycloak-ha / redis-ha pattern. Each entry sets metadata.name
+  to the map key (with the Release.Name prefix elided since these are
+  cluster-wide concerns in a single namespace).
+*/ -}}
+{{- range $key, $obj := .Values.rawResources }}
+{{- if and $obj.enabled $obj.apiVersion $obj.kind }}
+---
+apiVersion: {{ $obj.apiVersion }}
+kind: {{ $obj.kind }}
+metadata:
+  name: {{ $key }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-store-prod
+    app.kubernetes.io/managed-by: vaam-store-prod-secrets
+  {{- with (default dict $obj.metadata).labels }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with (default dict $obj.metadata).annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- with ((default dict $obj.spec).spec) }}
+{{- toYaml (dict "spec" .) | nindent 0 }}
+{{- end }}
+{{- end }}
+{{- end }}

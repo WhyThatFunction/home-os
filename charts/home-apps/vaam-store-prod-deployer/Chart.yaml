@@ -1,0 +1,6 @@
+apiVersion: v2
+name: vaam-store-prod-deployer
+description: Umbrella app-of-apps for vaam-store-prod — deploys the secrets, CNPG+Redis infra, and the vaam services themselves.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

@@ -1,0 +1,111 @@
+{{- $r := .Values.redis -}}
+{{- if $r.enabled }}
+{{- /*
+  Simple in-namespace Redis. NO TLS, password from the
+  vaam-prod-redis-auth Secret (synced by vaam-store-prod-secrets from
+  prod/vaam/env). Single replica by default; bump replicas to enable
+  Sentinel-less master/replica if you ever need HA.
+
+  Headless Service vaam-prod-redis is what the
+  vaam-service chart's compose mode resolves via the
+  `host` key in vaam-prod-redis-auth.
+*/}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: vaam-prod-redis
+  labels:
+    app.kubernetes.io/name: vaam-prod-redis
+    app.kubernetes.io/part-of: vaam-store-prod
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: vaam-prod-redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vaam-prod-redis
+  labels:
+    app.kubernetes.io/name: vaam-prod-redis
+    app.kubernetes.io/part-of: vaam-store-prod
+spec:
+  serviceName: vaam-prod-redis
+  replicas: {{ $r.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vaam-prod-redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vaam-prod-redis
+        app.kubernetes.io/part-of: vaam-store-prod
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+        - name: redis
+          image: {{ $r.image | quote }}
+          imagePullPolicy: IfNotPresent
+          args:
+            # No persistence-only file load; --requirepass via env at startup.
+            - --requirepass
+            - $(REDIS_PASSWORD)
+            - --appendonly
+            - "yes"
+            - --dir
+            - /data
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vaam-prod-redis-auth
+                  key: password
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - redis-cli -h 127.0.0.1 -p 6379 -a "$REDIS_PASSWORD" PING | grep -q PONG
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            tcpSocket:
+              port: redis
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 5
+          resources:
+            {{- toYaml $r.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ $r.storageSize }}
+{{- end }}

@@ -1,0 +1,10 @@
+apiVersion: v2
+name: vaam-store-prod-pg
+description: CNPG-managed Postgres for vaam-store-prod (single Cluster + 8 Databases + barman-cloud backups to s3.ssegning.me) bundled with a simple in-namespace Redis StatefulSet. Mirrors keycloak-ha's CNPG/backup pattern.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  - name: common
+    version: '*'
+    repository: https://bjw-s-labs.github.io/helm-charts

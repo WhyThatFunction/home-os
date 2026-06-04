@@ -1,0 +1,67 @@
+# vaam-store-prod-pg — CNPG cluster + 8 databases + barman-cloud backups
+# (s3.ssegning.me/vaam-cnpg-backups) + a simple in-namespace Redis.
+#
+# The companion `vaam-store-prod-secrets` chart provides:
+#   - vaam-prod-pg-bootstrap     (username + password for CNPG bootstrap)
+#   - vaam-prod-redis-auth       (password + host for Redis & vaam consumers)
+#   - vaam-prod-cnpg-s3-creds    (S3 creds for barman-cloud uploads)
+#
+# Cluster name is fixed at `vaam-prod-pg` so the auto-generated
+# `vaam-prod-pg-cluster-app` Secret matches what the vaam-service chart's
+# compose mode reads.
+
+cluster:
+  name: vaam-prod-pg          # → service vaam-prod-pg-cluster-rw, secret vaam-prod-pg-cluster-app
+  instances: 3
+  storageSize: 10Gi
+  # storageClass: longhorn    # uncomment to pin SC; defaults to the cluster default
+  imageName: ""               # leave blank for the CNPG operator default
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+databases:
+  # One CNPG Database CR per service. Owner is the bootstrap user (`vaam`)
+  # from the vaam-prod-pg-bootstrap Secret, which the vaam-service chart
+  # then uses via vaam-prod-pg-cluster-app to connect.
+  - auth_db
+  - catalog_db
+  - chat_db
+  - delivery_db
+  - order_db
+  - payment_db
+  - upload_db
+  - vendor_db
+
+backup:
+  enabled: true
+  # barman-cloud target. Bucket must exist on s3.ssegning.me; create with:
+  #   mc mb ssegning/vaam-cnpg-backups
+  endpoint: https://s3.ssegning.me
+  bucket: vaam-cnpg-backups
+  path: /vaam-store-prod
+  retention: 30d
+  schedule: "0 0 3 * * *"   # daily at 03:00
+
+certificates:
+  enabled: true
+  # Reuses the home-os self-signed-ca ClusterIssuer for Postgres TLS,
+  # matching the keycloak-ha pattern.
+  issuerName: self-signed-ca
+  issuerKind: ClusterIssuer
+
+redis:
+  enabled: true
+  image: redis:8.6.2-trixie
+  replicas: 1
+  storageSize: 5Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi

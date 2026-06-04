@@ -1,0 +1,107 @@
+{{- /*
+  Three child Applications:
+   1) vaam-store-prod-secrets  → ExternalSecrets that sync prod/vaam/env into
+                                  the vaam-prod namespace (CNPG bootstrap creds,
+                                  Redis password, service-level keys, S3 creds).
+   2) vaam-store-prod-pg       → CNPG Cluster + 8 Databases + ObjectStore +
+                                  ScheduledBackup + bundled Redis StatefulSet.
+   3) vaam-store-prod-app      → The vaam services themselves; sources the
+                                  kustomize overlay from vaam-store-prod repo
+                                  which renders 10 child Application CRs.
+
+  Sync ordering: secrets (wave 0) → pg (wave 5) → app (wave 10), so the
+  ExternalSecrets materialise before CNPG bootstraps and before the services
+  try to read them.
+*/}}
+{{- $homeOs := .Values.homeOsRepo -}}
+{{- $vaam := .Values.vaamStoreRepo -}}
+{{- $rev := .Values.vaamStoreRevision -}}
+{{- $ns := .Values.namespace -}}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vaam-store-prod-secrets
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: vaam-store-prod
+spec:
+  project: external
+  source:
+    repoURL: {{ $homeOs | quote }}
+    targetRevision: HEAD
+    path: charts/home-apps/vaam-store-prod-secrets
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ $ns | quote }}
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    automated:
+      prune: true
+      selfHeal: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vaam-store-prod-pg
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: vaam-store-prod
+spec:
+  project: external
+  source:
+    repoURL: {{ $homeOs | quote }}
+    targetRevision: HEAD
+    path: charts/home-apps/vaam-store-prod-pg
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ $ns | quote }}
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    automated:
+      prune: true
+      selfHeal: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vaam-store-prod-app
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    # argocd-image-updater write-back is configured on the rendered child
+    # Application CRs by the kustomize overlay itself.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: vaam-store-prod
+spec:
+  project: external
+  source:
+    repoURL: {{ $vaam | quote }}
+    targetRevision: {{ $rev | quote }}
+    path: deploy/argocd/overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    # The kustomize overlay creates Application CRs in the argocd namespace;
+    # each of those Applications then targets vaam-prod for its workloads.
+    namespace: argocd
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true
+    automated:
+      prune: true
+      selfHeal: true

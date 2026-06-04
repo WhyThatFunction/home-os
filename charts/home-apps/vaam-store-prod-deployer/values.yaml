@@ -1,0 +1,10 @@
+# Umbrella values — each child Application's source/destination is templated below.
+homeOsRepo: https://github.com/whythatfunction/home-os
+vaamStoreRepo: https://github.com/vaam-store/vaam-store-prod
+
+# Sync revision for the vaam-store-prod app: change to a pinned tag/SHA for
+# slower-burn promotion; main = follow head of the prod GitOps overlay.
+vaamStoreRevision: main
+
+# Target namespace for all vaam workloads (CNPG, Redis, services).
+namespace: vaam-prod

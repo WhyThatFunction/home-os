@@ -1,0 +1,10 @@
+apiVersion: v2
+name: vaam-store-prod-secrets
+description: Sync prod/vaam/env from AWS Secrets Manager (via ssegning-aws) into the vaam-prod namespace. Provides the CNPG bootstrap creds, Redis auth, S3 creds for CNPG backups, and per-service auth/signing material.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  - name: common
+    version: '*'
+    repository: https://bjw-s-labs.github.io/helm-charts
