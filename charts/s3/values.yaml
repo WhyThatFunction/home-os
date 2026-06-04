@@ -93,9 +93,27 @@ minio:
             resources:
               - "arn:aws:s3:::ai-ops-backups/*"
               - "arn:aws:s3:::ai-ops-backups"
-    
+      - name: vymalo-cnpg-backups-policy
+        statements:
+          # Least privilege: only what barman-cloud / CNPG needs to read,
+          # write, and prune backups — NOT s3:* (which would allow deleting
+          # the bucket itself if these creds leak).
+          - actions:
+              - "s3:GetBucketLocation"
+              - "s3:ListBucket"
+              - "s3:GetObject"
+              - "s3:PutObject"
+              - "s3:DeleteObject"
+            effect: "Allow"
+            resources:
+              - "arn:aws:s3:::vymalo-cnpg-backups/*"
+              - "arn:aws:s3:::vymalo-cnpg-backups"
+
     usersExistingSecrets:
       - minio-users
+      # ESO-materialized (see templates/vymalo-backup-user.externalsecret.yaml):
+      # the vymalo-backup user (CNPG barman backups) with vymalo-cnpg-backups-policy.
+      - vymalo-minio-users
     
     buckets:
       - name: monitoring
@@ -107,6 +125,8 @@ minio:
       - name: argo-artifacts
         withLock: false
       - name: ai-ops-backups
+        withLock: false
+      - name: vymalo-cnpg-backups
         withLock: false
 
 provision_minio_buckets_policies:
