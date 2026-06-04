@@ -94,17 +94,19 @@ spec:
   imageName: {{ . | quote }}
   {{- end }}
 
-  # CNPG will use this Secret as the bootstrap owner + app role credential.
-  # The same username+password ends up in the auto-generated
-  # `<cluster>-app` Secret that the vaam-service chart's compose mode reads,
-  # giving us URL-safe passwords by construction (operator-controlled).
+  # No bootstrap.initdb.secret — CNPG auto-generates the `vaam` role
+  # password and publishes it in the `<cluster>-app` Secret. The
+  # vaam-service chart's compose mode reads username/password/host
+  # from that Secret and overrides dbName per service. Risk: the
+  # generated password CAN contain URL-reserved characters (CNPG uses
+  # sethvargo/go-password with the default symbol set). If we observe
+  # a service failing to parse its postgres URL, rotate that service
+  # to chart's `cnpg.urlFromSecret` mode against a derived Secret.
   bootstrap:
     initdb:
       database: app                        # bootstrap DB; per-service DBs are
                                            # created by the Database CRs below
       owner: vaam
-      secret:
-        name: vaam-prod-pg-bootstrap
 
   {{- if $certs.enabled }}
   certificates:

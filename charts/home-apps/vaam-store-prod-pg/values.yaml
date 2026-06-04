@@ -1,14 +1,14 @@
 # vaam-store-prod-pg — CNPG cluster + 8 databases + barman-cloud backups
-# (s3.ssegning.me/vaam-cnpg-backups) + a simple in-namespace Redis.
+# (s3.ssegning.me/vaam-cnpg-backups) + a simple AUTH-less in-namespace Redis.
 #
-# The companion `vaam-store-prod-secrets` chart provides:
-#   - vaam-prod-pg-bootstrap     (username + password for CNPG bootstrap)
-#   - vaam-prod-redis-auth       (password + host for Redis & vaam consumers)
-#   - vaam-prod-cnpg-s3-creds    (S3 creds for barman-cloud uploads)
+# CNPG auto-generates the `vaam` role password and publishes the
+# `vaam-prod-pg-cluster-app` Secret. The companion `vaam-store-prod-secrets`
+# chart only provides the S3 creds for barman-cloud (the same MinIO user
+# the applications themselves use).
 #
 # Cluster name is fixed at `vaam-prod-pg` so the auto-generated
 # `vaam-prod-pg-cluster-app` Secret matches what the vaam-service chart's
-# compose mode reads.
+# compose mode reads. Redis is private ClusterIP, no AUTH.
 
 cluster:
   name: vaam-prod-pg          # → service vaam-prod-pg-cluster-rw, secret vaam-prod-pg-cluster-app
@@ -26,8 +26,8 @@ cluster:
 
 databases:
   # One CNPG Database CR per service. Owner is the bootstrap user (`vaam`)
-  # from the vaam-prod-pg-bootstrap Secret, which the vaam-service chart
-  # then uses via vaam-prod-pg-cluster-app to connect.
+  # CNPG auto-creates; the vaam-service chart connects via the auto-generated
+  # vaam-prod-pg-cluster-app Secret with dbName overridden per service.
   - auth_db
   - catalog_db
   - chat_db

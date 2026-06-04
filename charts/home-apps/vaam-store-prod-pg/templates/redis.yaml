@@ -1,14 +1,15 @@
 {{- $r := .Values.redis -}}
 {{- if $r.enabled }}
 {{- /*
-  Simple in-namespace Redis. NO TLS, password from the
-  vaam-prod-redis-auth Secret (synced by vaam-store-prod-secrets from
-  prod/vaam/env). Single replica by default; bump replicas to enable
+  Simple in-namespace Redis. NO TLS, NO AUTH — this is a private
+  ClusterIP-only service inside the vaam-prod namespace. Defense
+  is at the network/namespace boundary, not at the protocol layer.
+  Single replica by default; bump replicas to enable
   Sentinel-less master/replica if you ever need HA.
 
-  Headless Service vaam-prod-redis is what the
-  vaam-service chart's compose mode resolves via the
-  `host` key in vaam-prod-redis-auth.
+  Headless Service vaam-prod-redis is the host the vaam-service
+  chart's compose mode connects to (hostKey/host literal, no
+  passwordKey).
 */}}
 apiVersion: v1
 kind: Service
@@ -57,19 +58,11 @@ spec:
           image: {{ $r.image | quote }}
           imagePullPolicy: IfNotPresent
           args:
-            # No persistence-only file load; --requirepass via env at startup.
-            - --requirepass
-            - $(REDIS_PASSWORD)
+            # AUTH-less: no --requirepass. AOF on for crash durability.
             - --appendonly
             - "yes"
             - --dir
             - /data
-          env:
-            - name: REDIS_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: vaam-prod-redis-auth
-                  key: password
           ports:
             - name: redis
               containerPort: 6379
@@ -79,7 +72,7 @@ spec:
               command:
                 - sh
                 - -c
-                - redis-cli -h 127.0.0.1 -p 6379 -a "$REDIS_PASSWORD" PING | grep -q PONG
+                - redis-cli -h 127.0.0.1 -p 6379 PING | grep -q PONG
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 3
