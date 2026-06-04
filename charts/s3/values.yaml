@@ -120,6 +120,8 @@ minio:
               - "arn:aws:s3:::vaam-uploads"
               - "arn:aws:s3:::vaam-insights/*"
               - "arn:aws:s3:::vaam-insights"
+              - "arn:aws:s3:::vaam-cnpg-backups/*"
+              - "arn:aws:s3:::vaam-cnpg-backups"
 
     usersExistingSecrets:
       - minio-users
@@ -146,6 +148,8 @@ minio:
       - name: vymalo-uploads
         withLock: false
       - name: vymalo-insights
+        withLock: false
+      - name: vaam-cnpg-backups
         withLock: false
 
 provision_minio_buckets_policies:
