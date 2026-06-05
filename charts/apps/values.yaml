@@ -165,6 +165,14 @@ applications:
     destination:
       server: https://kubernetes.default.svc
       namespace: argocd                # the 3 child Application CRs land here
+    # The deployer renders 2 GHCR ExternalSecrets directly; ESO mutates them
+    # continuously, so ignore the fields its controller owns to avoid
+    # permanent cosmetic drift.
+    ignoreDifferences:
+      - group: external-secrets.io
+        kind: ExternalSecret
+        managedFieldsManagers:
+          - external-secrets
     syncPolicy:
       syncOptions:
         - CreateNamespace=false
