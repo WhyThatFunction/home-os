@@ -1,0 +1,27 @@
+{{- /*
+  This cluster runs the CRD-based argocd-image-updater controller (not the
+  annotation-only sidecar). The controller acts on an Application's
+  argocd-image-updater.argoproj.io/* annotations ONLY when an ImageUpdater CR
+  selects that Application via applicationRefs + useAnnotations: true.
+
+  The vaam-store-prod per-service Applications are named prod-<svc> and carry
+  the full image-list / update-strategy / git write-back annotation set
+  (emitted by deploy/scripts/gen-apps.sh in the vaam-store-prod repo). This CR
+  is what activates them: on each reconcile the controller checks GHCR for new
+  sha-<7hex> tags and commits the new tag back into the per-service prod values
+  file via the github-app-creds--vaam-store credential.
+
+  namePattern matches only prod-* (all of which are vaam services today); the
+  umbrella apps are vaam-store-prod-* and are intentionally excluded.
+*/}}
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: vaam-store-prod
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: vaam-store-prod
+spec:
+  applicationRefs:
+    - namePattern: prod-*
+      useAnnotations: true
