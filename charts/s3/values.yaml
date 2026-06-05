@@ -151,6 +151,12 @@ minio:
         withLock: false
       - name: vaam-cnpg-backups
         withLock: false
+      - name: vaam-catalog
+        withLock: false
+      - name: vaam-uploads
+        withLock: false
+      - name: vaam-insights
+        withLock: false
 
 provision_minio_buckets_policies:
   enabled: true
