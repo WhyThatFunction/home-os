@@ -27,15 +27,19 @@ cluster:
 databases:
   # One CNPG Database CR per service. Owner is the bootstrap user (`vaam`)
   # CNPG auto-creates; the vaam-service chart connects via the auto-generated
-  # vaam-prod-pg-cluster-app Secret with dbName overridden per service.
-  - auth_db
-  - catalog_db
-  - chat_db
-  - delivery_db
-  - order_db
-  - payment_db
-  - upload_db
-  - vendor_db
+  # vaam-prod-pg-app Secret with dbName overridden per service.
+  # `extensions` are created by CNPG as superuser (the vaam role can't create
+  # untrusted extensions like postgis); the Bitnami image bundles the libs.
+  - name: auth_db
+  - name: catalog_db
+    extensions: [postgis]   # catalog 0001_init.sql: CREATE EXTENSION postgis
+  - name: chat_db
+  - name: delivery_db
+    extensions: [postgis]   # delivery 0005_postgis_geo.sql
+  - name: order_db
+  - name: payment_db
+  - name: upload_db
+  - name: vendor_db
 
 backup:
   enabled: true

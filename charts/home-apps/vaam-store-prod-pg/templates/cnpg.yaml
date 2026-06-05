@@ -135,12 +135,22 @@ spec:
 apiVersion: postgresql.cnpg.io/v1
 kind: Database
 metadata:
-  name: {{ $c.name }}-{{ . | replace "_" "-" }}
+  name: {{ $c.name }}-{{ .name | replace "_" "-" }}
   labels:
     app.kubernetes.io/part-of: vaam-store-prod
 spec:
-  name: {{ . }}
+  name: {{ .name }}
   owner: vaam
   cluster:
     name: {{ $c.name }}
+  {{- with .extensions }}
+  # CNPG creates these as superuser; the services' own
+  # `CREATE EXTENSION IF NOT EXISTS` migrations then become no-ops (the
+  # vaam app role can't create untrusted extensions like postgis itself).
+  extensions:
+    {{- range . }}
+    - name: {{ . }}
+      ensure: present
+    {{- end }}
+  {{- end }}
 {{- end }}
