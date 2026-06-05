@@ -158,6 +158,12 @@ applications:
     finalizers:
       - resources-finalizer.argocd.argoproj.io
     project: external
+    # ServerSideDiff computes the diff via an SSA dry-run, so fields the
+    # apiserver/ESO default in (and that this app never declares) are not
+    # flagged as drift. Avoids the permanent cosmetic OutOfSync on the 2
+    # GHCR ExternalSecrets the deployer renders, with no brittle field lists.
+    additionalAnnotations:
+      argocd.argoproj.io/compare-options: ServerSideDiff=true
     source:
       repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD
@@ -165,14 +171,6 @@ applications:
     destination:
       server: https://kubernetes.default.svc
       namespace: argocd                # the 3 child Application CRs land here
-    # The deployer renders 2 GHCR ExternalSecrets directly; ESO mutates them
-    # continuously, so ignore the fields its controller owns to avoid
-    # permanent cosmetic drift.
-    ignoreDifferences:
-      - group: external-secrets.io
-        kind: ExternalSecret
-        managedFieldsManagers:
-          - external-secrets
     syncPolicy:
       syncOptions:
         - CreateNamespace=false

@@ -25,6 +25,9 @@ metadata:
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "0"
+    # SSA dry-run diff: ESO/CRD-defaulted fields this app never declares are
+    # not flagged, so it reports Synced without brittle ignoreDifferences.
+    argocd.argoproj.io/compare-options: ServerSideDiff=true
   finalizers:
     - resources-finalizer.argocd.argoproj.io
   labels:
@@ -38,13 +41,6 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: {{ $ns | quote }}
-  # ESO continuously re-applies the synced Secrets; ignore the fields its
-  # controller owns so the app doesn't sit permanently OutOfSync.
-  ignoreDifferences:
-    - group: external-secrets.io
-      kind: ExternalSecret
-      managedFieldsManagers:
-        - external-secrets
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -60,6 +56,10 @@ metadata:
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "5"
+    # SSA dry-run diff: the many fields CNPG and the kube controller default
+    # into the Cluster / Redis StatefulSet after creation are not flagged, so
+    # the app reports Synced without hand-matching version-specific defaults.
+    argocd.argoproj.io/compare-options: ServerSideDiff=true
   finalizers:
     - resources-finalizer.argocd.argoproj.io
   labels:
@@ -73,18 +73,6 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: {{ $ns | quote }}
-  # The CNPG operator and the kube controller heavily mutate the Cluster
-  # and the Redis StatefulSet after creation. Ignore the fields they own so
-  # the app reports Synced instead of permanent cosmetic drift.
-  ignoreDifferences:
-    - group: postgresql.cnpg.io
-      kind: Cluster
-      managedFieldsManagers:
-        - manager
-    - group: apps
-      kind: StatefulSet
-      managedFieldsManagers:
-        - kube-controller-manager
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
