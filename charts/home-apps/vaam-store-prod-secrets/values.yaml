@@ -21,6 +21,8 @@
 # Required AWS SM properties (under secret prod/vaam/env), for THIS chart:
 #   - object_storage_access_key
 #   - object_storage_secret_key
+#   - github_username / github_token  (PAT with read:packages on vaam-store;
+#                                      used to pull the private service images)
 
 rawResources:
   ext-secret-cnpg-s3-creds:
@@ -45,3 +47,35 @@ rawResources:
             remoteRef:
               key: prod/vaam/env
               property: object_storage_secret_key
+
+  # dockerconfigjson the kubelet uses to pull the private
+  # ghcr.io/vaam-store/<service> images. Referenced by every prod service
+  # values file via imagePullSecrets: [{ name: ghcr-pull }]. Previously
+  # created by hand; now reprovisioned from SM on a fresh cluster.
+  ext-secret-ghcr-pull:
+    enabled: true
+    apiVersion: external-secrets.io/v1
+    kind: ExternalSecret
+    spec:
+      spec:
+        refreshInterval: 1h0m0s
+        secretStoreRef:
+          name: ssegning-aws
+          kind: ClusterSecretStore
+        target:
+          name: ghcr-pull
+          creationPolicy: Owner
+          template:
+            engineVersion: v2
+            type: kubernetes.io/dockerconfigjson
+            data:
+              .dockerconfigjson: '{"auths":{"ghcr.io":{"username":"{{ .github_username }}","password":"{{ .github_token }}","auth":"{{ printf "%s:%s" .github_username .github_token | b64enc }}"}}}'
+        data:
+          - secretKey: github_username
+            remoteRef:
+              key: prod/vaam/env
+              property: github_username
+          - secretKey: github_token
+            remoteRef:
+              key: prod/vaam/env
+              property: github_token

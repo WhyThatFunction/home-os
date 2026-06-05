@@ -38,6 +38,13 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: {{ $ns | quote }}
+  # ESO continuously re-applies the synced Secrets; ignore the fields its
+  # controller owns so the app doesn't sit permanently OutOfSync.
+  ignoreDifferences:
+    - group: external-secrets.io
+      kind: ExternalSecret
+      managedFieldsManagers:
+        - external-secrets
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -66,6 +73,18 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: {{ $ns | quote }}
+  # The CNPG operator and the kube controller heavily mutate the Cluster
+  # and the Redis StatefulSet after creation. Ignore the fields they own so
+  # the app reports Synced instead of permanent cosmetic drift.
+  ignoreDifferences:
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      managedFieldsManagers:
+        - manager
+    - group: apps
+      kind: StatefulSet
+      managedFieldsManagers:
+        - kube-controller-manager
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
