@@ -67,7 +67,71 @@ applications:
       repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD
       path: charts/home-apps/redis-ha
-
+      # Local deployment: collapse the HA/TLS/OAuth chart to a single bare
+      # Redis node (no sentinel, no TLS, no RedisInsight/oauth2, no auth,
+      # no external-secrets). Reachable in-cluster at
+      # redis-ha-redis.redis-system.svc:6379 with no password.
+      helm:
+        valuesObject:
+          controllers:
+            redis:
+              replicas: 1
+              podDisruptionBudget: null              # lib renders PDB whenever the map exists; null removes it
+              containers:
+                app:
+                  env:
+                    REDIS_PASSWORD: null             # drop auth env
+                  args:                              # bare single-node start, no ACL/masterauth
+                    - /bin/sh
+                    - -ec
+                    - |
+                      mkdir -p /data
+                      cp /bootstrap/redis.conf /data/redis.conf
+                      {
+                        echo "dir /data"
+                        echo "appendonly yes"
+                      } >> /data/redis.conf
+                      exec redis-server /data/redis.conf
+                  probes:
+                    liveness:
+                      spec: { exec: { command: ["/bin/sh", "-ec", "redis-cli -h 127.0.0.1 -p 6379 PING | grep PONG"] } }
+                    readiness:
+                      spec: { exec: { command: ["/bin/sh", "-ec", "redis-cli -h 127.0.0.1 -p 6379 PING | grep PONG"] } }
+                    startup:
+                      spec: { exec: { command: ["/bin/sh", "-ec", "redis-cli -h 127.0.0.1 -p 6379 PING | grep PONG"] } }
+            sentinel: { enabled: false }
+            redisinsight: { enabled: false }
+          service:
+            sentinel: { enabled: false }
+            sentinel-headless: { enabled: false }
+            redisinsight: { enabled: false }
+          ingress:
+            redisinsight-auth2: { enabled: false }
+            redisinsight: { enabled: false }
+          persistence:
+            sentinel-bootstrap: { enabled: false }
+            redis-tls: { enabled: false }
+            sentinel-tls: { enabled: false }
+            redisinsight-data: { enabled: false }
+          configMaps:
+            sentinel-bootstrap: { enabled: false }
+            redis-bootstrap:
+              data:
+                redis.conf: |
+                  bind 0.0.0.0
+                  protected-mode no
+                  port 6379
+                  save 900 1
+                  save 300 10
+                  save 60 10000
+          rawResources:
+            redis-tls: { enabled: false }
+            sentinel-tls: { enabled: false }
+            redisinsight-tls: { enabled: false }
+            redisinsight-auth: { enabled: false }
+            redisinsight-oauth2-errors: { enabled: false }
+            oauth2-proxy-secret: { enabled: false }
+            redis-auth-secret: { enabled: false }
     destination:
       name: home-remote
       namespace: redis-system
