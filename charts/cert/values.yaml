@@ -15,6 +15,25 @@ solvers:
     ingressClassName: "traefik"
     email: "{{ .Values.global.issuer.email }}"
     commonAnnotations: ~
+  # Route53 DNS-01 — for zones hosted on AWS Route53 (ai.camer.digital) and for
+  # wildcard certs (Coder workspaces), which HTTP-01 cannot issue. Renders the
+  # `cert-route53` ClusterIssuer. Requires a static IAM access key in the secret
+  # named below, in the cert-manager cluster-resource-namespace (kube-system),
+  # with route53:ChangeResourceRecordSets + GetChange + ListHostedZonesByName.
+  # Enabled by default; the issuer stays non-functional (orders pend) until the
+  # credentials secret exists, but its presence harms nothing.
+  route53:
+    enabled: true
+    email: "{{ .Values.global.issuer.email }}"
+    # Route53 is global; region is required by the resolver — us-east-1 is the
+    # conventional choice and works for any zone.
+    region: "us-east-1"
+    # Leave empty to let cert-manager discover the zone by name.
+    hostedZoneID: ""
+    credentialsSecretName: "route53-secret"
+    accessKeyIDKey: "access-key-id"
+    secretAccessKeyKey: "secret-access-key"
+    commonAnnotations: ~
   selfSigned:
     enabled: true
     enabledStaging: true

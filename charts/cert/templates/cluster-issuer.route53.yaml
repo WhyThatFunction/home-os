@@ -1,0 +1,47 @@
+{{ with .Values.solvers.route53 }}
+{{ if .enabled }}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: cert-route53
+  namespace: {{ include "common.names.namespace" $ }}
+  labels:
+    {{ include "common.labels.standard" $ | nindent 4 }}
+  annotations:
+    {{- with .commonAnnotations }}
+    {{ include "common.tplvalues.render" ( dict "value" . "context" $ ) | nindent 4 }}
+    {{- end }}
+    {{- with $.Values.commonAnnotations }}
+    {{ include "common.tplvalues.render" ( dict "value" . "context" $ ) | nindent 4 }}
+    {{- end }}
+spec:
+  acme:
+    # Let's Encrypt production ACME endpoint.
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: {{ include "common.tplvalues.render" ( dict "value" .email "context" $ ) }}
+    privateKeySecretRef:
+      name: cert-route53
+    # DNS-01 via Amazon Route53. Required for ai.camer.digital because its zone
+    # is hosted on Route53 (NOT Cloudflare) and because wildcard SANs (Coder's
+    # *.coder-ai.camer.digital workspace hosts) can ONLY be issued via DNS-01.
+    #
+    # Credentials: a static IAM access key in the secret below, which MUST live
+    # in the cert-manager cluster-resource-namespace (kube-system) and whose IAM
+    # principal can route53:ChangeResourceRecordSets + GetChange +
+    # ListHostedZonesByName on the target hosted zone. cert-manager auto-discovers
+    # the zone by name when hostedZoneID is empty.
+    solvers:
+      - dns01:
+          route53:
+            region: {{ .region | quote }}
+            {{- with .hostedZoneID }}
+            hostedZoneID: {{ . | quote }}
+            {{- end }}
+            accessKeyIDSecretRef:
+              name: {{ .credentialsSecretName | quote }}
+              key: {{ .accessKeyIDKey | quote }}
+            secretAccessKeySecretRef:
+              name: {{ .credentialsSecretName | quote }}
+              key: {{ .secretAccessKeyKey | quote }}
+{{ end }}
+{{ end }}
