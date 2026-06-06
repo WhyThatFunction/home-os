@@ -1083,6 +1083,14 @@ applications:
       chart: "."
       helm:
         releaseName: arc
+        valuesObject:
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
     destination:
       name: home-remote
       namespace: arc-systems
@@ -1121,6 +1129,13 @@ applications:
                 containers:
                   - name: dind
                     image: docker:29-dind
+                    resources:
+                      requests:
+                        cpu: 250m
+                        memory: 512Mi
+                      limits:
+                        cpu: "2"
+                        memory: 3Gi
                     securityContext:
                       privileged: true
                     env:
@@ -1143,6 +1158,13 @@ applications:
 
                   - name: runner
                     image: ghcr.io/actions/actions-runner:latest
+                    resources:
+                      requests:
+                        cpu: 500m
+                        memory: 1Gi
+                      limits:
+                        cpu: "3"
+                        memory: 4Gi
                     command: [ "/bin/sh", "-c" ]
                     args:
                       - sleep 15; exec /home/runner/run.sh
@@ -1200,6 +1222,13 @@ applications:
                 containers:
                   - name: dind
                     image: docker:29-dind
+                    resources:
+                      requests:
+                        cpu: 250m
+                        memory: 512Mi
+                      limits:
+                        cpu: "2"
+                        memory: 3Gi
                     securityContext:
                       privileged: true
                     env:
@@ -1222,6 +1251,13 @@ applications:
 
                   - name: runner
                     image: ghcr.io/actions/actions-runner:latest
+                    resources:
+                      requests:
+                        cpu: 500m
+                        memory: 1Gi
+                      limits:
+                        cpu: "3"
+                        memory: 4Gi
                     command: [ "/home/runner/run.sh" ]
                     env:
                       - name: DOCKER_HOST
@@ -1307,6 +1343,13 @@ applications:
                 containers:
                   - name: dind
                     image: docker:29-dind
+                    resources:
+                      requests:
+                        cpu: 250m
+                        memory: 512Mi
+                      limits:
+                        cpu: "2"
+                        memory: 3Gi
                     securityContext:
                       privileged: true
                     env:
@@ -1329,6 +1372,13 @@ applications:
 
                   - name: runner
                     image: ghcr.io/vaam-store/vaam-arc-runner:110863c
+                    resources:
+                      requests:
+                        cpu: 500m
+                        memory: 1Gi
+                      limits:
+                        cpu: "3"
+                        memory: 4Gi
                     command: [ "/bin/sh", "-c" ]
                     args:
                       - sleep 15; exec /home/runner/run.sh
@@ -1449,6 +1499,13 @@ applications:
                 containers:
                   - name: dind
                     image: docker:29-dind
+                    resources:
+                      requests:
+                        cpu: 250m
+                        memory: 512Mi
+                      limits:
+                        cpu: "2"
+                        memory: 3Gi
                     securityContext:
                       privileged: true
                     env:
@@ -1471,6 +1528,13 @@ applications:
 
                   - name: runner
                     image: ghcr.io/actions/actions-runner:latest
+                    resources:
+                      requests:
+                        cpu: 500m
+                        memory: 1Gi
+                      limits:
+                        cpu: "3"
+                        memory: 4Gi
                     command: [ "/bin/sh", "-c" ]
                     args:
                       - sleep 30; exec /home/runner/run.sh
