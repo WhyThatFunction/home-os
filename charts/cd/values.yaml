@@ -198,8 +198,6 @@ projects:
       - namespace: "*"
         server: https://kubernetes.default.svc
       - namespace: "*"
-        name: "lke560142-ctx"
-      - namespace: "*"
         name: "home-remote"
     clusterResourceWhitelist:
       - group: "*"
@@ -1043,22 +1041,10 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: ai-apps
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: ai
-    source:
-      repoURL: https://github.com/ADORSYS-GIS/ai-helm
-      targetRevision: HEAD
-      path: charts/apps
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: argocd
-    syncPolicy:
-      automated:
-        prune: true
-        selfHeal: true
-
+  # ai-apps (old Linode gen, targetRevision HEAD) REMOVED 2026-06-06 — the
+  # Linode cluster was deleted; the ai-* generation is decommissioned. Only
+  # ai-apps-v2 (Hetzner) remains. (The lke560142-ctx project destination was
+  # dropped above too.)
   - name: ai-apps-v2
     finalizers:
       - resources-finalizer.argocd.argoproj.io
