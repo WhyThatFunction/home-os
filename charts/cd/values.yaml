@@ -144,6 +144,8 @@ projects:
     destinations:
       - namespace: "redis-system"
         name: home-remote
+      - namespace: "redis-system"
+        server: https://kubernetes.default.svc
     clusterResourceWhitelist:
       - group: "*"
         kind: "*"

@@ -59,6 +59,8 @@ applications:
         prune: true
         selfHeal: true
 
+  # Full HA Redis (sentinel + TLS + RedisInsight/oauth2 + external-secrets)
+  # on the remote (Hetzner) cluster. Uses the chart defaults as-is.
   - name: redis-ha
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -67,11 +69,32 @@ applications:
       repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD
       path: charts/home-apps/redis-ha
-      # Local deployment: collapse the HA/TLS/OAuth chart to a single bare
-      # Redis node (no sentinel, no TLS, no RedisInsight/oauth2, no auth,
-      # no external-secrets). Reachable in-cluster at
-      # redis-ha-redis.redis-system.svc:6379 with no password.
+
+    destination:
+      name: home-remote
+      namespace: redis-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  # Local single-node Redis on the in-cluster (where ArgoCD runs). Collapses
+  # the HA/TLS/OAuth chart to one bare node: no sentinel, no TLS, no
+  # RedisInsight/oauth2, no auth, no external-secrets. releaseName is pinned to
+  # redis-ha so in-cluster DNS matches the remote: redis-ha-redis.redis-system.svc:6379
+  - name: local-redis-ha
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: redis
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/redis-ha
       helm:
+        releaseName: redis-ha
         valuesObject:
           controllers:
             redis:
@@ -133,7 +156,7 @@ applications:
             oauth2-proxy-secret: { enabled: false }
             redis-auth-secret: { enabled: false }
     destination:
-      name: home-remote
+      server: https://kubernetes.default.svc
       namespace: redis-system
     syncPolicy:
       syncOptions:
