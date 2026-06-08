@@ -368,14 +368,28 @@ controllers:
         image:
           repository: haproxy
           tag: "3.0-alpine"
-        # HAProxy expands ${ENV} in the config at load → the password stays in the
-        # secret, never in the ConfigMap.
         env:
+          # The AUTH password — kept in the secret/env, never in the ConfigMap. It is
+          # substituted into the config at startup (below); HAProxy's own ${ENV}
+          # expansion does NOT apply inside `tcp-check send`.
           REDIS_PASSWORD:
             valueFrom:
               secretKeyRef:
                 name: "{{ $.Release.Name }}-redis-auth"
                 key: redis-password
+        # Render the runtime config from the mounted template, replacing the
+        # __REDIS_PASSWORD__ placeholder with the env value. awk ENVIRON+index does a
+        # LITERAL replace (no regex/sed-delimiter pitfalls → safe for any password
+        # chars). The rendered file lives in tmpfs, so the password is never persisted.
+        command:
+          - /bin/sh
+          - -ec
+        args:
+          - |
+            awk 'BEGIN{p=ENVIRON["REDIS_PASSWORD"]; ph="__REDIS_PASSWORD__"}
+                 {i=index($0,ph); if(i>0)$0=substr($0,1,i-1) p substr($0,i+length(ph)); print}' \
+              /usr/local/etc/haproxy/haproxy.cfg > /tmp/haproxy.cfg
+            exec haproxy -W -db -f /tmp/haproxy.cfg
         probes:
           liveness:
             enabled: true
@@ -558,6 +572,14 @@ configMaps:
           timeout client 1h
           timeout server 1h
           retries 3
+        # Runtime DNS (CoreDNS via /etc/resolv.conf) so server addresses re-resolve
+        # when a redis pod restarts with a new IP (init-addr only resolves at boot).
+        resolvers k8s
+          parse-resolv-conf
+          resolve_retries 3
+          timeout resolve 1s
+          timeout retry 1s
+          hold valid 10s
         frontend redis_write
           bind *:6379 ssl crt /etc/haproxy/certs/tls-combined.pem
           default_backend redis_master
@@ -567,7 +589,7 @@ configMaps:
           # Explicitly open the check connection over TLS (the implicit connect is
           # cleartext; redis listens TLS-only on 6379 → cleartext → Layer7 timeout).
           tcp-check connect ssl
-          tcp-check send AUTH\ ${REDIS_PASSWORD}\r\n
+          tcp-check send AUTH\ __REDIS_PASSWORD__\r\n
           tcp-check expect string +OK
           tcp-check send PING\r\n
           tcp-check expect string +PONG
@@ -580,7 +602,7 @@ configMaps:
           # ssl → it'd hit redis's TLS-only port in plaintext → Layer7 timeout).
           # init-addr last,libc,none → don't crash at startup if the pod DNS isn't
           # resolvable yet (headless per-pod records appear as pods become ready).
-          default-server inter 2s downinter 2s rise 1 fall 2 init-addr last,libc,none ssl check-ssl verify required ca-file /etc/haproxy/certs/ca.crt
+          default-server inter 2s downinter 2s rise 1 fall 2 init-addr last,libc,none resolvers k8s resolve-prefer ipv4 ssl check-ssl verify required ca-file /etc/haproxy/certs/ca.crt
           server redis-0 redis-ha-redis-0.redis-ha-redis-headless.redis-system.svc.cluster.local:6379 check
           server redis-1 redis-ha-redis-1.redis-ha-redis-headless.redis-system.svc.cluster.local:6379 check
 
