@@ -352,6 +352,53 @@ controllers:
 #              matchLabels:
 #                app.kubernetes.io/instance: '{{ $.Release.Name }}'
 
+  # ── HAProxy: master-only WRITE router (durable fix for the READONLY trap) ──────
+  # The `<release>-redis` Service round-robins master+replica, so write-consumers
+  # that can't speak Sentinel (LibreChat, the Envoy rate-limiter) randomly hit the
+  # read-only replica → "READONLY You can't write against a read only replica".
+  # This HAProxy health-checks BOTH redis pods over TLS and routes ALL traffic to
+  # whichever reports `role:master`, auto-following Sentinel failover. Stock image +
+  # config only; the AUTH password is env-expanded into the config (never in the CM).
+  # Consumers connect `rediss://<release>-haproxy.<ns>.svc.cluster.local:6379`.
+  haproxy:
+    type: deployment
+    replicas: 2
+    containers:
+      app:
+        image:
+          repository: haproxy
+          tag: "3.0-alpine"
+        # HAProxy expands ${ENV} in the config at load → the password stays in the
+        # secret, never in the ConfigMap.
+        env:
+          REDIS_PASSWORD:
+            valueFrom:
+              secretKeyRef:
+                name: "{{ $.Release.Name }}-redis-auth"
+                key: redis-password
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              tcpSocket:
+                port: 6379
+              initialDelaySeconds: 5
+              periodSeconds: 15
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              tcpSocket:
+                port: 6379
+              periodSeconds: 10
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 128Mi
+
 service:
   redis:
     controller: redis
@@ -400,6 +447,17 @@ service:
         protocol: TCP
       oauth2:
         port: 4180
+        protocol: TCP
+
+  # The master-only write endpoint (see controllers.haproxy). Write-consumers point
+  # `rediss://<release>-haproxy.<ns>.svc.cluster.local:6379` here instead of the
+  # round-robin `<release>-redis`.
+  haproxy:
+    controller: haproxy
+    type: ClusterIP
+    ports:
+      redis:
+        port: 6379
         protocol: TCP
 
 ingress:
@@ -481,6 +539,43 @@ configMaps:
 
         protected-mode no
 
+  # HAProxy master-router config. TCP mode. Frontend terminates TLS (own cert from
+  # self-signed-ca); backend connects to each redis pod over TLS (verified against
+  # the same CA) and a tcp-check elects the pod reporting `role:master`. ${REDIS_PASSWORD}
+  # is expanded by HAProxy from the container env at load (not stored in this CM).
+  haproxy:
+    enabled: true
+    data:
+      haproxy.cfg: |
+        global
+          log stdout format raw local0
+          maxconn 4096
+        defaults
+          mode tcp
+          log global
+          option tcplog
+          timeout connect 5s
+          timeout client 1h
+          timeout server 1h
+          retries 3
+        frontend redis_write
+          bind *:6379 ssl crt /etc/haproxy/certs/tls-combined.pem
+          default_backend redis_master
+        backend redis_master
+          # Route only to the pod that answers `role:master`; re-elects on failover.
+          option tcp-check
+          tcp-check send AUTH\ ${REDIS_PASSWORD}\r\n
+          tcp-check expect string +OK
+          tcp-check send PING\r\n
+          tcp-check expect string +PONG
+          tcp-check send info\ replication\r\n
+          tcp-check expect string role:master
+          tcp-check send QUIT\r\n
+          tcp-check expect string +OK
+          default-server inter 2s downinter 2s rise 1 fall 2 ssl verify required ca-file /etc/haproxy/certs/ca.crt
+          server redis-0 redis-ha-redis-0.redis-ha-redis-headless.redis-system.svc.cluster.local:6379 check
+          server redis-1 redis-ha-redis-1.redis-ha-redis-headless.redis-system.svc.cluster.local:6379 check
+
 persistence:
   redis-bootstrap:
     enabled: true
@@ -548,6 +643,31 @@ persistence:
             subPath: ca.crt
             readOnly: true
 
+  haproxy-config:
+    enabled: true
+    type: configMap
+    identifier: haproxy
+    advancedMounts:
+      haproxy:
+        app:
+          - path: /usr/local/etc/haproxy/haproxy.cfg
+            subPath: haproxy.cfg
+            readOnly: true
+
+  haproxy-tls:
+    enabled: true
+    type: secret
+    name: "{{ $.Release.Name }}-haproxy-tls"
+    advancedMounts:
+      haproxy:
+        app:
+          - path: /etc/haproxy/certs/tls-combined.pem
+            subPath: tls-combined.pem
+            readOnly: true
+          - path: /etc/haproxy/certs/ca.crt
+            subPath: ca.crt
+            readOnly: true
+
   redisinsight-data:
     enabled: true
     type: persistentVolumeClaim
@@ -575,6 +695,28 @@ rawResources:
           - "{{ $.Release.Name }}-redis.{{ $.Release.Namespace }}.svc"
           - "{{ $.Release.Name }}-redis.{{ $.Release.Namespace }}.svc.cluster.local"
           - "*.{{ $.Release.Name }}-redis-headless.{{ $.Release.Namespace }}.svc.cluster.local"
+
+  # Frontend cert for the HAProxy master-router. additionalOutputFormats:CombinedPEM
+  # produces `tls-combined.pem` (key+cert) for HAProxy's `bind ssl crt`. Same
+  # self-signed-ca the consumers already trust, so `rediss://<release>-haproxy...`
+  # verifies with no client change.
+  haproxy-tls:
+    enabled: true
+    apiVersion: cert-manager.io/v1
+    kind: Certificate
+    spec:
+      spec:
+        secretName: "{{ $.Release.Name }}-haproxy-tls"
+        additionalOutputFormats:
+          - type: CombinedPEM
+        issuerRef:
+          kind: ClusterIssuer
+          name: self-signed-ca
+          group: cert-manager.io
+        dnsNames:
+          - "{{ $.Release.Name }}-haproxy"
+          - "{{ $.Release.Name }}-haproxy.{{ $.Release.Namespace }}.svc"
+          - "{{ $.Release.Name }}-haproxy.{{ $.Release.Namespace }}.svc.cluster.local"
 
   sentinel-tls:
     enabled: true
