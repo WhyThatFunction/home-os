@@ -93,6 +93,14 @@ minio:
             resources:
               - "arn:aws:s3:::ai-ops-backups/*"
               - "arn:aws:s3:::ai-ops-backups"
+      - name: azamra-s3-policy
+        statements:
+          - actions:
+              - "s3:*"
+            effect: "Allow"
+            resources:
+              - "arn:aws:s3:::azamra-gitops/*"
+              - "arn:aws:s3:::azamra-gitops"
       - name: vymalo-cnpg-backups-policy
         statements:
           # Least privilege: only what barman-cloud / CNPG needs to read,
@@ -156,6 +164,8 @@ minio:
       - name: vaam-uploads
         withLock: false
       - name: vaam-insights
+        withLock: false
+      - name: azamra-gitops
         withLock: false
 
 provision_minio_buckets_policies:
