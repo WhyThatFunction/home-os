@@ -1114,6 +1114,12 @@ applications:
 
             template:
               spec:
+                # fsGroup makes the emptyDir volumes group-owned by 1001 and
+                # group-writable, so the uid-1001 runner can mkdir inside the
+                # tool cache mounted at /opt/hostedtoolcache (ruby/setup-ruby
+                # hardcodes that path and ignores RUNNER_TOOL_CACHE).
+                securityContext:
+                  fsGroup: 1001
                 containers:
                   - name: dind
                     image: docker:29-dind
@@ -1159,17 +1165,26 @@ applications:
                     env:
                       - name: DOCKER_HOST
                         value: tcp://localhost:2375
+                      # ruby/setup-ruby always installs under /opt/hostedtoolcache
+                      # on Linux, so anchor the whole tool cache there to share
+                      # one volume across setup-node/java/ruby.
+                      - name: RUNNER_TOOL_CACHE
+                        value: /opt/hostedtoolcache
                     securityContext:
                       runAsUser: 1001
                       runAsGroup: 1001
                     volumeMounts:
                       - name: work
                         mountPath: /home/runner/_work
+                      - name: tool-cache
+                        mountPath: /opt/hostedtoolcache
 
                 volumes:
                   - name: docker-graph
                     emptyDir: { }
                   - name: work
+                    emptyDir: { }
+                  - name: tool-cache
                     emptyDir: { }
 
     destination:
@@ -1335,6 +1350,12 @@ applications:
 
             template:
               spec:
+                # fsGroup makes the emptyDir volumes group-owned by 1001 and
+                # group-writable, so the uid-1001 runner can mkdir inside the
+                # tool cache mounted at /opt/hostedtoolcache (ruby/setup-ruby
+                # hardcodes that path and ignores RUNNER_TOOL_CACHE).
+                securityContext:
+                  fsGroup: 1001
                 imagePullSecrets:
                   - name: ghcr-pull-secret
                 containers:
@@ -1382,16 +1403,25 @@ applications:
                     env:
                       - name: DOCKER_HOST
                         value: tcp://localhost:2375
+                      # ruby/setup-ruby always installs under /opt/hostedtoolcache
+                      # on Linux, so anchor the whole tool cache there to share
+                      # one volume across setup-node/java/ruby.
+                      - name: RUNNER_TOOL_CACHE
+                        value: /opt/hostedtoolcache
                     securityContext:
                       runAsUser: 1001
                       runAsGroup: 1001
                     volumeMounts:
                       - name: work
                         mountPath: /home/runner/_work
+                      - name: tool-cache
+                        mountPath: /opt/hostedtoolcache
                 volumes:
                   - name: docker-graph
                     emptyDir: { }
                   - name: work
+                    emptyDir: { }
+                  - name: tool-cache
                     emptyDir: { }
 
       - repoURL: https://bjw-s-labs.github.io/helm-charts
@@ -1493,6 +1523,12 @@ applications:
 
             template:
               spec:
+                # fsGroup makes the emptyDir volumes group-owned by 1001 and
+                # group-writable, so the uid-1001 runner can mkdir inside the
+                # tool cache mounted at /opt/hostedtoolcache (ruby/setup-ruby
+                # hardcodes that path and ignores RUNNER_TOOL_CACHE).
+                securityContext:
+                  fsGroup: 1001
                 containers:
                   - name: dind
                     image: docker:29-dind
@@ -1538,16 +1574,25 @@ applications:
                     env:
                       - name: DOCKER_HOST
                         value: tcp://localhost:2375
+                      # ruby/setup-ruby always installs under /opt/hostedtoolcache
+                      # on Linux, so anchor the whole tool cache there to share
+                      # one volume across setup-node/java/ruby.
+                      - name: RUNNER_TOOL_CACHE
+                        value: /opt/hostedtoolcache
                     securityContext:
                       runAsUser: 1001
                       runAsGroup: 1001
                     volumeMounts:
                       - name: work
                         mountPath: /home/runner/_work
+                      - name: tool-cache
+                        mountPath: /opt/hostedtoolcache
                 volumes:
                   - name: docker-graph
                     emptyDir: { }
                   - name: work
+                    emptyDir: { }
+                  - name: tool-cache
                     emptyDir: { }
 
       - repoURL: https://bjw-s-labs.github.io/helm-charts
