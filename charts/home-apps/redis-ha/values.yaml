@@ -564,6 +564,9 @@ configMaps:
         backend redis_master
           # Route only to the pod that answers `role:master`; re-elects on failover.
           option tcp-check
+          # Explicitly open the check connection over TLS (the implicit connect is
+          # cleartext; redis listens TLS-only on 6379 → cleartext → Layer7 timeout).
+          tcp-check connect ssl
           tcp-check send AUTH\ ${REDIS_PASSWORD}\r\n
           tcp-check expect string +OK
           tcp-check send PING\r\n
@@ -575,7 +578,9 @@ configMaps:
           # `ssl` = proxied traffic over TLS; `check-ssl` = run the HEALTH CHECK over
           # TLS too (HAProxy checks are cleartext by default even when the server is
           # ssl → it'd hit redis's TLS-only port in plaintext → Layer7 timeout).
-          default-server inter 2s downinter 2s rise 1 fall 2 ssl check-ssl verify required ca-file /etc/haproxy/certs/ca.crt
+          # init-addr last,libc,none → don't crash at startup if the pod DNS isn't
+          # resolvable yet (headless per-pod records appear as pods become ready).
+          default-server inter 2s downinter 2s rise 1 fall 2 init-addr last,libc,none ssl check-ssl verify required ca-file /etc/haproxy/certs/ca.crt
           server redis-0 redis-ha-redis-0.redis-ha-redis-headless.redis-system.svc.cluster.local:6379 check
           server redis-1 redis-ha-redis-1.redis-ha-redis-headless.redis-system.svc.cluster.local:6379 check
 
