@@ -99,7 +99,7 @@ customization:
 ### Longhorn & Nvidia
 
 - **Longhorn on Talos** — [integration guide](https://longhorn.io/docs/1.9.0/advanced-resources/os-distro-specific/talos-linux-support/). Managed by ArgoCD.
-- **Nvidia on Talos** — [GPU guide](https://www.talos.dev/v1.11/talos-guides/configuration/nvidia-gpu). Managed by ArgoCD.
+- **Nvidia on Talos** — [GPU guide](https://www.talos.dev/v1.12/talos-guides/configuration/nvidia-gpu). Managed by ArgoCD.
 
 ### CloudNativePG smoke test
 
