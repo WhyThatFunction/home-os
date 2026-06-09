@@ -123,8 +123,6 @@ with the same `valuesObject` saved to a temp values file (`-f`).
   canonical remote is `github.com/WhyThatFunction/home-os` — both resolve.
 
 <!-- ai-governance:stanza -->
-## AI Governance
-
 <!-- BEGIN: AI Governance stanza (managed by ADORSYS-GIS/ai-governance) -->
 ## AI Governance
 
