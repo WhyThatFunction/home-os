@@ -1,32 +1,133 @@
 # ArgoCD Applications for the Vymalo store — MedusaJS v2 replatform.
 #
-# Supersedes the v1 single-chart, 3-role split. The replatform ships TWO OCI
-# charts (ghcr.io/vymalo/charts): `vymalo-backend` (Medusa server+worker + the
-# separate admin SPA image at /app + Redis + CNPG + migrate PreSync hook →
+# Two OCI charts (ghcr.io/vymalo/charts): `vymalo-backend` (Medusa server+worker
+# + the separate admin SPA image at /app + Redis + CNPG + migrate PreSync hook →
 # api.vymalo.com) and `vymalo-storefront` (Next standalone → shop.vymalo.com).
 #
-# Each chart = ONE Application (chart `role: all`), multi-source:
-#   [0] the OCI Helm chart  (carries the Helm image params — source-index 0)
-#   [1] $values git source  (the prod overlay; Image Updater writes digests here)
+# The BACKEND chart is role-aware (`role`: externalsecrets | cnpg | knative |
+# all) and is deployed as THREE wave-ordered Applications so the failure domains
+# sync independently AND — critically — so the `medusa db:migrate` PreSync hook
+# (knative role, wave 2) runs only AFTER the env Secret (externalsecrets, wave 0)
+# and the CNPG `-app` Secret (cnpg, wave 1) exist. A single role:all app would
+# run the PreSync hook before CNPG/ESO and deadlock. All three pin
+# `helm.releaseName: vymalo-backend` so the fullname (→ vymalo-backend-cnpg-app,
+# etc.) is identical across them.
 #
-# vymalo/vymalo-shop is PRIVATE, so the chart pull needs the repo cred
-# (argocd-charts-oci-repo.externalsecret.yaml in this dir) and the $values clone
-# + Image Updater git write-back need github-app-creds--vymalo (App 2926172).
+# Image Updater annotations (server `app` + admin SPA `admin`) live ONLY on the
+# knative app, which owns the deployments. The storefront is a separate chart
+# with no CNPG/migrate, so it's a single app (wave 3).
 #
-# Backend tracks TWO images (server `app` + admin SPA `admin`); each writes its
-# digest to its own path in the overlay. Storefront tracks one. The publishable
-# key is RUNTIME-only (storefront ConfigMap, set in the overlay) — not an image
-# build arg.
+# vymalo/vymalo-shop is PRIVATE: chart pull uses the repo cred
+# (argocd-charts-oci-repo.externalsecret.yaml here); $values clone + Image
+# Updater git write-back use github-app-creds--vymalo (App 2926172).
 # ─────────────────────────────────────────────────────────────────────────
-# 1. vymalo-backend — server + worker + admin SPA + Redis + CNPG + migrate
+# 1. vymalo-backend-externalsecrets — SecretStore + env/ghcr ExternalSecrets
 # ─────────────────────────────────────────────────────────────────────────
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: vymalo-backend
+  name: vymalo-backend-externalsecrets
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  sources:
+    - repoURL: ghcr.io/vymalo/charts
+      chart: vymalo-backend
+      targetRevision: 0.1.*
+      helm:
+        releaseName: vymalo-backend
+        parameters:
+          - name: role
+            value: externalsecrets
+        valueFiles:
+          - $values/deploy/envs/production/vymalo-backend.values.yaml
+        ignoreMissingValueFiles: true
+    - repoURL: https://github.com/vymalo/vymalo-shop.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vymalo
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
+---
+# ─────────────────────────────────────────────────────────────────────────
+# 2. vymalo-backend-cnpg — CloudNativePG Cluster + barman S3 backup
+# ─────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vymalo-backend-cnpg
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    - repoURL: ghcr.io/vymalo/charts
+      chart: vymalo-backend
+      targetRevision: 0.1.*
+      helm:
+        releaseName: vymalo-backend
+        parameters:
+          - name: role
+            value: cnpg
+        valueFiles:
+          - $values/deploy/envs/production/vymalo-backend.values.yaml
+        ignoreMissingValueFiles: true
+    - repoURL: https://github.com/vymalo/vymalo-shop.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vymalo
+  # CNPG's Cluster health needs a populated .status; ignore the operator-managed
+  # status so a freshly bootstrapping cluster doesn't flap OutOfSync.
+  ignoreDifferences:
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      jsonPointers:
+        - /status
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
+---
+# ─────────────────────────────────────────────────────────────────────────
+# 3. vymalo-backend-knative — server + worker + admin SPA + Redis + ConfigMap
+#    + HTTPRoute + the `medusa db:migrate` PreSync hook. Owns the images, so the
+#    Image Updater annotations live here. (Role name "knative" is legacy — it
+#    renders plain Deployments, not a KSvc.)
+# ─────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vymalo-backend-knative
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 
     # Two images: server/worker (`app`) + admin SPA (`admin`). ONE line — a
     # folded `>-` injects a space after the comma and breaks the parser.
@@ -80,6 +181,9 @@ spec:
       targetRevision: 0.1.*
       helm:
         releaseName: vymalo-backend
+        parameters:
+          - name: role
+            value: knative
         valueFiles:
           - $values/deploy/envs/production/vymalo-backend.values.yaml
         ignoreMissingValueFiles: true
@@ -89,13 +193,6 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: vymalo
-  # CNPG's Cluster health needs a populated .status; ignore the operator-managed
-  # status so a freshly bootstrapping cluster doesn't flap OutOfSync.
-  ignoreDifferences:
-    - group: postgresql.cnpg.io
-      kind: Cluster
-      jsonPointers:
-        - /status
   syncPolicy:
     automated:
       prune: true
@@ -111,10 +208,10 @@ spec:
         maxDuration: 5m
 ---
 # ─────────────────────────────────────────────────────────────────────────
-# 2. vymalo-storefront — Next standalone → shop.vymalo.com
-#    Depends on the backend (shared ghcr-pull Secret + vymalo-aws store); Argo
-#    self-heals if it races ahead. Publishable key is injected at runtime via
-#    the storefront ConfigMap (config.MEDUSA_PUBLISHABLE_KEY in the overlay).
+# 4. vymalo-storefront — Next standalone → shop.vymalo.com
+#    Single app (no CNPG/migrate). Depends on the backend (shared ghcr-pull
+#    Secret + vymalo-aws store); Argo self-heals if it races ahead. Publishable
+#    key is injected at runtime via the storefront ConfigMap (overlay).
 # ─────────────────────────────────────────────────────────────────────────
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -122,7 +219,7 @@ metadata:
   name: vymalo-storefront
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: "3"
 
     argocd-image-updater.argoproj.io/image-list: >-
       app=ghcr.io/vymalo/vymalo-storefront:latest
