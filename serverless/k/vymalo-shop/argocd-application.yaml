@@ -1,48 +1,87 @@
-# ArgoCD Applications for the vymalo-shop storefront.
+# ArgoCD Applications for the Vymalo store — MedusaJS v2 replatform.
 #
-# The single chart (ghcr.io/vymalo/charts → vymalo-shop) is deployed as THREE
-# independent Applications — one per failure domain — by passing the chart's
-# `role` value (externalsecrets | cnpg | knative) via helm.parameters. This
-# way a broken DB plugin no longer wedges the secrets or the storefront; each
-# app syncs, heals, and is debugged on its own. All three share the one prod
-# overlay ($values/deploy/envs/production/vymalo-shop.values.yaml).
+# Supersedes the v1 single-chart, 3-role split. The replatform ships TWO OCI
+# charts (ghcr.io/vymalo/charts): `vymalo-backend` (Medusa server+worker + the
+# separate admin SPA image at /app + Redis + CNPG + migrate PreSync hook →
+# api.vymalo.com) and `vymalo-storefront` (Next standalone → shop.vymalo.com).
 #
-# vymalo/vymalo-shop is PRIVATE, so (unlike opfs-web) the Application can't be
-# raw-fetched — it's committed here. ArgoCD needs read creds for the private
-# OCI chart + the $values git repo:
-#   - github-app-creds--vymalo : repo-creds Secret (App 2926172, install
-#     111824148) for cloning $values AND Image Updater git write-back.
-#   - argocd-charts-oci-repo (ESO, this dir) : OCI Helm repo cred for
-#     ghcr.io/vymalo/charts.
+# Each chart = ONE Application (chart `role: all`), multi-source:
+#   [0] the OCI Helm chart  (carries the Helm image params — source-index 0)
+#   [1] $values git source  (the prod overlay; Image Updater writes digests here)
 #
-# Sync order (waves on these Application objects, applied by the parent
-# app-of-apps): externalsecrets (0) → cnpg (1) → knative (2). Ordering is a
-# hint; each app self-heals + retries, so the knative app converges once the
-# env + CNPG `-app` secrets exist.
+# vymalo/vymalo-shop is PRIVATE, so the chart pull needs the repo cred
+# (argocd-charts-oci-repo.externalsecret.yaml in this dir) and the $values clone
+# + Image Updater git write-back need github-app-creds--vymalo (App 2926172).
 #
+# Backend tracks TWO images (server `app` + admin SPA `admin`); each writes its
+# digest to its own path in the overlay. Storefront tracks one. The publishable
+# key is RUNTIME-only (storefront ConfigMap, set in the overlay) — not an image
+# build arg.
 # ─────────────────────────────────────────────────────────────────────────
-# 1. externalsecrets — SecretStore + env/ghcr ExternalSecrets
+# 1. vymalo-backend — server + worker + admin SPA + Redis + CNPG + migrate
 # ─────────────────────────────────────────────────────────────────────────
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: vymalo-shop-externalsecrets
+  name: vymalo-backend
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "0"
+
+    # Two images: server/worker (`app`) + admin SPA (`admin`). ONE line — a
+    # folded `>-` injects a space after the comma and breaks the parser.
+    argocd-image-updater.argoproj.io/image-list: "app=ghcr.io/vymalo/vymalo-backend:latest,admin=ghcr.io/vymalo/vymalo-admin:latest"
+    # Multi-source app: Helm image params live on source 0 (the OCI chart).
+    argocd-image-updater.argoproj.io/app.source-index: "0"
+    argocd-image-updater.argoproj.io/admin.source-index: "0"
+    argocd-image-updater.argoproj.io/app.update-strategy: digest
+    argocd-image-updater.argoproj.io/app.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: image.tag
+    argocd-image-updater.argoproj.io/app.force-update: "true"
+    argocd-image-updater.argoproj.io/admin.update-strategy: digest
+    argocd-image-updater.argoproj.io/admin.helm.image-name: admin.image.repository
+    argocd-image-updater.argoproj.io/admin.helm.image-tag: admin.image.tag
+    argocd-image-updater.argoproj.io/admin.force-update: "true"
+
+    # cosign keyless verification — refuse any digest not signed by this repo's
+    # CI workflow on main (Fulcio + Rekor).
+    argocd-image-updater.argoproj.io/app.signature-type: cosign
+    argocd-image-updater.argoproj.io/app.cosign.certificate-oidc-issuer: >-
+      https://token.actions.githubusercontent.com
+    argocd-image-updater.argoproj.io/app.cosign.certificate-identity-regexp: >-
+      ^https://github\.com/vymalo/vymalo-shop/\.github/workflows/ci\.yml@.*$
+    argocd-image-updater.argoproj.io/admin.signature-type: cosign
+    argocd-image-updater.argoproj.io/admin.cosign.certificate-oidc-issuer: >-
+      https://token.actions.githubusercontent.com
+    argocd-image-updater.argoproj.io/admin.cosign.certificate-identity-regexp: >-
+      ^https://github\.com/vymalo/vymalo-shop/\.github/workflows/ci\.yml@.*$
+
+    # git write-back: source is an OCI registry (not git), so an explicit HTTPS
+    # git-repository + creds are required.
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/git-repository: >-
+      https://github.com/vymalo/vymalo-shop.git
+    argocd-image-updater.argoproj.io/write-back-target: >-
+      helmvalues:deploy/envs/production/vymalo-backend.values.yaml
+    argocd-image-updater.argoproj.io/git-credentials: >-
+      secret:argocd/github-app-creds--vymalo
+
+    notifications.argoproj.io/subscribe.on-deployed.vymalo: ""
+    notifications.argoproj.io/subscribe.on-deploy-failed.vymalo: ""
+    notifications.ssegning.me/github-repo-url: https://github.com/vymalo/vymalo-shop
+    notifications.ssegning.me/github-revision: main
+    notifications.ssegning.me/environment-url: https://api.vymalo.com
 spec:
   project: default
   sources:
     - repoURL: ghcr.io/vymalo/charts
-      chart: vymalo-shop
+      chart: vymalo-backend
       targetRevision: 0.1.*
       helm:
-        releaseName: vymalo-shop
-        parameters:
-          - name: role
-            value: externalsecrets
+        releaseName: vymalo-backend
         valueFiles:
-          - $values/deploy/envs/production/vymalo-shop.values.yaml
+          - $values/deploy/envs/production/vymalo-backend.values.yaml
         ignoreMissingValueFiles: true
     - repoURL: https://github.com/vymalo/vymalo-shop.git
       targetRevision: main
@@ -50,53 +89,8 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: vymalo
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
-      - ServerSideApply=true
-    retry:
-      limit: 10
-      backoff:
-        duration: 15s
-        factor: 2
-        maxDuration: 5m
----
-# ─────────────────────────────────────────────────────────────────────────
-# 2. cnpg — CloudNativePG Cluster + barman S3 backup (+ its creds ES)
-# ─────────────────────────────────────────────────────────────────────────
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: vymalo-shop-cnpg
-  namespace: argocd
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
-spec:
-  project: default
-  sources:
-    - repoURL: ghcr.io/vymalo/charts
-      chart: vymalo-shop
-      targetRevision: 0.1.*
-      helm:
-        releaseName: vymalo-shop
-        parameters:
-          - name: role
-            value: cnpg
-        valueFiles:
-          - $values/deploy/envs/production/vymalo-shop.values.yaml
-        ignoreMissingValueFiles: true
-    - repoURL: https://github.com/vymalo/vymalo-shop.git
-      targetRevision: main
-      ref: values
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: vymalo
-  # CNPG's Cluster health check needs a populated .status; ignore the
-  # operator-managed status so a freshly bootstrapping cluster doesn't
-  # surface a spurious OutOfSync/ComparisonError on the operator's writes.
+  # CNPG's Cluster health needs a populated .status; ignore the operator-managed
+  # status so a freshly bootstrapping cluster doesn't flap OutOfSync.
   ignoreDifferences:
     - group: postgresql.cnpg.io
       kind: Cluster
@@ -117,48 +111,42 @@ spec:
         maxDuration: 5m
 ---
 # ─────────────────────────────────────────────────────────────────────────
-# 3. knative — KSvc + ConfigMap + DomainMapping/Traefik + Cert + CronJobs
-#    Owns the container image, so Image Updater + deploy notifications live
-#    on THIS app only.
+# 2. vymalo-storefront — Next standalone → shop.vymalo.com
+#    Depends on the backend (shared ghcr-pull Secret + vymalo-aws store); Argo
+#    self-heals if it races ahead. Publishable key is injected at runtime via
+#    the storefront ConfigMap (config.MEDUSA_PUBLISHABLE_KEY in the overlay).
 # ─────────────────────────────────────────────────────────────────────────
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: vymalo-shop-knative
+  name: vymalo-storefront
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "2"
 
     argocd-image-updater.argoproj.io/image-list: >-
-      app=ghcr.io/vymalo/vymalo-shop:latest
-    # Multi-source app: tell Image Updater which source carries the Helm
-    # image params (the OCI chart at index 0, not the $values git source).
+      app=ghcr.io/vymalo/vymalo-storefront:latest
     argocd-image-updater.argoproj.io/app.source-index: "0"
     argocd-image-updater.argoproj.io/app.update-strategy: digest
     argocd-image-updater.argoproj.io/app.helm.image-name: image.repository
     argocd-image-updater.argoproj.io/app.helm.image-tag: image.tag
     argocd-image-updater.argoproj.io/app.force-update: "true"
 
-    # cosign keyless verification — refuse any digest not signed by this
-    # repo's CI workflow on main (Fulcio + Rekor).
     argocd-image-updater.argoproj.io/app.signature-type: cosign
     argocd-image-updater.argoproj.io/app.cosign.certificate-oidc-issuer: >-
       https://token.actions.githubusercontent.com
     argocd-image-updater.argoproj.io/app.cosign.certificate-identity-regexp: >-
       ^https://github\.com/vymalo/vymalo-shop/\.github/workflows/ci\.yml@.*$
 
-    # git write-back: source is an OCI registry (not git), so an explicit
-    # HTTPS git-repository + creds are required.
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
     argocd-image-updater.argoproj.io/git-repository: >-
       https://github.com/vymalo/vymalo-shop.git
     argocd-image-updater.argoproj.io/write-back-target: >-
-      helmvalues:deploy/envs/production/vymalo-shop.values.yaml
+      helmvalues:deploy/envs/production/vymalo-storefront.values.yaml
     argocd-image-updater.argoproj.io/git-credentials: >-
       secret:argocd/github-app-creds--vymalo
 
-    # ─── argocd-notifications → GitHub Deployment ────────────────────
     notifications.argoproj.io/subscribe.on-deployed.vymalo: ""
     notifications.argoproj.io/subscribe.on-deploy-failed.vymalo: ""
     notifications.ssegning.me/github-repo-url: https://github.com/vymalo/vymalo-shop
@@ -168,15 +156,12 @@ spec:
   project: default
   sources:
     - repoURL: ghcr.io/vymalo/charts
-      chart: vymalo-shop
+      chart: vymalo-storefront
       targetRevision: 0.1.*
       helm:
-        releaseName: vymalo-shop
-        parameters:
-          - name: role
-            value: knative
+        releaseName: vymalo-storefront
         valueFiles:
-          - $values/deploy/envs/production/vymalo-shop.values.yaml
+          - $values/deploy/envs/production/vymalo-storefront.values.yaml
         ignoreMissingValueFiles: true
     - repoURL: https://github.com/vymalo/vymalo-shop.git
       targetRevision: main

@@ -50,8 +50,9 @@ extraObjects:
       namespace: argocd
     spec:
       applicationRefs:
-        # The storefront was split into 3 apps; only the knative app carries
-        # the image-updater annotations, so target it exactly (a bare pattern
-        # is an exact match — `vymalo-shop` no longer selects anything).
-        - namePattern: vymalo-shop-knative
+        # Medusa replatform: two apps, each carrying its own image-updater
+        # annotations. Backend tracks two images (server `app` + admin SPA).
+        - namePattern: vymalo-backend
+          useAnnotations: true
+        - namePattern: vymalo-storefront
           useAnnotations: true
