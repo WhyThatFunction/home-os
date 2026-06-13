@@ -1051,7 +1051,7 @@ applications:
     project: ai
     source:
       repoURL: https://github.com/ADORSYS-GIS/ai-helm
-      targetRevision: release-2026.06.13-v01
+      targetRevision: release-2026.06.13-v02
       path: charts/apps
     destination:
       server: https://kubernetes.default.svc
