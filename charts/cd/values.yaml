@@ -1067,6 +1067,13 @@ applications:
                     image:
                       repository: caronc/apprise
                       tag: latest
+                    env:
+                      # gunicorn's default worker count scales with the node's
+                      # CPU count ((2*cores)+1), and each apprise worker loads
+                      # the full plugin set (~100Mi) — on a many-core node that
+                      # OOMKilled the pod. This is a low-volume transactional
+                      # gateway, so pin a small fixed count.
+                      APPRISE_WORKER_COUNT: "2"
                     probes:
                       liveness:
                         enabled: true
@@ -1087,9 +1094,10 @@ applications:
                     resources:
                       requests:
                         cpu: 10m
-                        memory: 64Mi
+                        memory: 128Mi
                       limits:
-                        memory: 256Mi
+                        # 2 workers × ~100Mi + master, with headroom.
+                        memory: 384Mi
             service:
               app:
                 controller: apprise
