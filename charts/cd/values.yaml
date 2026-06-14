@@ -1276,7 +1276,7 @@ applications:
                         memory: 1Gi
                       limits:
                         cpu: "3"
-                        memory: 4Gi
+                        memory: 8Gi
                     command: [ "/bin/sh", "-c" ]
                     args:
                       - sleep 15; exec /home/runner/run.sh
@@ -1514,7 +1514,7 @@ applications:
                         memory: 1Gi
                       limits:
                         cpu: "3"
-                        memory: 4Gi
+                        memory: 8Gi
                     command: [ "/bin/sh", "-c" ]
                     args:
                       - sleep 15; exec /home/runner/run.sh
@@ -1685,7 +1685,7 @@ applications:
                         memory: 1Gi
                       limits:
                         cpu: "3"
-                        memory: 4Gi
+                        memory: 8Gi
                     command: [ "/bin/sh", "-c" ]
                     args:
                       - sleep 30; exec /home/runner/run.sh
@@ -1769,7 +1769,7 @@ applications:
             githubConfigUrl: https://github.com/vymalo
             githubConfigSecret: gh-runner-secret-pat
 
-            maxRunners: 6
+            maxRunners: 3
             minRunners: 0
 
             controllerServiceAccount:
