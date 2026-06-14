@@ -1817,9 +1817,11 @@ applications:
                         mountPath: /home/runner/_work
 
                   - name: runner
-                    # TODO: swap to ghcr.io/vymalo/vymalo-arc-runner:<tag> once
-                    # the project base image is built (node+pnpm+deps pre-fetched).
-                    image: ghcr.io/actions/actions-runner:latest
+                    # Project base image: actions-runner + Node 22 + pnpm@10.33.0
+                    # + libatomic1 + the lockfile's deps pre-fetched. Built by the
+                    # vymalo-shop runner-image workflow. :latest → pullPolicy
+                    # Always, so a rebuilt image rolls in on the next ephemeral pod.
+                    image: ghcr.io/vymalo/vymalo-arc-runner:latest
                     resources:
                       requests:
                         cpu: 500m
