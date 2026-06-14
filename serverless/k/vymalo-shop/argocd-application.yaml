@@ -352,3 +352,81 @@ spec:
         duration: 15s
         factor: 2
         maxDuration: 5m
+---
+# ─────────────────────────────────────────────────────────────────────────
+# 6. vymalo-auth — NestJS passwordless pubkey + DPoP validator → auth.vymalo.com
+#    Single app (role: all): the Deployment + the `auth` CNPG Database CRD
+#    (PreSync hook, sync-wave -1, REUSES the backend cluster) + the PreSync
+#    `prisma db push` migrate Job (wave 0) + its ExternalSecret. Reuses the
+#    backend-owned vymalo-aws SecretStore + ghcr-pull Secret + the CNPG cluster,
+#    so it syncs AFTER the backend (wave 5). Image Updater pins the signed
+#    digest on the prod overlay; git write-back to vymalo-shop main.
+#    REQUIRES a DNS record for auth.vymalo.com (the backend reaches it via
+#    AUTH_SERVER_URL=https://auth.vymalo.com).
+# ─────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vymalo-auth
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+
+    argocd-image-updater.argoproj.io/image-list: >-
+      app=ghcr.io/vymalo/vymalo-auth:latest
+    argocd-image-updater.argoproj.io/app.source-index: "0"
+    argocd-image-updater.argoproj.io/app.update-strategy: digest
+    argocd-image-updater.argoproj.io/app.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: image.tag
+    argocd-image-updater.argoproj.io/app.force-update: "true"
+
+    argocd-image-updater.argoproj.io/app.signature-type: cosign
+    argocd-image-updater.argoproj.io/app.cosign.certificate-oidc-issuer: >-
+      https://token.actions.githubusercontent.com
+    argocd-image-updater.argoproj.io/app.cosign.certificate-identity-regexp: >-
+      ^https://github\.com/vymalo/vymalo-shop/\.github/workflows/ci\.yml@.*$
+
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/git-repository: >-
+      https://github.com/vymalo/vymalo-shop.git
+    argocd-image-updater.argoproj.io/write-back-target: >-
+      helmvalues:deploy/envs/production/vymalo-auth.values.yaml
+    argocd-image-updater.argoproj.io/git-credentials: >-
+      secret:argocd/github-app-creds--vymalo
+
+    notifications.argoproj.io/subscribe.on-deployed.vymalo: ""
+    notifications.argoproj.io/subscribe.on-deploy-failed.vymalo: ""
+    notifications.ssegning.me/github-repo-url: https://github.com/vymalo/vymalo-shop
+    notifications.ssegning.me/github-revision: main
+    notifications.ssegning.me/environment-url: https://auth.vymalo.com
+spec:
+  project: default
+  sources:
+    - repoURL: ghcr.io/vymalo/charts
+      chart: vymalo-auth
+      targetRevision: 0.1.*
+      helm:
+        releaseName: vymalo-auth
+        valueFiles:
+          - $values/deploy/envs/production/vymalo-auth.values.yaml
+        ignoreMissingValueFiles: true
+    - repoURL: https://github.com/vymalo/vymalo-shop.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vymalo
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
