@@ -1749,6 +1749,187 @@ applications:
         prune: true
         selfHeal: true
 
+  # Self-hosted runners for the vymalo org (CI for vymalo-shop & co.). Org-level
+  # registration like vaam/gis. runs-on label = the scale-set name:
+  # `arc-runner-set-vymalo`. Starts on the stock actions-runner image; once the
+  # project base image (ghcr.io/vymalo/vymalo-arc-runner, built by the
+  # vymalo-shop runner-image workflow with node+pnpm+deps pre-fetched) exists,
+  # swap the `runner` container image to it (imagePullSecret already wired).
+  - name: vymalo-runners
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: arc-runner
+    sources:
+      - repoURL: "oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set"
+        targetRevision: 0.13.1
+        chart: "."
+        helm:
+          releaseName: arc-runner-set-vymalo
+          valuesObject:
+            githubConfigUrl: https://github.com/vymalo
+            githubConfigSecret: gh-runner-secret-pat
+
+            maxRunners: 6
+            minRunners: 0
+
+            controllerServiceAccount:
+              namespace: arc-systems
+              name: arc-gha-rs-controller
+
+            template:
+              spec:
+                # fsGroup makes the emptyDir volumes group-owned by 1001 and
+                # group-writable, so the uid-1001 runner can mkdir inside the
+                # tool cache mounted at /opt/hostedtoolcache (ruby/setup-ruby
+                # hardcodes that path and ignores RUNNER_TOOL_CACHE).
+                securityContext:
+                  fsGroup: 1001
+                imagePullSecrets:
+                  - name: ghcr-pull-secret
+                containers:
+                  - name: dind
+                    image: docker:29-dind
+                    resources:
+                      requests:
+                        cpu: 250m
+                        memory: 512Mi
+                      limits:
+                        cpu: "2"
+                        memory: 3Gi
+                    securityContext:
+                      privileged: true
+                    env:
+                      - name: DOCKER_TLS_CERTDIR
+                        value: ""
+                    args:
+                      - dockerd
+                      - --host=tcp://0.0.0.0:2375
+                      - --host=unix:///var/run/docker.sock
+                    startupProbe:
+                      tcpSocket:
+                        port: 2375
+                      failureThreshold: 24
+                      periodSeconds: 5
+                    volumeMounts:
+                      - name: docker-graph
+                        mountPath: /var/lib/docker
+                      - name: work
+                        mountPath: /home/runner/_work
+
+                  - name: runner
+                    # TODO: swap to ghcr.io/vymalo/vymalo-arc-runner:<tag> once
+                    # the project base image is built (node+pnpm+deps pre-fetched).
+                    image: ghcr.io/actions/actions-runner:latest
+                    resources:
+                      requests:
+                        cpu: 500m
+                        memory: 1Gi
+                      limits:
+                        cpu: "3"
+                        memory: 4Gi
+                    command: [ "/bin/sh", "-c" ]
+                    args:
+                      - sleep 15; exec /home/runner/run.sh
+                    env:
+                      - name: DOCKER_HOST
+                        value: tcp://localhost:2375
+                      # ruby/setup-ruby always installs under /opt/hostedtoolcache
+                      # on Linux, so anchor the whole tool cache there to share
+                      # one volume across setup-node/java/ruby.
+                      - name: RUNNER_TOOL_CACHE
+                        value: /opt/hostedtoolcache
+                    securityContext:
+                      runAsUser: 1001
+                      runAsGroup: 1001
+                    volumeMounts:
+                      - name: work
+                        mountPath: /home/runner/_work
+                      - name: tool-cache
+                        mountPath: /opt/hostedtoolcache
+                volumes:
+                  - name: docker-graph
+                    emptyDir: { }
+                  - name: work
+                    emptyDir: { }
+                  - name: tool-cache
+                    emptyDir: { }
+
+      - repoURL: https://bjw-s-labs.github.io/helm-charts
+        targetRevision: 4.6.2
+        chart: app-template
+        helm:
+          valuesObject:
+            rawResources:
+              auth-secret:
+                enabled: true
+                apiVersion: external-secrets.io/v1
+                kind: ExternalSecret
+                spec:
+                  spec:
+                    refreshInterval: 0h10m0s
+                    secretStoreRef:
+                      name: ssegning-aws
+                      kind: ClusterSecretStore
+                    target:
+                      name: gh-runner-secret-pat
+                      creationPolicy: Owner
+                    data:
+                      - secretKey: github_token
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: github_token
+              gh-pull-token:
+                enabled: true
+                apiVersion: external-secrets.io/v1
+                kind: ExternalSecret
+                spec:
+                  spec:
+                    refreshInterval: 0h10m0s
+                    secretStoreRef:
+                      name: ssegning-aws
+                      kind: ClusterSecretStore
+                    target:
+                      name: ghcr-pull-secret
+                      creationPolicy: Owner
+                      template:
+                        engineVersion: v2
+                        type: kubernetes.io/dockerconfigjson
+                        data:
+                          .dockerconfigjson: |
+                            {
+                              "auths": {
+                                "ghcr.io": {
+                                  "username": "{{ `{{ .github_username }}` }}",
+                                  "password": "{{ `{{ .github_token }}` }}",
+                                  "email": "{{ `{{ .github_email }}` }}",
+                                  "auth": "{{ `{{ printf "%s:%s" .github_username .github_token | b64enc }}` }}"
+                                }
+                              }
+                            }
+                    data:
+                      - secretKey: github_username
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: github_username
+                      - secretKey: github_token
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: github_token
+                      - secretKey: github_email
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: github_email
+    destination:
+      name: home-remote
+      namespace: gh-runners-vymalo
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: otel-operator
     finalizers:
       - resources-finalizer.argocd.argoproj.io
