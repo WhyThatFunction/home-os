@@ -1384,7 +1384,7 @@ applications:
                         memory: 1Gi
                       limits:
                         cpu: "3"
-                        memory: 4Gi
+                        memory: 8Gi
                     command: [ "/home/runner/run.sh" ]
                     env:
                       - name: DOCKER_HOST
