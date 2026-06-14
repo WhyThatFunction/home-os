@@ -1041,6 +1041,116 @@ applications:
         prune: true
         selfHeal: true
 
+  # Apprise notification gateway (stateless). The chain is
+  # app (medusa/auth in ns vymalo) -> apprise (/notify) -> postfix (ns
+  # mail-system) -> SMTP. Callers pass the full apprise URL (e.g. a mailto://
+  # to the postfix relay) in the POST body, so there's NO config/state and NO
+  # credentials to hold here — locked down by a NetworkPolicy instead:
+  # ingress only from ns vymalo, egress only to DNS + the postfix relay.
+  # In-cluster (same cluster as vymalo + local-mail).
+  - name: apprise
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    sources:
+      - repoURL: https://bjw-s-labs.github.io/helm-charts
+        targetRevision: 4.6.2
+        chart: app-template
+        helm:
+          releaseName: apprise
+          valuesObject:
+            controllers:
+              apprise:
+                strategy: RollingUpdate
+                containers:
+                  app:
+                    image:
+                      repository: caronc/apprise
+                      tag: latest
+                    probes:
+                      liveness:
+                        enabled: true
+                        custom: true
+                        spec:
+                          tcpSocket: { port: 8000 }
+                          initialDelaySeconds: 10
+                          periodSeconds: 20
+                      readiness:
+                        enabled: true
+                        custom: true
+                        spec:
+                          tcpSocket: { port: 8000 }
+                          initialDelaySeconds: 5
+                          periodSeconds: 10
+                      startup:
+                        enabled: false
+                    resources:
+                      requests:
+                        cpu: 10m
+                        memory: 64Mi
+                      limits:
+                        memory: 256Mi
+            service:
+              app:
+                controller: apprise
+                ports:
+                  http:
+                    port: 8000
+            rawResources:
+              netpol:
+                enabled: true
+                apiVersion: networking.k8s.io/v1
+                kind: NetworkPolicy
+                spec:
+                  spec:
+                    podSelector:
+                      matchLabels:
+                        app.kubernetes.io/name: apprise
+                    policyTypes:
+                      - Ingress
+                      - Egress
+                    ingress:
+                      # Only the vymalo apps may trigger notifications.
+                      - from:
+                          - namespaceSelector:
+                              matchLabels:
+                                kubernetes.io/metadata.name: vymalo
+                        ports:
+                          - protocol: TCP
+                            port: 8000
+                    egress:
+                      # DNS resolution.
+                      - to:
+                          - namespaceSelector:
+                              matchLabels:
+                                kubernetes.io/metadata.name: kube-system
+                        ports:
+                          - protocol: UDP
+                            port: 53
+                          - protocol: TCP
+                            port: 53
+                      # The postfix relay (submission + smtp). Future external
+                      # channels (e.g. WhatsApp) would add a 443 egress rule.
+                      - to:
+                          - namespaceSelector:
+                              matchLabels:
+                                kubernetes.io/metadata.name: mail-system
+                        ports:
+                          - protocol: TCP
+                            port: 587
+                          - protocol: TCP
+                            port: 25
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: notification-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   # ai-apps (old Linode gen, targetRevision HEAD) REMOVED 2026-06-06 — the
   # Linode cluster was deleted; the ai-* generation is decommissioned. Only
   # ai-apps-v2 (Hetzner) remains. (The lke560142-ctx project destination was
