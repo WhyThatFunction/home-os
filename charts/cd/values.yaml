@@ -1822,13 +1822,17 @@ applications:
                     # vymalo-shop runner-image workflow. :latest → pullPolicy
                     # Always, so a rebuilt image rolls in on the next ephemeral pod.
                     image: ghcr.io/vymalo/vymalo-arc-runner:latest
+                    # `backend integration tests` boots the full Medusa app + a
+                    # live auth NestJS subprocess + jest workers in THIS container
+                    # (Postgres is the dind service) — it OOMKilled at 4Gi (GitHub's
+                    # ubuntu-latest has ~7Gi). Give it ubuntu-class headroom.
                     resources:
                       requests:
                         cpu: 500m
-                        memory: 1Gi
+                        memory: 2Gi
                       limits:
                         cpu: "3"
-                        memory: 4Gi
+                        memory: 8Gi
                     command: [ "/bin/sh", "-c" ]
                     args:
                       - sleep 15; exec /home/runner/run.sh
