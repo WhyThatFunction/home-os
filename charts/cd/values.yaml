@@ -1222,7 +1222,7 @@ applications:
             githubConfigUrl: https://github.com/skyengpro/azamra-tokenization-bff
             githubConfigSecret: gh-runner-secret-pat
 
-            maxRunners: 5
+            maxRunners: 2
 
             minRunners: 0
 
@@ -1330,7 +1330,7 @@ applications:
             githubConfigUrl: https://github.com/skyengpro/azamra-tokenization-frontend
             githubConfigSecret: gh-runner-secret-pat
 
-            maxRunners: 10
+            maxRunners: 2
 
             minRunners: 0
 
@@ -1459,7 +1459,7 @@ applications:
             githubConfigUrl: https://github.com/vaam-store
             githubConfigSecret: gh-runner-secret-pat
 
-            maxRunners: 10
+            maxRunners: 2
             minRunners: 0
 
             controllerServiceAccount:
@@ -1632,7 +1632,7 @@ applications:
             githubConfigUrl: https://github.com/ADORSYS-GIS
             githubConfigSecret: gh-runner-secret-pat
 
-            maxRunners: 10
+            maxRunners: 2
             minRunners: 0
 
             controllerServiceAccount:
@@ -1769,7 +1769,7 @@ applications:
             githubConfigUrl: https://github.com/vymalo
             githubConfigSecret: gh-runner-secret-pat
 
-            maxRunners: 3
+            maxRunners: 2
             minRunners: 0
 
             controllerServiceAccount:
