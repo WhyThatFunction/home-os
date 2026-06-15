@@ -10,3 +10,6 @@ resources:
   - argocd-application.yaml
   # ArgoCD repo cred (ESO) so it can pull the PRIVATE OCI Helm chart.
   - argocd-charts-oci-repo.externalsecret.yaml
+  # CRD-based image-updater activation for the vymalo-* apps (without it,
+  # app-only changes never promote a digest — only chart republishes deploy).
+  - imageupdater.yaml

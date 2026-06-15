@@ -1,0 +1,25 @@
+# This cluster runs the CRD-based argocd-image-updater controller (not the
+# annotation-only sidecar). The controller acts on an Application's
+# argocd-image-updater.argoproj.io/* annotations ONLY when an ImageUpdater CR
+# selects that Application via applicationRefs + useAnnotations: true.
+#
+# Without this CR the vymalo-* Applications' image-updater annotations are inert,
+# so app-only changes never promote a new digest — only chart republishes (an
+# appVersion bump on a deploy/charts/** change) deploy. This CR activates them:
+# on each reconcile the controller checks GHCR for the new signed `latest`
+# digest and writes it back to the per-app prod overlay via github-app-creds--vymalo.
+#
+# namePattern matches every vymalo-* app; those without image annotations
+# (cnpg / externalsecrets / runners) carry none and are simply skipped. (Mirrors
+# charts/home-apps/vaam-store-prod-deployer/templates/imageupdater.yaml.)
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: vymalo
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: vymalo-shop
+spec:
+  applicationRefs:
+    - namePattern: vymalo-*
+      useAnnotations: true
