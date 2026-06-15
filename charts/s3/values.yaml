@@ -130,6 +130,14 @@ minio:
               - "arn:aws:s3:::vaam-insights"
               - "arn:aws:s3:::vaam-cnpg-backups/*"
               - "arn:aws:s3:::vaam-cnpg-backups"
+      - name: artifact-cache-policy
+        statements:
+          - actions:
+              - "s3:*"
+            effect: "Allow"
+            resources:
+              - "arn:aws:s3:::turbo-cache/*"
+              - "arn:aws:s3:::turbo-cache"
 
     usersExistingSecrets:
       - minio-users
@@ -137,6 +145,7 @@ minio:
       # the vymalo-backup user (CNPG barman backups) with vymalo-cnpg-backups-policy.
       - vymalo-minio-users
       - vaam-minio-users
+      - artifact-cache-users
 
     buckets:
       - name: monitoring
@@ -166,6 +175,8 @@ minio:
       - name: vaam-insights
         withLock: false
       - name: azamra-gitops
+        withLock: false
+      - name: turbo-cache
         withLock: false
 
 provision_minio_buckets_policies:
