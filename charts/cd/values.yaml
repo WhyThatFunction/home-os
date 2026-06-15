@@ -1485,7 +1485,7 @@ applications:
                         memory: 512Mi
                       limits:
                         cpu: "2"
-                        memory: 3Gi
+                        memory: 4Gi
                     securityContext:
                       privileged: true
                     env:
@@ -1511,9 +1511,9 @@ applications:
                     resources:
                       requests:
                         cpu: 500m
-                        memory: 1Gi
+                        memory: 2Gi
                       limits:
-                        cpu: "3"
+                        cpu: "4"
                         memory: 8Gi
                     command: [ "/bin/sh", "-c" ]
                     args:
