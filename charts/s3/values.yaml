@@ -138,6 +138,8 @@ minio:
             resources:
               - "arn:aws:s3:::turbo-cache/*"
               - "arn:aws:s3:::turbo-cache"
+              - "arn:aws:s3:::sc-cache/*"
+              - "arn:aws:s3:::sc-cache"
 
     usersExistingSecrets:
       - minio-users
@@ -177,6 +179,8 @@ minio:
       - name: azamra-gitops
         withLock: false
       - name: turbo-cache
+        withLock: false
+      - name: sc-cache
         withLock: false
 
 provision_minio_buckets_policies:
