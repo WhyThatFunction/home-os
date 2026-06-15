@@ -1507,7 +1507,7 @@ applications:
                         mountPath: /home/runner/_work
 
                   - name: runner
-                    image: ghcr.io/vaam-store/vaam-arc-runner:110863c
+                    image: ghcr.io/vaam-store/vaam-arc-runner:86d0ad6
                     resources:
                       requests:
                         cpu: 500m
