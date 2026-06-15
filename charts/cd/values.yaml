@@ -1936,6 +1936,39 @@ applications:
         prune: true
         selfHeal: true
 
+  # Self-hosted Turborepo remote cache for the vymalo-shop CI `check` gate. Runs
+  # on home-remote alongside the ARC runners so they reach it over cluster DNS
+  # (turbo-cache.turbo-cache.svc.cluster.local) — no public route. Multi-source:
+  # the private OCI chart + the vymalo-shop prod overlay ($values). Pulls
+  # TURBO_TOKEN + MinIO creds from prod/artifact-cache/env via the cluster-wide
+  # ssegning-aws ClusterSecretStore (already on home-remote).
+  - name: turbo-cache
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: arc-runner
+    sources:
+      - repoURL: ghcr.io/vymalo/charts
+        chart: turbo-cache
+        targetRevision: 0.1.*
+        helm:
+          releaseName: turbo-cache
+          valueFiles:
+            - $values/deploy/envs/production/turbo-cache.values.yaml
+          ignoreMissingValueFiles: true
+      - repoURL: https://github.com/vymalo/vymalo-shop.git
+        targetRevision: main
+        ref: values
+    destination:
+      name: home-remote
+      namespace: turbo-cache
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: otel-operator
     finalizers:
       - resources-finalizer.argocd.argoproj.io
