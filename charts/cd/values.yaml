@@ -1271,7 +1271,7 @@ applications:
                         mountPath: /home/runner/_work
 
                   - name: runner
-                    image: ghcr.io/vaam-store/vaam-arc-runner:latest
+                    image: ghcr.io/vaam-store/vaam-arc-runner:44b8789
                     resources:
                       requests:
                         cpu: 500m
@@ -1399,7 +1399,7 @@ applications:
                         mountPath: /home/runner/_work
 
                   - name: runner
-                    image: ghcr.io/vaam-store/vaam-arc-runner:latest
+                    image: ghcr.io/vaam-store/vaam-arc-runner:44b8789
                     resources:
                       requests:
                         cpu: 500m
@@ -1573,7 +1573,7 @@ applications:
                         mountPath: /home/runner/_work
 
                   - name: runner
-                    image: ghcr.io/vaam-store/vaam-arc-runner:86d0ad6
+                    image: ghcr.io/vaam-store/vaam-arc-runner:44b8789
                     resources:
                       requests:
                         cpu: 500m
@@ -1592,6 +1592,24 @@ applications:
                       # one volume across setup-node/java/ruby.
                       - name: RUNNER_TOOL_CACHE
                         value: /opt/hostedtoolcache
+                      - name: SCCACHE_BUCKET
+                        value: sc-cache
+                      - name: SCCACHE_ENDPOINT
+                        value: s3.ssegning.me
+                      - name: TURBO_API
+                        value: http://turbo-cache.turbo-cache.svc.cluster.local
+                      - name: TURBO_TEAM
+                        value: vaam
+                      - name: TURBO_TOKEN
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: turbo-token } }
+                      - name: SCCACHE_S3_ACCESS_KEY_ID
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: access-key-id } }
+                      - name: SCCACHE_S3_SECRET_ACCESS_KEY
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: secret-access-key } }
+                      - name: AWS_ACCESS_KEY_ID
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: access-key-id } }
+                      - name: AWS_SECRET_ACCESS_KEY
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: secret-access-key } }
                     securityContext:
                       runAsUser: 1001
                       runAsGroup: 1001
@@ -1632,6 +1650,32 @@ applications:
                         remoteRef:
                           key: "prod/meta/test-app"
                           property: github_token
+              arc-runner-secrets:
+                enabled: true
+                apiVersion: external-secrets.io/v1
+                kind: ExternalSecret
+                spec:
+                  spec:
+                    refreshInterval: 0h10m0s
+                    secretStoreRef:
+                      name: ssegning-aws
+                      kind: ClusterSecretStore
+                    target:
+                      name: arc-runner-secrets
+                      creationPolicy: Owner
+                    data:
+                      - secretKey: turbo-token
+                        remoteRef:
+                          key: "prod/artifact-cache/env"
+                          property: turbo_token
+                      - secretKey: access-key-id
+                        remoteRef:
+                          key: "prod/artifact-cache/env"
+                          property: object_storage_access_key
+                      - secretKey: secret-access-key
+                        remoteRef:
+                          key: "prod/artifact-cache/env"
+                          property: object_storage_secret_key
               gh-pull-token:
                 enabled: true
                 apiVersion: external-secrets.io/v1
@@ -1713,6 +1757,8 @@ applications:
                 # hardcodes that path and ignores RUNNER_TOOL_CACHE).
                 securityContext:
                   fsGroup: 1001
+                imagePullSecrets:
+                  - name: ghcr-pull-secret
                 containers:
                   - name: dind
                     image: docker:29-dind
@@ -1722,7 +1768,7 @@ applications:
                         memory: 512Mi
                       limits:
                         cpu: "2"
-                        memory: 3Gi
+                        memory: 4Gi
                     securityContext:
                       privileged: true
                     env:
@@ -1750,7 +1796,7 @@ applications:
                         cpu: 500m
                         memory: 1Gi
                       limits:
-                        cpu: "3"
+                        cpu: "4"
                         memory: 8Gi
                     command: [ "/bin/sh", "-c" ]
                     args:
@@ -1763,6 +1809,24 @@ applications:
                       # one volume across setup-node/java/ruby.
                       - name: RUNNER_TOOL_CACHE
                         value: /opt/hostedtoolcache
+                      - name: SCCACHE_BUCKET
+                        value: sc-cache
+                      - name: SCCACHE_ENDPOINT
+                        value: s3.ssegning.me
+                      - name: TURBO_API
+                        value: http://turbo-cache.turbo-cache.svc.cluster.local
+                      - name: TURBO_TEAM
+                        value: vaam
+                      - name: TURBO_TOKEN
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: turbo-token } }
+                      - name: SCCACHE_S3_ACCESS_KEY_ID
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: access-key-id } }
+                      - name: SCCACHE_S3_SECRET_ACCESS_KEY
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: secret-access-key } }
+                      - name: AWS_ACCESS_KEY_ID
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: access-key-id } }
+                      - name: AWS_SECRET_ACCESS_KEY
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: secret-access-key } }
                     securityContext:
                       runAsUser: 1001
                       runAsGroup: 1001
@@ -1803,6 +1867,32 @@ applications:
                         remoteRef:
                           key: "prod/meta/test-app"
                           property: github_token
+              arc-runner-secrets:
+                enabled: true
+                apiVersion: external-secrets.io/v1
+                kind: ExternalSecret
+                spec:
+                  spec:
+                    refreshInterval: 0h10m0s
+                    secretStoreRef:
+                      name: ssegning-aws
+                      kind: ClusterSecretStore
+                    target:
+                      name: arc-runner-secrets
+                      creationPolicy: Owner
+                    data:
+                      - secretKey: turbo-token
+                        remoteRef:
+                          key: "prod/artifact-cache/env"
+                          property: turbo_token
+                      - secretKey: access-key-id
+                        remoteRef:
+                          key: "prod/artifact-cache/env"
+                          property: object_storage_access_key
+                      - secretKey: secret-access-key
+                        remoteRef:
+                          key: "prod/artifact-cache/env"
+                          property: object_storage_secret_key
 
     destination:
       name: home-remote
@@ -1910,6 +2000,24 @@ applications:
                       # one volume across setup-node/java/ruby.
                       - name: RUNNER_TOOL_CACHE
                         value: /opt/hostedtoolcache
+                      - name: SCCACHE_BUCKET
+                        value: sc-cache
+                      - name: SCCACHE_ENDPOINT
+                        value: s3.ssegning.me
+                      - name: TURBO_API
+                        value: http://turbo-cache.turbo-cache.svc.cluster.local
+                      - name: TURBO_TEAM
+                        value: vaam
+                      - name: TURBO_TOKEN
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: turbo-token } }
+                      - name: SCCACHE_S3_ACCESS_KEY_ID
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: access-key-id } }
+                      - name: SCCACHE_S3_SECRET_ACCESS_KEY
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: secret-access-key } }
+                      - name: AWS_ACCESS_KEY_ID
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: access-key-id } }
+                      - name: AWS_SECRET_ACCESS_KEY
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: secret-access-key } }
                     securityContext:
                       runAsUser: 1001
                       runAsGroup: 1001
@@ -1950,6 +2058,32 @@ applications:
                         remoteRef:
                           key: "prod/meta/test-app"
                           property: github_token
+              arc-runner-secrets:
+                enabled: true
+                apiVersion: external-secrets.io/v1
+                kind: ExternalSecret
+                spec:
+                  spec:
+                    refreshInterval: 0h10m0s
+                    secretStoreRef:
+                      name: ssegning-aws
+                      kind: ClusterSecretStore
+                    target:
+                      name: arc-runner-secrets
+                      creationPolicy: Owner
+                    data:
+                      - secretKey: turbo-token
+                        remoteRef:
+                          key: "prod/artifact-cache/env"
+                          property: turbo_token
+                      - secretKey: access-key-id
+                        remoteRef:
+                          key: "prod/artifact-cache/env"
+                          property: object_storage_access_key
+                      - secretKey: secret-access-key
+                        remoteRef:
+                          key: "prod/artifact-cache/env"
+                          property: object_storage_secret_key
               gh-pull-token:
                 enabled: true
                 apiVersion: external-secrets.io/v1
