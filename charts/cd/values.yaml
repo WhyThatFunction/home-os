@@ -1741,9 +1741,14 @@ applications:
           valuesObject:
             githubConfigUrl: https://github.com/ADORSYS-GIS
             githubConfigSecret: gh-runner-secret-pat
+            # Shadow the GitHub-hosted `ubuntu-latest` label, but scoped to the
+            # `flaky-rescue` runner group: only repos in that group's access
+            # policy route here; every other repo still hits GitHub-hosted.
+            runnerScaleSetName: ubuntu-latest
+            runnerGroup: flaky-rescue
 
-            maxRunners: 2
-            minRunners: 0
+            maxRunners: 3
+            minRunners: 1
 
             controllerServiceAccount:
               namespace: arc-systems
@@ -1767,8 +1772,8 @@ applications:
                         cpu: 250m
                         memory: 512Mi
                       limits:
-                        cpu: "2"
-                        memory: 4Gi
+                        cpu: "1"
+                        memory: 3Gi
                     securityContext:
                       privileged: true
                     env:
@@ -1796,8 +1801,8 @@ applications:
                         cpu: 500m
                         memory: 1Gi
                       limits:
-                        cpu: "4"
-                        memory: 8Gi
+                        cpu: "2"
+                        memory: 7Gi
                     command: [ "/bin/sh", "-c" ]
                     args:
                       - sleep 30; exec /home/runner/run.sh
