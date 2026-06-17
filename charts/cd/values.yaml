@@ -1747,8 +1747,8 @@ applications:
             runnerScaleSetName: ubuntu-latest
             runnerGroup: flaky-rescue
 
-            maxRunners: 4
-            minRunners: 0
+            maxRunners: 3
+            minRunners: 1
 
             controllerServiceAccount:
               namespace: arc-systems
@@ -1773,7 +1773,7 @@ applications:
                         memory: 512Mi
                       limits:
                         cpu: "1"
-                        memory: 2Gi
+                        memory: 3Gi
                     securityContext:
                       privileged: true
                     env:
@@ -1802,7 +1802,7 @@ applications:
                         memory: 1Gi
                       limits:
                         cpu: "2"
-                        memory: 4Gi
+                        memory: 7Gi
                     command: [ "/bin/sh", "-c" ]
                     args:
                       - sleep 30; exec /home/runner/run.sh
