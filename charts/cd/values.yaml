@@ -1747,8 +1747,8 @@ applications:
             runnerScaleSetName: ubuntu-latest
             runnerGroup: flaky-rescue
 
-            maxRunners: 3
-            minRunners: 1
+            maxRunners: 4
+            minRunners: 0
 
             controllerServiceAccount:
               namespace: arc-systems
