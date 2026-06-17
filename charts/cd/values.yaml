@@ -2182,6 +2182,148 @@ applications:
         prune: true
         selfHeal: true
 
+  # FLUTTER mobile CI runner — sibling of vymalo-runners (the Node one). Separate
+  # scale-set + namespace so the heavy Flutter+Android image only spins up for
+  # `mobile/**` PRs and can't collide with the Node runner's secrets. runs-on
+  # label = the scale-set name: `arc-runner-set-vymalo-flutter`. NO DinD —
+  # Flutter/Gradle need no Docker. The runner image
+  # (ghcr.io/vymalo/vymalo-flutter-runner) is built by the vymalo-shop
+  # `flutter runner image` workflow; minRunners 0 means no pod (and no image pull)
+  # until a mobile-ci job is queued, so it's safe to deploy before the image exists.
+  - name: vymalo-flutter-runners
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: arc-runner
+    sources:
+      - repoURL: "oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set"
+        targetRevision: 0.13.1
+        chart: "."
+        helm:
+          releaseName: arc-runner-set-vymalo-flutter
+          valuesObject:
+            githubConfigUrl: https://github.com/vymalo
+            githubConfigSecret: gh-runner-secret-pat
+
+            maxRunners: 1
+            minRunners: 0
+
+            controllerServiceAccount:
+              namespace: arc-systems
+              name: arc-gha-rs-controller
+
+            template:
+              spec:
+                securityContext:
+                  fsGroup: 1001
+                imagePullSecrets:
+                  - name: ghcr-pull-secret
+                containers:
+                  - name: runner
+                    # Flutter + Android SDK baked. :latest → pullPolicy Always, so
+                    # a rebuilt image rolls in on the next ephemeral pod.
+                    image: ghcr.io/vymalo/vymalo-flutter-runner:latest
+                    # analyze/test are Dart-only (light); the apk build runs
+                    # Gradle/AGP in this container — give it ubuntu-class headroom.
+                    resources:
+                      requests:
+                        cpu: "1"
+                        memory: 4Gi
+                      limits:
+                        cpu: "4"
+                        memory: 8Gi
+                    env:
+                      - name: RUNNER_TOOL_CACHE
+                        value: /opt/hostedtoolcache
+                    securityContext:
+                      runAsUser: 1001
+                      runAsGroup: 1001
+                    volumeMounts:
+                      - name: work
+                        mountPath: /home/runner/_work
+                      - name: tool-cache
+                        mountPath: /opt/hostedtoolcache
+                volumes:
+                  - name: work
+                    emptyDir: { }
+                  - name: tool-cache
+                    emptyDir: { }
+
+      - repoURL: https://bjw-s-labs.github.io/helm-charts
+        targetRevision: 4.6.2
+        chart: app-template
+        helm:
+          valuesObject:
+            rawResources:
+              auth-secret:
+                enabled: true
+                apiVersion: external-secrets.io/v1
+                kind: ExternalSecret
+                spec:
+                  spec:
+                    refreshInterval: 0h10m0s
+                    secretStoreRef:
+                      name: ssegning-aws
+                      kind: ClusterSecretStore
+                    target:
+                      name: gh-runner-secret-pat
+                      creationPolicy: Owner
+                    data:
+                      - secretKey: github_token
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: github_token
+              gh-pull-token:
+                enabled: true
+                apiVersion: external-secrets.io/v1
+                kind: ExternalSecret
+                spec:
+                  spec:
+                    refreshInterval: 0h10m0s
+                    secretStoreRef:
+                      name: ssegning-aws
+                      kind: ClusterSecretStore
+                    target:
+                      name: ghcr-pull-secret
+                      creationPolicy: Owner
+                      template:
+                        engineVersion: v2
+                        type: kubernetes.io/dockerconfigjson
+                        data:
+                          .dockerconfigjson: |
+                            {
+                              "auths": {
+                                "ghcr.io": {
+                                  "username": "{{ `{{ .github_username }}` }}",
+                                  "password": "{{ `{{ .github_token }}` }}",
+                                  "email": "{{ `{{ .github_email }}` }}",
+                                  "auth": "{{ `{{ printf "%s:%s" .github_username .github_token | b64enc }}` }}"
+                                }
+                              }
+                            }
+                    data:
+                      - secretKey: github_username
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: github_username
+                      - secretKey: github_token
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: github_token
+                      - secretKey: github_email
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: github_email
+    destination:
+      name: home-remote
+      namespace: gh-runners-vymalo-flutter
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   # Self-hosted Turborepo remote cache for the vymalo-shop CI `check` gate. Runs
   # on home-remote alongside the ARC runners so they reach it over cluster DNS
   # (turbo-cache.turbo-cache.svc.cluster.local) — no public route. Multi-source:
