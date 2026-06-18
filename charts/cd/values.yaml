@@ -2019,11 +2019,12 @@ applications:
                         mountPath: /home/runner/_work
 
                   - name: runner
-                    # Project base image: actions-runner + Node 22 + pnpm@10.33.0
-                    # + libatomic1 + the lockfile's deps pre-fetched. Built by the
-                    # vymalo-shop runner-image workflow. :latest → pullPolicy
-                    # Always, so a rebuilt image rolls in on the next ephemeral pod.
-                    image: ghcr.io/vymalo/vymalo-arc-runner:latest
+                    # Shared batteries-included runner image (Node + pnpm + Rust +
+                    # Flutter + Android + Ruby + k8s tooling), built & published by
+                    # github.com/vymalo/arc-runners — same build sky/vaam use. This
+                    # also serves the Flutter mobile CI (mobile-ci.yml runs-on this
+                    # default scale-set; the separate flutter scale-set is retired).
+                    image: ghcr.io/vymalo/arc-runners:4063075
                     # `backend integration tests` boots the full Medusa app + a
                     # live auth NestJS subprocess + jest workers in THIS container
                     # (Postgres is the dind service) — it OOMKilled at 4Gi (GitHub's
