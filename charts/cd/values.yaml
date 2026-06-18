@@ -1271,7 +1271,7 @@ applications:
                         mountPath: /home/runner/_work
 
                   - name: runner
-                    image: ghcr.io/vaam-store/vaam-arc-runner:44b8789
+                    image: ghcr.io/vymalo/arc-runners:4063075
                     resources:
                       requests:
                         cpu: 500m
@@ -1399,7 +1399,7 @@ applications:
                         mountPath: /home/runner/_work
 
                   - name: runner
-                    image: ghcr.io/vaam-store/vaam-arc-runner:44b8789
+                    image: ghcr.io/vymalo/arc-runners:4063075
                     resources:
                       requests:
                         cpu: 500m
@@ -1573,7 +1573,7 @@ applications:
                         mountPath: /home/runner/_work
 
                   - name: runner
-                    image: ghcr.io/vaam-store/vaam-arc-runner:44b8789
+                    image: ghcr.io/vymalo/arc-runners:4063075
                     resources:
                       requests:
                         cpu: 500m
