@@ -1971,7 +1971,7 @@ applications:
             githubConfigUrl: https://github.com/vymalo
             githubConfigSecret: gh-runner-secret-pat
 
-            maxRunners: 2
+            maxRunners: 4
             minRunners: 0
 
             controllerServiceAccount:
@@ -1997,7 +1997,7 @@ applications:
                         memory: 512Mi
                       limits:
                         cpu: "2"
-                        memory: 3Gi
+                        memory: 4Gi
                     securityContext:
                       privileged: true
                     env:
@@ -2033,7 +2033,7 @@ applications:
                         cpu: 500m
                         memory: 2Gi
                       limits:
-                        cpu: "3"
+                        cpu: "4"
                         memory: 8Gi
                     command: [ "/bin/sh", "-c" ]
                     args:
