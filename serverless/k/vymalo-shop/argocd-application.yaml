@@ -135,6 +135,10 @@ metadata:
     # Multi-source app: Helm image params live on source 0 (the OCI chart).
     argocd-image-updater.argoproj.io/app.source-index: "0"
     argocd-image-updater.argoproj.io/admin.source-index: "0"
+    # PRIVATE GHCR: the controller needs a read credential to query digests, or
+    # it gets `unauthorized`. ESO Secret created in ghcr-pull.externalsecret.yaml.
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vymalo-ghcr-pull
+    argocd-image-updater.argoproj.io/admin.pull-secret: pullsecret:argocd/vymalo-ghcr-pull
     argocd-image-updater.argoproj.io/app.update-strategy: digest
     argocd-image-updater.argoproj.io/app.helm.image-name: image.repository
     argocd-image-updater.argoproj.io/app.helm.image-tag: image.tag
@@ -224,6 +228,8 @@ metadata:
     argocd-image-updater.argoproj.io/image-list: >-
       app=ghcr.io/vymalo/vymalo-storefront:latest
     argocd-image-updater.argoproj.io/app.source-index: "0"
+    # PRIVATE GHCR read credential (see ghcr-pull.externalsecret.yaml).
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vymalo-ghcr-pull
     argocd-image-updater.argoproj.io/app.update-strategy: digest
     argocd-image-updater.argoproj.io/app.helm.image-name: image.repository
     argocd-image-updater.argoproj.io/app.helm.image-tag: image.tag
@@ -297,6 +303,8 @@ metadata:
     argocd-image-updater.argoproj.io/image-list: >-
       app=ghcr.io/vymalo/vymalo-vendor-panel:latest
     argocd-image-updater.argoproj.io/app.source-index: "0"
+    # PRIVATE GHCR read credential (see ghcr-pull.externalsecret.yaml).
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vymalo-ghcr-pull
     argocd-image-updater.argoproj.io/app.update-strategy: digest
     argocd-image-updater.argoproj.io/app.helm.image-name: image.repository
     argocd-image-updater.argoproj.io/app.helm.image-tag: image.tag
@@ -375,6 +383,8 @@ metadata:
     argocd-image-updater.argoproj.io/image-list: >-
       app=ghcr.io/vymalo/vymalo-auth:latest
     argocd-image-updater.argoproj.io/app.source-index: "0"
+    # PRIVATE GHCR read credential (see ghcr-pull.externalsecret.yaml).
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vymalo-ghcr-pull
     argocd-image-updater.argoproj.io/app.update-strategy: digest
     argocd-image-updater.argoproj.io/app.helm.image-name: image.repository
     argocd-image-updater.argoproj.io/app.helm.image-tag: image.tag

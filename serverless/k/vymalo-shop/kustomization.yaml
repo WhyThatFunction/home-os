@@ -10,6 +10,11 @@ resources:
   - argocd-application.yaml
   # ArgoCD repo cred (ESO) so it can pull the PRIVATE OCI Helm chart.
   - argocd-charts-oci-repo.externalsecret.yaml
+  # GHCR read cred (ESO, dockerconfigjson) so the image-updater can query the
+  # PRIVATE vymalo-* image digests — referenced by each app's pull-secret
+  # annotation. Without it the controller gets `unauthorized` and no digest
+  # promotes. (Mirrors the vaam `vaam-store-ghcr-pull` pattern.)
+  - ghcr-pull.externalsecret.yaml
   # CRD-based image-updater activation for the vymalo-* apps (without it,
   # app-only changes never promote a digest — only chart republishes deploy).
   - imageupdater.yaml
