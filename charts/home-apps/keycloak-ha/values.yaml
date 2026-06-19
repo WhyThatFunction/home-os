@@ -141,6 +141,8 @@ rawResources:
         method: plugin
         pluginConfiguration:
           name: barman-cloud.cloudnative-pg.io
+        immediate: true
+        backupOwnerReference: self
 
   object-store:
     enabled: true
