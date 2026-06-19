@@ -56,3 +56,16 @@ extraObjects:
           useAnnotations: true
         - namePattern: vymalo-storefront
           useAnnotations: true
+  # Lightbridge Code Intelligence (ai-helm `aii-lightbridge-code-intelligence`).
+  # The control-plane + web image-updater annotations live on that Application;
+  # this CR activates them. The `aii-` prefix is ai-helm's appNamePrefix. Tags are
+  # written back to vymalo/lightbridge-code-intelligence:deploy/envs/production/values.yaml.
+  - apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+    kind: ImageUpdater
+    metadata:
+      name: lightbridge-code-intelligence
+      namespace: argocd
+    spec:
+      applicationRefs:
+        - namePattern: aii-lightbridge-code-intelligence
+          useAnnotations: true
