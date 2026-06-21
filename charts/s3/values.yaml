@@ -140,6 +140,8 @@ minio:
               - "arn:aws:s3:::turbo-cache"
               - "arn:aws:s3:::sc-cache/*"
               - "arn:aws:s3:::sc-cache"
+              - "arn:aws:s3:::mobile-store/*"
+              - "arn:aws:s3:::mobile-store"
 
     usersExistingSecrets:
       - minio-users

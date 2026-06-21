@@ -2055,6 +2055,10 @@ applications:
                         value: http://turbo-cache.turbo-cache.svc.cluster.local
                       - name: TURBO_TEAM
                         value: vaam
+                      - name: MOBILE_ARTIFACTS_BUCKET
+                        value: mobile-store
+                      - name: S3_ENDPOINT
+                        value: https://s3.ssegning.me
                       - name: TURBO_TOKEN
                         valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: turbo-token } }
                       - name: SCCACHE_S3_ACCESS_KEY_ID
@@ -2064,6 +2068,10 @@ applications:
                       - name: AWS_ACCESS_KEY_ID
                         valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: access-key-id } }
                       - name: AWS_SECRET_ACCESS_KEY
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: secret-access-key } }
+                      - name: S3_ACCESS_KEY_ID
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: access-key-id } }
+                      - name: S3_SECRET_ACCESS_KEY
                         valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: secret-access-key } }
                     securityContext:
                       runAsUser: 1001
