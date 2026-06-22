@@ -1761,7 +1761,7 @@ applications:
                   - name: ghcr-pull-secret
                 containers:
                   - name: runner
-                    image: ghcr.io/vymalo/arc-runners:4063075
+                    image: ghcr.io/actions/actions-runner:latest
                     resources:
                       requests:
                         cpu: 500m
