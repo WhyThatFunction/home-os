@@ -1169,7 +1169,13 @@ applications:
     project: ai
     source:
       repoURL: https://github.com/ADORSYS-GIS/ai-helm
-      targetRevision: release-2026.06.22-v02
+      # Continuous delivery (ai-helm ADR-0055): the root tracks `main`, not an
+      # immutable release tag. Migrated apps (OCI `chart:` / external / values-repo
+      # sources) float on every merge; not-yet-migrated apps still render at their
+      # own self-ref tag pin (release-2026.06.22-v02) baked into main's charts —
+      # stable until each is migrated. Retires the tag-cut + repoint dance.
+      # Rollback: pin this back to release-2026.06.22-v02 (or any prior tag).
+      targetRevision: main
       path: charts/apps
     destination:
       server: https://kubernetes.default.svc
