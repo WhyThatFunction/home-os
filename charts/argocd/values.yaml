@@ -208,6 +208,13 @@ configs:
     controller.sharding.algorithm: round-robin # better balance than the legacy hash
     controller.kubectl.parallelism.limit: "20"
     reposerver.parallelism.limit: "10" # default 0 = unlimited (can OOM); cap per pod
+    # Server-side diff: compute diffs via a server-side-apply dry-run so fields
+    # owned by OTHER managers (ESO on ExternalSecrets, the CNPG operator on
+    # Cluster, envoy-gateway certgen on its webhook caBundle, mimir PDBs, …) don't
+    # show as permanent cosmetic OutOfSync + selfHeal churn. Fleet-wide here rather
+    # than per-app `compare-options: ServerSideDiff=true` annotations (~56 apps had
+    # this drift). ArgoCD's recommended default for operator-managed resources.
+    controller.diff.server.side: "true"
 
   secret:
     createSecret: true
