@@ -1728,7 +1728,9 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: gis-runners
+  # SSE runners without Docker-in-Docker. Use for workflows that don't need
+  # Docker (lint, test, static analysis, etc.). runs-on: arc-runner-set-sse
+  - name: gis-sse-runners
     finalizers:
       - resources-finalizer.argocd.argoproj.io
     project: arc-runner
@@ -1741,13 +1743,189 @@ applications:
           valuesObject:
             githubConfigUrl: https://github.com/ADORSYS-GIS
             githubConfigSecret: gh-runner-secret-pat
-            # Shadow the GitHub-hosted `ubuntu-latest` label, but scoped to the
-            # `flaky-rescue` runner group: only repos in that group's access
-            # policy route here; every other repo still hits GitHub-hosted.
-            runnerScaleSetName: ubuntu-latest
+            runnerScaleSetName: arc-runner-set-sse
             runnerGroup: flaky-rescue
 
             maxRunners: 4
+            minRunners: 0
+
+            controllerServiceAccount:
+              namespace: arc-systems
+              name: arc-gha-rs-controller
+
+            template:
+              spec:
+                securityContext:
+                  fsGroup: 1001
+                imagePullSecrets:
+                  - name: ghcr-pull-secret
+                containers:
+                  - name: runner
+                    image: ghcr.io/vymalo/arc-runners:4063075
+                    resources:
+                      requests:
+                        cpu: 500m
+                        memory: 1Gi
+                      limits:
+                        cpu: "2"
+                        memory: 7Gi
+                    env:
+                      - name: RUNNER_TOOL_CACHE
+                        value: /opt/hostedtoolcache
+                      - name: SCCACHE_BUCKET
+                        value: sc-cache
+                      - name: SCCACHE_ENDPOINT
+                        value: s3.ssegning.me
+                      - name: TURBO_API
+                        value: http://turbo-cache.turbo-cache.svc.cluster.local
+                      - name: TURBO_TEAM
+                        value: vaam
+                      - name: TURBO_TOKEN
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: turbo-token } }
+                      - name: SCCACHE_S3_ACCESS_KEY_ID
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: access-key-id } }
+                      - name: SCCACHE_S3_SECRET_ACCESS_KEY
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: secret-access-key } }
+                      - name: AWS_ACCESS_KEY_ID
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: access-key-id } }
+                      - name: AWS_SECRET_ACCESS_KEY
+                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: secret-access-key } }
+                    securityContext:
+                      runAsUser: 1001
+                      runAsGroup: 1001
+                    volumeMounts:
+                      - name: work
+                        mountPath: /home/runner/_work
+                      - name: tool-cache
+                        mountPath: /opt/hostedtoolcache
+                volumes:
+                  - name: work
+                    emptyDir: { }
+                  - name: tool-cache
+                    emptyDir: { }
+
+      - repoURL: https://bjw-s-labs.github.io/helm-charts
+        targetRevision: 4.6.2
+        chart: app-template
+        helm:
+          valuesObject:
+            rawResources:
+              auth-secret:
+                enabled: true
+                apiVersion: external-secrets.io/v1
+                kind: ExternalSecret
+                spec:
+                  spec:
+                    refreshInterval: 0h10m0s
+                    secretStoreRef:
+                      name: ssegning-aws
+                      kind: ClusterSecretStore
+                    target:
+                      name: gh-runner-secret-pat
+                      creationPolicy: Owner
+                    data:
+                      - secretKey: github_token
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: github_token
+              arc-runner-secrets:
+                enabled: true
+                apiVersion: external-secrets.io/v1
+                kind: ExternalSecret
+                spec:
+                  spec:
+                    refreshInterval: 0h10m0s
+                    secretStoreRef:
+                      name: ssegning-aws
+                      kind: ClusterSecretStore
+                    target:
+                      name: arc-runner-secrets
+                      creationPolicy: Owner
+                    data:
+                      - secretKey: turbo-token
+                        remoteRef:
+                          key: "prod/artifact-cache/env"
+                          property: turbo_token
+                      - secretKey: access-key-id
+                        remoteRef:
+                          key: "prod/artifact-cache/env"
+                          property: object_storage_access_key
+                      - secretKey: secret-access-key
+                        remoteRef:
+                          key: "prod/artifact-cache/env"
+                          property: object_storage_secret_key
+              gh-pull-token:
+                enabled: true
+                apiVersion: external-secrets.io/v1
+                kind: ExternalSecret
+                spec:
+                  spec:
+                    refreshInterval: 0h10m0s
+                    secretStoreRef:
+                      name: ssegning-aws
+                      kind: ClusterSecretStore
+                    target:
+                      name: ghcr-pull-secret
+                      creationPolicy: Owner
+                      template:
+                        engineVersion: v2
+                        type: kubernetes.io/dockerconfigjson
+                        data:
+                          .dockerconfigjson: |
+                            {
+                              "auths": {
+                                "ghcr.io": {
+                                  "username": "{{ `{{ .github_username }}` }}",
+                                  "password": "{{ `{{ .github_token }}` }}",
+                                  "email": "{{ `{{ .github_email }}` }}",
+                                  "auth": "{{ `{{ printf "%s:%s" .github_username .github_token | b64enc }}` }}"
+                                }
+                              }
+                            }
+                    data:
+                      - secretKey: github_username
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: github_username
+                      - secretKey: github_token
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: github_token
+                      - secretKey: github_email
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: github_email
+
+    destination:
+      name: home-remote
+      namespace: gh-runners-sse
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  # SSE runners with Docker-in-Docker. Use for workflows that build/push
+  # Docker images. runs-on: arc-runner-set-sse-dind
+  - name: gis-sse-runners-dind
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: arc-runner
+    sources:
+      - repoURL: "oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set"
+        targetRevision: 0.13.1
+        chart: "."
+        helm:
+          releaseName: arc-runner-set-sse-dind
+          valuesObject:
+            githubConfigUrl: https://github.com/ADORSYS-GIS
+            githubConfigSecret: gh-runner-secret-pat
+            runnerScaleSetName: arc-runner-set-sse-dind
+            runnerGroup: flaky-rescue
+
+            maxRunners: 1
             minRunners: 0
 
             controllerServiceAccount:
@@ -1795,7 +1973,7 @@ applications:
                         mountPath: /home/runner/_work
 
                   - name: runner
-                    image: ghcr.io/actions/actions-runner:latest
+                    image: ghcr.io/vymalo/arc-runners:4063075
                     resources:
                       requests:
                         cpu: 500m
@@ -1942,7 +2120,7 @@ applications:
 
     destination:
       name: home-remote
-      namespace: gh-runners-gis
+      namespace: gh-runners-sse-dind
     syncPolicy:
       syncOptions:
         - CreateNamespace=true
