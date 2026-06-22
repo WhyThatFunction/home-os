@@ -238,6 +238,29 @@ applications:
         prune: true
         selfHeal: true
 
+  # Registers ghcr.io/adorsys-gis/charts as an ArgoCD Helm-OCI repository so the
+  # ai-apps-v2 OCI-mode child Apps (ai-helm ADR-0055) can resolve charts on a
+  # semver range (without it, range resolution 403s — see the ExternalSecret).
+  # Just one ESO ExternalSecret, landed in the argocd namespace.
+  - name: ai-helm-charts-oci-deployer
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: serverless/k/ai-helm-oci
+    destination:
+      server: https://kubernetes.default.svc
+      # The kustomization pins every resource to the argocd namespace, so target
+      # it directly — no CreateNamespace (avoids an empty serverless-* namespace,
+      # per the #67 review). argocd already exists.
+      namespace: argocd
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+
   # vaam-store-prod umbrella. Deploys three child Applications (sync-waved):
   #   secrets (0) → pg + redis (5) → app (10)
   # Children defined under charts/home-apps/vaam-store-prod-deployer.
