@@ -252,10 +252,11 @@ applications:
       path: serverless/k/ai-helm-oci
     destination:
       server: https://kubernetes.default.svc
-      namespace: serverless-ai-helm-oci
+      # The kustomization pins every resource to the argocd namespace, so target
+      # it directly — no CreateNamespace (avoids an empty serverless-* namespace,
+      # per the #67 review). argocd already exists.
+      namespace: argocd
     syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
       automated:
         prune: true
         selfHeal: true
