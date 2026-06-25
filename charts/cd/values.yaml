@@ -2215,11 +2215,11 @@ applications:
                     # ubuntu-latest has ~7Gi). Give it ubuntu-class headroom.
                     resources:
                       requests:
-                        cpu: 500m
-                        memory: 2Gi
+                        cpu: 1500m
+                        memory: 6Gi
                       limits:
-                        cpu: "4"
-                        memory: 8Gi
+                        cpu: "3"
+                        memory: 12Gi
                     command: [ "/bin/sh", "-c" ]
                     args:
                       - sleep 15; exec /home/runner/run.sh
