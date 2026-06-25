@@ -242,6 +242,7 @@ applications:
   #   secrets (0) → pg + redis (5) → app (10)
   # Children defined under charts/home-apps/vaam-store-prod-deployer.
   - name: vaam-store-prod-deployer
+    enabled: false
     finalizers:
       - resources-finalizer.argocd.argoproj.io
     project: external

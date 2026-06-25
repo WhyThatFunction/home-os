@@ -1518,6 +1518,7 @@ applications:
         selfHeal: true
 
   - name: vaam-runners
+    enabled: false
     finalizers:
       - resources-finalizer.argocd.argoproj.io
     project: arc-runner
