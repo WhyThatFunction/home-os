@@ -1769,6 +1769,15 @@ applications:
                 containers:
                   - name: runner
                     image: ghcr.io/actions/actions-runner:latest
+                    # The gha-runner-scale-set chart only injects the default
+                    # `command: [/home/runner/run.sh]` on its own default runner
+                    # container. Overriding `template.spec.containers` replaces
+                    # that list wholesale, so without an explicit command the
+                    # stock actions-runner image runs its no-op default CMD,
+                    # exits 0 in <1s, and the JIT-registered runner never comes
+                    # online — leaving queued jobs unserved and the listener
+                    # churning replacements forever. Mirror sky-frontend.
+                    command: [ "/home/runner/run.sh" ]
                     resources:
                       requests:
                         cpu: 500m
