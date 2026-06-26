@@ -1,0 +1,12 @@
+# Code owners for home-os
+#
+# Source of truth: https://adorsys-gis.github.io/ai-governance/
+#
+# NOTE: branch protection on `main` is configured with required_approving_review_count: 0
+# and does NOT enforce code-owner review (this is a single-maintainer repo, so a
+# code-owner gate would be unsatisfiable). This file documents ownership and makes
+# GitHub auto-request review from the owner on each PR — it is intentionally NOT a
+# hard merge gate. The hard gate is the `governance / governance-check` status check.
+
+# Global owner — everything in the repo.
+* @stephane-segning
