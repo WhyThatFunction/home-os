@@ -1228,7 +1228,7 @@ applications:
             githubConfigUrl: https://github.com/skyengpro/azamra-tokenization-bff
             githubConfigSecret: gh-runner-secret-pat
 
-            maxRunners: 2
+            maxRunners: 10
 
             minRunners: 0
 
@@ -1356,7 +1356,7 @@ applications:
             githubConfigUrl: https://github.com/skyengpro/azamra-tokenization-frontend
             githubConfigSecret: gh-runner-secret-pat
 
-            maxRunners: 2
+            maxRunners: 10
 
             minRunners: 0
 
@@ -1532,7 +1532,7 @@ applications:
             githubConfigUrl: https://github.com/vaam-store
             githubConfigSecret: gh-runner-secret-pat
 
-            maxRunners: 4
+            maxRunners: 10
             minRunners: 0
 
             controllerServiceAccount:
@@ -1753,7 +1753,7 @@ applications:
             runnerScaleSetName: arc-runner-set-sse
             runnerGroup: flaky-rescue
 
-            maxRunners: 4
+            maxRunners: 10
             minRunners: 0
 
             controllerServiceAccount:
@@ -1932,7 +1932,7 @@ applications:
             runnerScaleSetName: arc-runner-set-sse-dind
             runnerGroup: flaky-rescue
 
-            maxRunners: 1
+            maxRunners: 5
             minRunners: 0
 
             controllerServiceAccount:
@@ -2156,7 +2156,7 @@ applications:
             githubConfigUrl: https://github.com/vymalo
             githubConfigSecret: gh-runner-secret-pat
 
-            maxRunners: 4
+            maxRunners: 10
             minRunners: 0
 
             controllerServiceAccount:
@@ -2398,7 +2398,7 @@ applications:
             githubConfigUrl: https://github.com/vymalo
             githubConfigSecret: gh-runner-secret-pat
 
-            maxRunners: 1
+            maxRunners: 10
             minRunners: 0
 
             controllerServiceAccount:
