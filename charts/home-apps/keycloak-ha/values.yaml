@@ -303,6 +303,14 @@ rawResources:
           name: '{{ .Release.Name }}-grafana-ro'
           creationPolicy: Owner
           template:
+            # cnpg.io/reload makes CNPG re-read this passwordSecret promptly when
+            # the password is rotated in the store (ESO refreshes hourly), so the
+            # `grafana_ro` DB role password tracks the Grafana-side copy instead of
+            # drifting until the next full reconcile. Same label the cluster's
+            # certificate-holder Secret carries.
+            metadata:
+              labels:
+                cnpg.io/reload: "true"
             type: kubernetes.io/basic-auth
             data:
               username: grafana_ro
@@ -313,13 +321,25 @@ rawResources:
               key: "prod/meta/test-app"
               property: keycloak_grafana_ro_db_password
 
-  # Idempotent GRANT job — scopes grafana_ro to user + token tables ONLY.
+  # Idempotent GRANT job — scopes grafana_ro to user-identity + token tables ONLY.
   # CNPG `managed.roles` creates the role but can't express per-table grants, so
   # this runs the GRANT as the `app` owner (which owns the Keycloak tables).
-  # Re-applied on every ArgoCD sync (Sync hook + BeforeHookCreation delete);
-  # waits for CNPG to create the role first. GRANT is idempotent. Sensitive
-  # tables (credential, federated_identity, client, component_config, realm,
-  # user_federation_*) are deliberately NOT granted.
+  # Re-applied on every ArgoCD sync (Sync hook + BeforeHookCreation delete).
+  # GRANT is idempotent.
+  #
+  # Granted = user identity (user_entity, user_attribute) + the "tokens" the
+  # datasource may read (offline_{user,client}_session). Deliberately NOT granted,
+  # because they're neither identity nor tokens and only widen the blast radius if
+  # the datasource credential leaks: credential (password/OTP hashes),
+  # federated_identity (3rd-party tokens), client, component_config, realm,
+  # user_federation_* (LDAP creds), AND the authz/consent tables
+  # (user_role_mapping, user_group_membership, user_consent*, user_required_action)
+  # — the dashboard only queries user_entity, so the surface stays minimal.
+  #
+  # Robustness: the wait loop is BOUNDED (max-retry) and the Job has an
+  # activeDeadlineSeconds backstop, so a never-created role (e.g. the password
+  # ExternalSecret never synced) fails the hook fast instead of hanging the
+  # ArgoCD Sync indefinitely. backoffLimit is low to fail fast on hard errors.
   grafana-ro-grant:
     enabled: true
     apiVersion: batch/v1
@@ -329,41 +349,51 @@ rawResources:
       argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
     spec:
       spec:
-        backoffLimit: 30
+        backoffLimit: 6
+        # Hard backstop so a stuck hook can never wedge the Application OutOfSync.
+        activeDeadlineSeconds: 900
         ttlSecondsAfterFinished: 600
         template:
           spec:
             restartPolicy: OnFailure
             containers:
               - name: grant
-                image: ghcr.io/cloudnative-pg/postgresql:18.4-system-trixie
+                # Pinned to the image the cluster actually runs (verified live:
+                # keycloak-ha-cluster on 18.1-system-trixie) — psql only, so a
+                # minor-version drift is harmless; bump alongside the cluster.
+                image: ghcr.io/cloudnative-pg/postgresql:18.1-system-trixie
                 command:
                   - /bin/sh
                   - -ec
+                  # psql reads PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD/PGSSLMODE
+                  # from the libpq env vars below — no connection string to word-split.
                   - |
-                    echo "waiting for grafana_ro role to exist…"
-                    until psql "host=$PGHOST port=$PGPORT dbname=$PGDATABASE user=$PGUSER sslmode=require" \
-                        -tAc "SELECT 1 FROM pg_roles WHERE rolname='grafana_ro'" | grep -q 1; do
-                      echo "  role not present yet — retrying in 5s"; sleep 5
+                    echo "waiting for grafana_ro role + keycloak schema to exist…"
+                    i=0
+                    until psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='grafana_ro'" | grep -q 1 \
+                       && psql -tAc "SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='user_entity'" | grep -q 1; do
+                      i=$((i + 1))
+                      if [ "$i" -ge 60 ]; then
+                        echo "ERROR: grafana_ro role / user_entity table not present after 5min — aborting" >&2
+                        exit 1
+                      fi
+                      echo "  not ready yet — retrying in 5s ($i/60)"; sleep 5
                     done
-                    echo "granting scoped read-only access (user + token tables only)…"
-                    psql "host=$PGHOST port=$PGPORT dbname=$PGDATABASE user=$PGUSER sslmode=require" -v ON_ERROR_STOP=1 <<'SQL'
+                    echo "granting scoped read-only access (user-identity + token tables only)…"
+                    psql -v ON_ERROR_STOP=1 <<'SQL'
                     GRANT CONNECT ON DATABASE app TO grafana_ro;
                     GRANT USAGE ON SCHEMA public TO grafana_ro;
                     GRANT SELECT ON
                       user_entity,
                       user_attribute,
-                      user_group_membership,
-                      user_role_mapping,
-                      user_required_action,
-                      user_consent,
-                      user_consent_client_scope,
                       offline_user_session,
                       offline_client_session
                     TO grafana_ro;
                     SQL
                     echo "done."
                 env:
+                  - name: PGSSLMODE
+                    value: require
                   - name: PGHOST
                     value: '{{ .Release.Name }}-cluster-rw'
                   - name: PGPORT
