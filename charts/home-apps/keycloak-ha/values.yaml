@@ -187,6 +187,23 @@ rawResources:
             isWALArchiver: true
             parameters:
               barmanObjectName: '{{ .Release.Name }}-object-store'
+
+        # Declarative read-only login role for the Grafana "user_id attribution"
+        # datasource (ai-helm-values → observability ns; ADR-0063 in ai-helm).
+        # CNPG creates/maintains the role + sets its password from the basic-auth
+        # Secret below; it is NOT a member of pg_read_all_data (that would expose
+        # `credential` hashes, client secrets, federated tokens). The SELECT grant
+        # is scoped to the user+token tables ONLY, applied by the `grafana-ro-grant`
+        # Job below (CNPG managed roles can't express per-table grants).
+        managed:
+          roles:
+            - name: grafana_ro
+              ensure: present
+              login: true
+              comment: "Read-only — Grafana user_id→identity attribution (ai-helm ADR-0063). SELECT on user+token tables only; no pg_read_all_data."
+              passwordSecret:
+                name: '{{ .Release.Name }}-grafana-ro'
+
         resources:
           limits:
             cpu: "1"
@@ -251,3 +268,148 @@ rawResources:
     spec:
       spec:
         serverName: auth.verif.fyi
+
+  # ────────────────────────────────────────────────────────────────────
+  # Grafana read-only datasource plumbing (ai-helm ADR-0063).
+  #
+  # The AI-platform Grafana (observability ns, Hetzner home-remote) shows
+  # per-user cost keyed on the Keycloak `sub` (a UUID). To resolve those UUIDs
+  # to people, Grafana gets a read-only Postgres datasource onto THIS database.
+  # Two pieces live here (home-os owns the Keycloak CNPG cluster):
+  #   1. the `grafana_ro` managed role (above, on the Cluster) + this Secret
+  #      that sets its password, and
+  #   2. a one-shot GRANT Job (below) that scopes its SELECT to user+token
+  #      tables only.
+  # The datasource CR, the password copy into the observability ns, and the
+  # Cilium egress all live in ai-helm-values. ⚠️ Requires a new
+  # `keycloak_grafana_ro_db_password` property in the ssegning-aws
+  # `prod/meta/test-app` bucket BEFORE this syncs (else the role gets no
+  # password and the ExternalSecret sits in SecretSyncedError).
+  # ────────────────────────────────────────────────────────────────────
+  grafana-ro:
+    enabled: true
+    apiVersion: external-secrets.io/v1
+    kind: ExternalSecret
+    spec:
+      spec:
+        refreshInterval: 1h0m0s
+        secretStoreRef:
+          name: ssegning-aws
+          kind: ClusterSecretStore
+        target:
+          # CNPG managed-role passwordSecret must be type basic-auth with the
+          # `username` matching the role name. Name matches the passwordSecret
+          # ref on the managed role above ('{{ .Release.Name }}-grafana-ro').
+          name: '{{ .Release.Name }}-grafana-ro'
+          creationPolicy: Owner
+          template:
+            # cnpg.io/reload makes CNPG re-read this passwordSecret promptly when
+            # the password is rotated in the store (ESO refreshes hourly), so the
+            # `grafana_ro` DB role password tracks the Grafana-side copy instead of
+            # drifting until the next full reconcile. Same label the cluster's
+            # certificate-holder Secret carries.
+            metadata:
+              labels:
+                cnpg.io/reload: "true"
+            type: kubernetes.io/basic-auth
+            data:
+              username: grafana_ro
+              password: '{{ "{{ .password }}" }}'
+        data:
+          - secretKey: password
+            remoteRef:
+              key: "prod/meta/test-app"
+              property: keycloak_grafana_ro_db_password
+
+  # Idempotent GRANT job — scopes grafana_ro to user-identity + token tables ONLY.
+  # CNPG `managed.roles` creates the role but can't express per-table grants, so
+  # this runs the GRANT as the `app` owner (which owns the Keycloak tables).
+  # Re-applied on every ArgoCD sync (Sync hook + BeforeHookCreation delete).
+  # GRANT is idempotent.
+  #
+  # Granted = the agreed "users and tokens" scope: user identity
+  # (user_entity, user_attribute) + the offline session/token tables
+  # (offline_{user,client}_session). NB the shipped dashboard only queries
+  # user_entity today; the session tables are granted because read access to
+  # tokens is an explicit requirement of this datasource (first-party, read-only),
+  # not because a panel needs them yet.
+  # Deliberately NOT granted — neither identity nor tokens, and they'd only widen
+  # the blast radius if the datasource credential leaks: credential (password/OTP
+  # hashes), federated_identity (3rd-party tokens), client, component_config,
+  # realm, user_federation_* (LDAP creds), AND the authz/consent tables
+  # (user_role_mapping, user_group_membership, user_consent*, user_required_action).
+  #
+  # Robustness: the wait loop is BOUNDED (max-retry) and the Job has an
+  # activeDeadlineSeconds backstop, so a never-created role (e.g. the password
+  # ExternalSecret never synced) fails the hook fast instead of hanging the
+  # ArgoCD Sync indefinitely. backoffLimit is low to fail fast on hard errors.
+  grafana-ro-grant:
+    enabled: true
+    apiVersion: batch/v1
+    kind: Job
+    annotations:
+      argocd.argoproj.io/hook: Sync
+      argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    spec:
+      spec:
+        backoffLimit: 6
+        # Hard backstop so a stuck hook can never wedge the Application OutOfSync.
+        activeDeadlineSeconds: 900
+        ttlSecondsAfterFinished: 600
+        template:
+          spec:
+            restartPolicy: OnFailure
+            containers:
+              - name: grant
+                # Pinned to the image the cluster actually runs (verified live:
+                # keycloak-ha-cluster on 18.1-system-trixie) — psql only, so a
+                # minor-version drift is harmless; bump alongside the cluster.
+                image: ghcr.io/cloudnative-pg/postgresql:18.1-system-trixie
+                command:
+                  - /bin/sh
+                  - -ec
+                  # psql reads PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD/PGSSLMODE
+                  # from the libpq env vars below — no connection string to word-split.
+                  - |
+                    echo "waiting for grafana_ro role + keycloak schema to exist…"
+                    i=0
+                    until psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='grafana_ro'" | grep -q 1 \
+                       && psql -tAc "SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='user_entity'" | grep -q 1; do
+                      i=$((i + 1))
+                      if [ "$i" -ge 60 ]; then
+                        echo "ERROR: grafana_ro role / user_entity table not present after 5min — aborting" >&2
+                        exit 1
+                      fi
+                      echo "  not ready yet — retrying in 5s ($i/60)"; sleep 5
+                    done
+                    echo "granting scoped read-only access (user-identity + token tables only)…"
+                    psql -v ON_ERROR_STOP=1 <<'SQL'
+                    GRANT CONNECT ON DATABASE app TO grafana_ro;
+                    GRANT USAGE ON SCHEMA public TO grafana_ro;
+                    GRANT SELECT ON
+                      user_entity,
+                      user_attribute,
+                      offline_user_session,
+                      offline_client_session
+                    TO grafana_ro;
+                    SQL
+                    echo "done."
+                env:
+                  - name: PGSSLMODE
+                    value: require
+                  - name: PGHOST
+                    value: '{{ .Release.Name }}-cluster-rw'
+                  - name: PGPORT
+                    value: "5432"
+                  - name: PGDATABASE
+                    value: app
+                  - name: PGUSER
+                    valueFrom:
+                      secretKeyRef:
+                        name: '{{ .Release.Name }}-cluster-app'
+                        key: username
+                  - name: PGPASSWORD
+                    valueFrom:
+                      secretKeyRef:
+                        name: '{{ .Release.Name }}-cluster-app'
+                        key: password
