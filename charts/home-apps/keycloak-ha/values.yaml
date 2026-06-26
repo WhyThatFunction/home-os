@@ -327,14 +327,17 @@ rawResources:
   # Re-applied on every ArgoCD sync (Sync hook + BeforeHookCreation delete).
   # GRANT is idempotent.
   #
-  # Granted = user identity (user_entity, user_attribute) + the "tokens" the
-  # datasource may read (offline_{user,client}_session). Deliberately NOT granted,
-  # because they're neither identity nor tokens and only widen the blast radius if
-  # the datasource credential leaks: credential (password/OTP hashes),
-  # federated_identity (3rd-party tokens), client, component_config, realm,
-  # user_federation_* (LDAP creds), AND the authz/consent tables
-  # (user_role_mapping, user_group_membership, user_consent*, user_required_action)
-  # — the dashboard only queries user_entity, so the surface stays minimal.
+  # Granted = the agreed "users and tokens" scope: user identity
+  # (user_entity, user_attribute) + the offline session/token tables
+  # (offline_{user,client}_session). NB the shipped dashboard only queries
+  # user_entity today; the session tables are granted because read access to
+  # tokens is an explicit requirement of this datasource (first-party, read-only),
+  # not because a panel needs them yet.
+  # Deliberately NOT granted — neither identity nor tokens, and they'd only widen
+  # the blast radius if the datasource credential leaks: credential (password/OTP
+  # hashes), federated_identity (3rd-party tokens), client, component_config,
+  # realm, user_federation_* (LDAP creds), AND the authz/consent tables
+  # (user_role_mapping, user_group_membership, user_consent*, user_required_action).
   #
   # Robustness: the wait loop is BOUNDED (max-retry) and the Job has an
   # activeDeadlineSeconds backstop, so a never-created role (e.g. the password
