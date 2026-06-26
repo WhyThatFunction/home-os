@@ -86,6 +86,18 @@ names across clusters.
 - **rawResource names come from `forceRename`**, not `name`. With a single
   enabled rawResource the identifier isn't appended and the name collapses to
   the release fullname — use `forceRename: "{{ .Release.Name }}-foo"`.
+- **Overriding a list drops the chart's defaults for that list — `command`
+  is the classic trap.** Because lists replace wholesale (above), supplying
+  your own `template.spec.containers` to the **`gha-runner-scale-set`** chart
+  (the ARC runners in `charts/cd/values.yaml`) discards its default
+  `command: ["/home/runner/run.sh"]`. Without re-adding it, the stock
+  `actions-runner` image runs its no-op default CMD, the container exits 0 in
+  <1s, and the JIT-registered runner shows `offline`/`os: unknown` at GitHub
+  and never picks up a job — so queued jobs stall and the listener churns
+  replacements forever (`decision: N` while `assigned job: 0`). **Every runner
+  container override must restate `command`** (`["/home/runner/run.sh"]`, or
+  `["/bin/sh","-c"]` + `args: [sleep N; exec /home/runner/run.sh]` when it must
+  wait for a dind sidecar). Cost a 4-day runaway on `arc-runner-set-sse`.
 
 ## Commands
 
