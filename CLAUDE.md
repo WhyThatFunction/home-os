@@ -114,10 +114,15 @@ with the same `valuesObject` saved to a temp values file (`-f`).
 
 ## Working conventions
 
-- **Commits go directly to `main`** — this repo has no PR flow and no
-  required CI. Make the edit, validate with `helm template`, then commit.
+- **`main` is protected — changes land via PR, not direct push.** Branch
+  protection requires a PR (0 approvals, no code-owner review), enforces the
+  `governance / governance-check` status check, and applies to admins too
+  (`enforce_admins: true`). Direct `git push origin main` is rejected. Open a
+  PR whose body satisfies the governance gate (see the AI Governance stanza
+  below) and merge it once the check is green. Still: make the edit, validate
+  with `helm template`, then push the branch and open the PR.
 - **`gh` and `git push` need the interactive zsh profile** for credentials:
-  `zsh -i -c 'git push origin main'` (the token is loaded there; a plain
+  `zsh -i -c 'git push origin <branch>'` (the token is loaded there; a plain
   non-interactive shell is unauthenticated).
 - Repo URL appears as `whythatfunction` (lowercase) in some values but the
   canonical remote is `github.com/WhyThatFunction/home-os` — both resolve.
