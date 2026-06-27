@@ -1768,7 +1768,12 @@ applications:
                   - name: ghcr-pull-secret
                 containers:
                   - name: runner
-                    image: ghcr.io/actions/actions-runner:latest
+                    # vymalo/arc-runners#1 — rootless buildah/podman/yq + the baked
+                    # toolchain the sse jobs need (yq for flutter-action, sccache, …).
+                    # Replaces the stock actions-runner image, which had no yq (the
+                    # mobile-ci "yq not found" failure) and no container tooling for
+                    # the migrated buildah/podman jobs.
+                    image: ghcr.io/vymalo/arc-runners:2c2f456
                     # The gha-runner-scale-set chart only injects the default
                     # `command: [/home/runner/run.sh]` on its own default runner
                     # container. Overriding `template.spec.containers` replaces
@@ -1786,6 +1791,12 @@ applications:
                         cpu: "2"
                         memory: 7Gi
                     env:
+                      # Rootless container build/run (buildah/podman) with no
+                      # /dev/fuse or userns: vfs storage + chroot isolation.
+                      - name: STORAGE_DRIVER
+                        value: vfs
+                      - name: BUILDAH_ISOLATION
+                        value: chroot
                       - name: RUNNER_TOOL_CACHE
                         value: /opt/hostedtoolcache
                       - name: SCCACHE_BUCKET
@@ -1814,11 +1825,16 @@ applications:
                         mountPath: /home/runner/_work
                       - name: tool-cache
                         mountPath: /opt/hostedtoolcache
+                      # rootless graphroot for buildah/podman image storage
+                      - name: containers
+                        mountPath: /home/runner/.local/share/containers
                 volumes:
                   - name: work
                     emptyDir: { }
                   - name: tool-cache
                     emptyDir: { }
+                  - name: containers
+                    emptyDir: { sizeLimit: 20Gi }
 
       - repoURL: https://bjw-s-labs.github.io/helm-charts
         targetRevision: 4.6.2
