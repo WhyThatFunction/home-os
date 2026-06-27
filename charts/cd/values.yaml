@@ -1959,37 +1959,19 @@ applications:
                 imagePullSecrets:
                   - name: ghcr-pull-secret
                 containers:
-                  - name: dind
-                    image: docker:29-dind
-                    resources:
-                      requests:
-                        cpu: 250m
-                        memory: 512Mi
-                      limits:
-                        cpu: "1"
-                        memory: 3Gi
-                    securityContext:
-                      privileged: true
-                    env:
-                      - name: DOCKER_TLS_CERTDIR
-                        value: ""
-                    args:
-                      - dockerd
-                      - --host=tcp://0.0.0.0:2375
-                      - --host=unix:///var/run/docker.sock
-                    startupProbe:
-                      tcpSocket:
-                        port: 2375
-                      failureThreshold: 24
-                      periodSeconds: 5
-                    volumeMounts:
-                      - name: docker-graph
-                        mountPath: /var/lib/docker
-                      - name: work
-                        mountPath: /home/runner/_work
-
+                  # SPIKE: rootless Buildah/Podman — the privileged `dind` sidecar
+                  # is removed. The runner now builds (buildah) and runs compose
+                  # stacks (podman) itself, daemonless + rootless. Validate this on
+                  # the cluster (a buildah build + `podman compose up`) BEFORE
+                  # converting `arc-runner-set-sse` and collapsing the two sets.
                   - name: runner
-                    image: ghcr.io/vymalo/arc-runners:4063075
+                    # vymalo/arc-runners#1 (rootless buildah+podman+yq), merged as 2c2f456.
+                    image: ghcr.io/vymalo/arc-runners:2c2f456
+                    # Overriding template.spec.containers drops the chart's default
+                    # command, and the base actions-runner image's CMD is a no-op —
+                    # without restating run.sh the runner exits <1s and never
+                    # registers (the dind sidecar's old `sleep 30` wait is gone).
+                    command: [ "/home/runner/run.sh" ]
                     resources:
                       requests:
                         cpu: 500m
@@ -1997,12 +1979,14 @@ applications:
                       limits:
                         cpu: "2"
                         memory: 7Gi
-                    command: [ "/bin/sh", "-c" ]
-                    args:
-                      - sleep 30; exec /home/runner/run.sh
                     env:
-                      - name: DOCKER_HOST
-                        value: tcp://localhost:2375
+                      # Rootless container builds without /dev/fuse or userns:
+                      # vfs storage driver + chroot isolation (matches the image
+                      # defaults; set explicitly so a job can't inherit otherwise).
+                      - name: STORAGE_DRIVER
+                        value: vfs
+                      - name: BUILDAH_ISOLATION
+                        value: chroot
                       # ruby/setup-ruby always installs under /opt/hostedtoolcache
                       # on Linux, so anchor the whole tool cache there to share
                       # one volume across setup-node/java/ruby.
@@ -2034,12 +2018,15 @@ applications:
                         mountPath: /home/runner/_work
                       - name: tool-cache
                         mountPath: /opt/hostedtoolcache
+                      # rootless graphroot for buildah/podman image storage
+                      - name: containers
+                        mountPath: /home/runner/.local/share/containers
                 volumes:
-                  - name: docker-graph
-                    emptyDir: { }
                   - name: work
                     emptyDir: { }
                   - name: tool-cache
+                    emptyDir: { }
+                  - name: containers
                     emptyDir: { }
 
       - repoURL: https://bjw-s-labs.github.io/helm-charts
