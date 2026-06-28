@@ -1247,52 +1247,29 @@ applications:
                 imagePullSecrets:
                   - name: ghcr-pull-secret
                 containers:
-                  - name: dind
-                    image: docker:29-dind
-                    resources:
-                      requests:
-                        cpu: 250m
-                        memory: 512Mi
-                      limits:
-                        cpu: "2"
-                        memory: 4Gi
-                    securityContext:
-                      privileged: true
-                    env:
-                      - name: DOCKER_TLS_CERTDIR
-                        value: ""
-                    args:
-                      - dockerd
-                      - --host=tcp://0.0.0.0:2375
-                      - --host=unix:///var/run/docker.sock
-                    startupProbe:
-                      tcpSocket:
-                        port: 2375
-                      failureThreshold: 24
-                      periodSeconds: 5
-                    volumeMounts:
-                      - name: docker-graph
-                        mountPath: /var/lib/docker
-                      - name: work
-                        mountPath: /home/runner/_work
-
                   - name: runner
+                    # Rootless buildah/podman (daemonless) — the privileged dind
+                    # sidecar was removed; image builds run via buildah inside the
+                    # runner itself (vfs storage + chroot isolation, no /dev/fuse
+                    # or userns). Consumers build with buildah, not docker.
                     image: ghcr.io/vymalo/arc-runners:jdk21-node22
                     # moving tag → force a fresh pull each pod (K8s defaults non-:latest to IfNotPresent)
                     imagePullPolicy: Always
+                    command: [ "/home/runner/run.sh" ]
                     resources:
                       requests:
                         cpu: 500m
                         memory: 1Gi
                       limits:
-                        cpu: "4"
-                        memory: 8Gi
-                    command: [ "/bin/sh", "-c" ]
-                    args:
-                      - sleep 15; exec /home/runner/run.sh
+                        cpu: "2"
+                        memory: 6Gi
                     env:
-                      - name: DOCKER_HOST
-                        value: tcp://localhost:2375
+                      # Rootless container build/run (buildah/podman) with no
+                      # /dev/fuse or userns: vfs storage + chroot isolation.
+                      - name: STORAGE_DRIVER
+                        value: vfs
+                      - name: BUILDAH_ISOLATION
+                        value: chroot
                       # ruby/setup-ruby always installs under /opt/hostedtoolcache
                       # on Linux, so anchor the whole tool cache there to share
                       # one volume across setup-node/java/ruby.
@@ -1324,13 +1301,15 @@ applications:
                         mountPath: /home/runner/_work
                       - name: tool-cache
                         mountPath: /opt/hostedtoolcache
-
+                      # rootless graphroot for buildah/podman image storage
+                      - name: containers
+                        mountPath: /home/runner/.local/share/containers
                 volumes:
-                  - name: docker-graph
-                    emptyDir: { }
                   - name: work
                     emptyDir: { }
                   - name: tool-cache
+                    emptyDir: { }
+                  - name: containers
                     emptyDir: { }
 
     destination:
@@ -1377,50 +1356,29 @@ applications:
                 imagePullSecrets:
                   - name: ghcr-pull-secret
                 containers:
-                  - name: dind
-                    image: docker:29-dind
-                    resources:
-                      requests:
-                        cpu: 250m
-                        memory: 512Mi
-                      limits:
-                        cpu: "2"
-                        memory: 4Gi
-                    securityContext:
-                      privileged: true
-                    env:
-                      - name: DOCKER_TLS_CERTDIR
-                        value: ""
-                    args:
-                      - dockerd
-                      - --host=tcp://0.0.0.0:2375
-                      - --host=unix:///var/run/docker.sock
-                    startupProbe:
-                      tcpSocket:
-                        port: 2375
-                      failureThreshold: 24
-                      periodSeconds: 5
-                    volumeMounts:
-                      - name: docker-graph
-                        mountPath: /var/lib/docker
-                      - name: work
-                        mountPath: /home/runner/_work
-
                   - name: runner
+                    # Rootless buildah/podman (daemonless) — the privileged dind
+                    # sidecar was removed; image builds run via buildah inside the
+                    # runner itself (vfs storage + chroot isolation, no /dev/fuse
+                    # or userns). Consumers build with buildah, not docker.
                     image: ghcr.io/vymalo/arc-runners:jdk21-node22
                     # moving tag → force a fresh pull each pod (K8s defaults non-:latest to IfNotPresent)
                     imagePullPolicy: Always
+                    command: [ "/home/runner/run.sh" ]
                     resources:
                       requests:
                         cpu: 500m
                         memory: 1Gi
                       limits:
-                        cpu: "4"
-                        memory: 8Gi
-                    command: [ "/home/runner/run.sh" ]
+                        cpu: "2"
+                        memory: 6Gi
                     env:
-                      - name: DOCKER_HOST
-                        value: tcp://localhost:2375
+                      # Rootless container build/run (buildah/podman) with no
+                      # /dev/fuse or userns: vfs storage + chroot isolation.
+                      - name: STORAGE_DRIVER
+                        value: vfs
+                      - name: BUILDAH_ISOLATION
+                        value: chroot
                       # ruby/setup-ruby always installs under /opt/hostedtoolcache
                       # on Linux, so anchor the whole tool cache there to share
                       # one volume across setup-node/java/ruby.
@@ -1452,12 +1410,15 @@ applications:
                         mountPath: /home/runner/_work
                       - name: tool-cache
                         mountPath: /opt/hostedtoolcache
+                      # rootless graphroot for buildah/podman image storage
+                      - name: containers
+                        mountPath: /home/runner/.local/share/containers
                 volumes:
-                  - name: docker-graph
-                    emptyDir: { }
                   - name: work
                     emptyDir: { }
                   - name: tool-cache
+                    emptyDir: { }
+                  - name: containers
                     emptyDir: { }
 
       - repoURL: https://bjw-s-labs.github.io/helm-charts
@@ -1577,7 +1538,7 @@ applications:
                         memory: 1Gi
                       limits:
                         cpu: "2"
-                        memory: 7Gi
+                        memory: 6Gi
                     env:
                       # Rootless container build/run (buildah/podman) with no
                       # /dev/fuse or userns: vfs storage + chroot isolation.
@@ -1727,217 +1688,6 @@ applications:
         prune: true
         selfHeal: true
 
-  # SSE runners with Docker-in-Docker. Use for workflows that build/push
-  # Docker images. runs-on: arc-runner-set-sse-dind
-  - name: gis-sse-runners-dind
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: arc-runner
-    sources:
-      - repoURL: "oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set"
-        targetRevision: 0.13.1
-        chart: "."
-        helm:
-          releaseName: arc-runner-set-sse-dind
-          valuesObject:
-            githubConfigUrl: https://github.com/ADORSYS-GIS
-            githubConfigSecret: gh-runner-secret-pat
-            runnerScaleSetName: arc-runner-set-sse-dind
-            runnerGroup: flaky-rescue
-
-            maxRunners: 2
-            minRunners: 0
-
-            controllerServiceAccount:
-              namespace: arc-systems
-              name: arc-gha-rs-controller
-
-            template:
-              spec:
-                # fsGroup makes the emptyDir volumes group-owned by 1001 and
-                # group-writable, so the uid-1001 runner can mkdir inside the
-                # tool cache mounted at /opt/hostedtoolcache (ruby/setup-ruby
-                # hardcodes that path and ignores RUNNER_TOOL_CACHE).
-                securityContext:
-                  fsGroup: 1001
-                imagePullSecrets:
-                  - name: ghcr-pull-secret
-                containers:
-                  # SPIKE: rootless Buildah/Podman — the privileged `dind` sidecar
-                  # is removed. The runner now builds (buildah) and runs compose
-                  # stacks (podman) itself, daemonless + rootless. Validate this on
-                  # the cluster (a buildah build + `podman compose up`) BEFORE
-                  # converting `arc-runner-set-sse` and collapsing the two sets.
-                  - name: runner
-                    # vymalo/arc-runners#1 (rootless buildah+podman+yq), merged as 2c2f456.
-                    image: ghcr.io/vymalo/arc-runners:jdk21-node22
-                    # moving tag → force a fresh pull each pod (K8s defaults non-:latest to IfNotPresent)
-                    imagePullPolicy: Always
-                    # Overriding template.spec.containers drops the chart's default
-                    # command, and the base actions-runner image's CMD is a no-op —
-                    # without restating run.sh the runner exits <1s and never
-                    # registers (the dind sidecar's old `sleep 30` wait is gone).
-                    command: [ "/home/runner/run.sh" ]
-                    resources:
-                      requests:
-                        cpu: 500m
-                        memory: 1Gi
-                      limits:
-                        cpu: "2"
-                        memory: 7Gi
-                    env:
-                      # Rootless container builds without /dev/fuse or userns:
-                      # vfs storage driver + chroot isolation (matches the image
-                      # defaults; set explicitly so a job can't inherit otherwise).
-                      - name: STORAGE_DRIVER
-                        value: vfs
-                      - name: BUILDAH_ISOLATION
-                        value: chroot
-                      # ruby/setup-ruby always installs under /opt/hostedtoolcache
-                      # on Linux, so anchor the whole tool cache there to share
-                      # one volume across setup-node/java/ruby.
-                      - name: RUNNER_TOOL_CACHE
-                        value: /opt/hostedtoolcache
-                      - name: SCCACHE_BUCKET
-                        value: sc-cache
-                      - name: SCCACHE_ENDPOINT
-                        value: s3.ssegning.me
-                      - name: TURBO_API
-                        value: http://turbo-cache.turbo-cache.svc.cluster.local
-                      - name: TURBO_TEAM
-                        value: vaam
-                      - name: TURBO_TOKEN
-                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: turbo-token } }
-                      - name: SCCACHE_S3_ACCESS_KEY_ID
-                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: access-key-id } }
-                      - name: SCCACHE_S3_SECRET_ACCESS_KEY
-                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: secret-access-key } }
-                      - name: AWS_ACCESS_KEY_ID
-                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: access-key-id } }
-                      - name: AWS_SECRET_ACCESS_KEY
-                        valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: secret-access-key } }
-                    securityContext:
-                      runAsUser: 1001
-                      runAsGroup: 1001
-                    volumeMounts:
-                      - name: work
-                        mountPath: /home/runner/_work
-                      - name: tool-cache
-                        mountPath: /opt/hostedtoolcache
-                      # rootless graphroot for buildah/podman image storage
-                      - name: containers
-                        mountPath: /home/runner/.local/share/containers
-                volumes:
-                  - name: work
-                    emptyDir: { }
-                  - name: tool-cache
-                    emptyDir: { }
-                  - name: containers
-                    emptyDir: { }
-
-      - repoURL: https://bjw-s-labs.github.io/helm-charts
-        targetRevision: 4.6.2
-        chart: app-template
-        helm:
-          valuesObject:
-            rawResources:
-              auth-secret:
-                enabled: true
-                apiVersion: external-secrets.io/v1
-                kind: ExternalSecret
-                spec:
-                  spec:
-                    refreshInterval: 0h10m0s
-                    secretStoreRef:
-                      name: ssegning-aws
-                      kind: ClusterSecretStore
-                    target:
-                      name: gh-runner-secret-pat
-                      creationPolicy: Owner
-                    data:
-                      - secretKey: github_token
-                        remoteRef:
-                          key: "prod/meta/test-app"
-                          property: github_token
-              arc-runner-secrets:
-                enabled: true
-                apiVersion: external-secrets.io/v1
-                kind: ExternalSecret
-                spec:
-                  spec:
-                    refreshInterval: 0h10m0s
-                    secretStoreRef:
-                      name: ssegning-aws
-                      kind: ClusterSecretStore
-                    target:
-                      name: arc-runner-secrets
-                      creationPolicy: Owner
-                    data:
-                      - secretKey: turbo-token
-                        remoteRef:
-                          key: "prod/artifact-cache/env"
-                          property: turbo_token
-                      - secretKey: access-key-id
-                        remoteRef:
-                          key: "prod/artifact-cache/env"
-                          property: object_storage_access_key
-                      - secretKey: secret-access-key
-                        remoteRef:
-                          key: "prod/artifact-cache/env"
-                          property: object_storage_secret_key
-              gh-pull-token:
-                enabled: true
-                apiVersion: external-secrets.io/v1
-                kind: ExternalSecret
-                spec:
-                  spec:
-                    refreshInterval: 0h10m0s
-                    secretStoreRef:
-                      name: ssegning-aws
-                      kind: ClusterSecretStore
-                    target:
-                      name: ghcr-pull-secret
-                      creationPolicy: Owner
-                      template:
-                        engineVersion: v2
-                        type: kubernetes.io/dockerconfigjson
-                        data:
-                          .dockerconfigjson: |
-                            {
-                              "auths": {
-                                "ghcr.io": {
-                                  "username": "{{ `{{ .github_username }}` }}",
-                                  "password": "{{ `{{ .github_token }}` }}",
-                                  "email": "{{ `{{ .github_email }}` }}",
-                                  "auth": "{{ `{{ printf "%s:%s" .github_username .github_token | b64enc }}` }}"
-                                }
-                              }
-                            }
-                    data:
-                      - secretKey: github_username
-                        remoteRef:
-                          key: "prod/meta/test-app"
-                          property: github_username
-                      - secretKey: github_token
-                        remoteRef:
-                          key: "prod/meta/test-app"
-                          property: github_token
-                      - secretKey: github_email
-                        remoteRef:
-                          key: "prod/meta/test-app"
-                          property: github_email
-
-    destination:
-      name: home-remote
-      namespace: gh-runners-sse-dind
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-        - ServerSideApply=true
-      automated:
-        prune: true
-        selfHeal: true
-
   # Self-hosted runners for the vymalo org (CI for vymalo-shop & co.). Org-level
   # registration like vaam/gis. runs-on label = the scale-set name:
   # `arc-runner-set-vymalo`. Starts on the stock actions-runner image; once the
@@ -1991,61 +1741,30 @@ applications:
                 imagePullSecrets:
                   - name: ghcr-pull-secret
                 containers:
-                  - name: dind
-                    image: docker:29-dind
-                    resources:
-                      requests:
-                        cpu: 250m
-                        memory: 512Mi
-                      limits:
-                        cpu: "1"
-                        memory: 2Gi
-                    securityContext:
-                      privileged: true
-                    env:
-                      - name: DOCKER_TLS_CERTDIR
-                        value: ""
-                    args:
-                      - dockerd
-                      - --host=tcp://0.0.0.0:2375
-                      - --host=unix:///var/run/docker.sock
-                    startupProbe:
-                      tcpSocket:
-                        port: 2375
-                      failureThreshold: 24
-                      periodSeconds: 5
-                    volumeMounts:
-                      - name: docker-graph
-                        mountPath: /var/lib/docker
-                      - name: work
-                        mountPath: /home/runner/_work
-
                   - name: runner
                     # Shared batteries-included runner image (Node + pnpm + Rust +
                     # Flutter + Android + Ruby + k8s tooling), built & published by
-                    # github.com/vymalo/arc-runners — same build sky/vaam use. This
-                    # also serves the Flutter mobile CI (mobile-ci.yml runs-on this
-                    # default scale-set; the separate flutter scale-set is retired).
+                    # github.com/vymalo/arc-runners. Rootless buildah/podman — the
+                    # privileged dind sidecar was removed; image builds run via
+                    # buildah in this container (vfs + chroot, no /dev/fuse/userns).
                     image: ghcr.io/vymalo/arc-runners:jdk21-node22
                     # moving tag → force a fresh pull each pod (K8s defaults non-:latest to IfNotPresent)
                     imagePullPolicy: Always
-                    # `backend integration tests` boots the full Medusa app + a
-                    # live auth NestJS subprocess + jest workers in THIS container
-                    # (Postgres is the dind service) — it OOMKilled at 4Gi (GitHub's
-                    # ubuntu-latest has ~7Gi). Give it ubuntu-class headroom.
+                    command: [ "/home/runner/run.sh" ]
                     resources:
                       requests:
                         cpu: 1000m
                         memory: 4Gi
                       limits:
                         cpu: "2"
-                        memory: 8Gi
-                    command: [ "/bin/sh", "-c" ]
-                    args:
-                      - sleep 15; exec /home/runner/run.sh
+                        memory: 6Gi
                     env:
-                      - name: DOCKER_HOST
-                        value: tcp://localhost:2375
+                      # Rootless container build/run (buildah/podman) with no
+                      # /dev/fuse or userns: vfs storage + chroot isolation.
+                      - name: STORAGE_DRIVER
+                        value: vfs
+                      - name: BUILDAH_ISOLATION
+                        value: chroot
                       # ruby/setup-ruby always installs under /opt/hostedtoolcache
                       # on Linux, so anchor the whole tool cache there to share
                       # one volume across setup-node/java/ruby.
@@ -2085,12 +1804,15 @@ applications:
                         mountPath: /home/runner/_work
                       - name: tool-cache
                         mountPath: /opt/hostedtoolcache
+                      # rootless graphroot for buildah/podman image storage
+                      - name: containers
+                        mountPath: /home/runner/.local/share/containers
                 volumes:
-                  - name: docker-graph
-                    emptyDir: { }
                   - name: work
                     emptyDir: { }
                   - name: tool-cache
+                    emptyDir: { }
+                  - name: containers
                     emptyDir: { }
 
       - repoURL: https://bjw-s-labs.github.io/helm-charts
@@ -2242,8 +1964,8 @@ applications:
                         cpu: "1"
                         memory: 4Gi
                       limits:
-                        cpu: "4"
-                        memory: 8Gi
+                        cpu: "2"
+                        memory: 6Gi
                     env:
                       - name: RUNNER_TOOL_CACHE
                         value: /opt/hostedtoolcache
