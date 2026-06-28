@@ -1569,6 +1569,11 @@ applications:
                     securityContext:
                       runAsUser: 1001
                       runAsGroup: 1001
+                      # Let the setuid newuidmap/newgidmap map subuids so rootless
+                      # buildah/podman can create their user namespace. Still non-root
+                      # (runAsUser 1001), no added caps — far less than the old
+                      # privileged: true dind sidecar this replaces.
+                      allowPrivilegeEscalation: true
                     volumeMounts:
                       - name: work
                         mountPath: /home/runner/_work
