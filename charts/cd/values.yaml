@@ -1238,6 +1238,13 @@ applications:
 
             template:
               spec:
+                affinity:
+                  podAntiAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      - topologyKey: kubernetes.io/hostname
+                        labelSelector:
+                          matchLabels:
+                            app.kubernetes.io/instance: arc-runner-set-sky
                 # fsGroup makes the emptyDir volumes group-owned by 1001 and
                 # group-writable, so the uid-1001 runner can mkdir inside the
                 # tool cache mounted at /opt/hostedtoolcache (ruby/setup-ruby
@@ -1347,6 +1354,13 @@ applications:
 
             template:
               spec:
+                affinity:
+                  podAntiAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      - topologyKey: kubernetes.io/hostname
+                        labelSelector:
+                          matchLabels:
+                            app.kubernetes.io/instance: arc-runner-set-sky-frontend
                 # fsGroup makes the emptyDir volumes group-owned by 1001 and
                 # group-writable, so the uid-1001 runner can mkdir inside the
                 # tool cache mounted at /opt/hostedtoolcache (ruby/setup-ruby
@@ -1509,6 +1523,13 @@ applications:
 
             template:
               spec:
+                affinity:
+                  podAntiAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      - topologyKey: kubernetes.io/hostname
+                        labelSelector:
+                          matchLabels:
+                            app.kubernetes.io/instance: arc-runner-set-sse
                 securityContext:
                   fsGroup: 1001
                 imagePullSecrets:
@@ -1953,6 +1974,13 @@ applications:
 
             template:
               spec:
+                affinity:
+                  podAntiAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      - topologyKey: kubernetes.io/hostname
+                        labelSelector:
+                          matchLabels:
+                            app.kubernetes.io/instance: arc-runner-set-vymalo-flutter
                 securityContext:
                   fsGroup: 1001
                 imagePullSecrets:
