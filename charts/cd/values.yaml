@@ -1958,7 +1958,7 @@ applications:
             githubConfigUrl: https://github.com/vymalo
             githubConfigSecret: gh-runner-secret-pat
 
-            maxRunners: 4
+            maxRunners: 10
             minRunners: 0
 
             controllerServiceAccount:
@@ -1983,8 +1983,8 @@ applications:
                         cpu: 250m
                         memory: 512Mi
                       limits:
-                        cpu: "2"
-                        memory: 4Gi
+                        cpu: "1"
+                        memory: 2Gi
                     securityContext:
                       privileged: true
                     env:
@@ -2020,11 +2020,11 @@ applications:
                     # ubuntu-latest has ~7Gi). Give it ubuntu-class headroom.
                     resources:
                       requests:
-                        cpu: 1500m
-                        memory: 6Gi
+                        cpu: 1000m
+                        memory: 4Gi
                       limits:
-                        cpu: "3"
-                        memory: 12Gi
+                        cpu: "2"
+                        memory: 8Gi
                     command: [ "/bin/sh", "-c" ]
                     args:
                       - sleep 15; exec /home/runner/run.sh
