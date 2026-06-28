@@ -1278,6 +1278,8 @@ applications:
 
                   - name: runner
                     image: ghcr.io/vymalo/arc-runners:jdk21-node22
+                    # moving tag → force a fresh pull each pod (K8s defaults non-:latest to IfNotPresent)
+                    imagePullPolicy: Always
                     resources:
                       requests:
                         cpu: 500m
@@ -1406,6 +1408,8 @@ applications:
 
                   - name: runner
                     image: ghcr.io/vymalo/arc-runners:jdk21-node22
+                    # moving tag → force a fresh pull each pod (K8s defaults non-:latest to IfNotPresent)
+                    imagePullPolicy: Always
                     resources:
                       requests:
                         cpu: 500m
@@ -1581,6 +1585,8 @@ applications:
 
                   - name: runner
                     image: ghcr.io/vymalo/arc-runners:jdk21-node22
+                    # moving tag → force a fresh pull each pod (K8s defaults non-:latest to IfNotPresent)
+                    imagePullPolicy: Always
                     resources:
                       requests:
                         cpu: 500m
@@ -1774,6 +1780,8 @@ applications:
                     # mobile-ci "yq not found" failure) and no container tooling for
                     # the migrated buildah/podman jobs.
                     image: ghcr.io/vymalo/arc-runners:jdk21-node22
+                    # moving tag → force a fresh pull each pod (K8s defaults non-:latest to IfNotPresent)
+                    imagePullPolicy: Always
                     # The gha-runner-scale-set chart only injects the default
                     # `command: [/home/runner/run.sh]` on its own default runner
                     # container. Overriding `template.spec.containers` replaces
@@ -1983,6 +1991,8 @@ applications:
                   - name: runner
                     # vymalo/arc-runners#1 (rootless buildah+podman+yq), merged as 2c2f456.
                     image: ghcr.io/vymalo/arc-runners:jdk21-node22
+                    # moving tag → force a fresh pull each pod (K8s defaults non-:latest to IfNotPresent)
+                    imagePullPolicy: Always
                     # Overriding template.spec.containers drops the chart's default
                     # command, and the base actions-runner image's CMD is a no-op —
                     # without restating run.sh the runner exits <1s and never
@@ -2222,6 +2232,8 @@ applications:
                     # also serves the Flutter mobile CI (mobile-ci.yml runs-on this
                     # default scale-set; the separate flutter scale-set is retired).
                     image: ghcr.io/vymalo/arc-runners:jdk21-node22
+                    # moving tag → force a fresh pull each pod (K8s defaults non-:latest to IfNotPresent)
+                    imagePullPolicy: Always
                     # `backend integration tests` boots the full Medusa app + a
                     # live auth NestJS subprocess + jest workers in THIS container
                     # (Postgres is the dind service) — it OOMKilled at 4Gi (GitHub's
