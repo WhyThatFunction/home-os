@@ -1967,6 +1967,21 @@ applications:
 
             template:
               spec:
+                # Incident 2026-06-29: two arc-runner-set-vymalo pods co-located on
+                # one 16Gi Hetzner worker ran Rust (rustc/cargo) builds simultaneously
+                # → kernel global-OOM → Hetzner ACPI-reset worker-1 and worker-4
+                # (flapping NotReady, ~58 pods stranded, librechat down). Hard
+                # anti-affinity keeps at most ONE vymalo runner per node so a build
+                # storm can never exhaust a host's RAM; with maxRunners 10 on a small
+                # worker pool the surplus simply queues (Pending) instead of stacking
+                # and OOMing a host — a deliberate throughput-for-stability trade.
+                affinity:
+                  podAntiAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      - topologyKey: kubernetes.io/hostname
+                        labelSelector:
+                          matchLabels:
+                            app.kubernetes.io/instance: arc-runner-set-vymalo
                 # fsGroup makes the emptyDir volumes group-owned by 1001 and
                 # group-writable, so the uid-1001 runner can mkdir inside the
                 # tool cache mounted at /opt/hostedtoolcache (ruby/setup-ruby
