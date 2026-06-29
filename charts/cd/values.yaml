@@ -1282,6 +1282,17 @@ applications:
                         value: vfs
                       - name: BUILDAH_ISOLATION
                         value: chroot
+                      # cargo/rustc (and make -j, nproc) read the HOST cpu count
+                      # (8 on these nodes), NOT the cgroup cpu limit — so cargo
+                      # defaults to -j8 and 8 parallel rustc blow past the 8Gi limit
+                      # → cgroup OOMKill ("cargo builds destroyed"). Pin parallelism
+                      # to the cpu allotment so peak memory stays well under 8Gi.
+                      - name: CARGO_BUILD_JOBS
+                        value: "2"
+                      # CI gets no benefit from incremental and it inflates peak
+                      # memory + disk; off is the CI norm.
+                      - name: CARGO_INCREMENTAL
+                        value: "0"
                       # ruby/setup-ruby always installs under /opt/hostedtoolcache
                       # on Linux, so anchor the whole tool cache there to share
                       # one volume across setup-node/java/ruby.
@@ -1421,6 +1432,17 @@ applications:
                         value: vfs
                       - name: BUILDAH_ISOLATION
                         value: chroot
+                      # cargo/rustc (and make -j, nproc) read the HOST cpu count
+                      # (8 on these nodes), NOT the cgroup cpu limit — so cargo
+                      # defaults to -j8 and 8 parallel rustc blow past the 8Gi limit
+                      # → cgroup OOMKill ("cargo builds destroyed"). Pin parallelism
+                      # to the cpu allotment so peak memory stays well under 8Gi.
+                      - name: CARGO_BUILD_JOBS
+                        value: "2"
+                      # CI gets no benefit from incremental and it inflates peak
+                      # memory + disk; off is the CI norm.
+                      - name: CARGO_INCREMENTAL
+                        value: "0"
                       # ruby/setup-ruby always installs under /opt/hostedtoolcache
                       # on Linux, so anchor the whole tool cache there to share
                       # one volume across setup-node/java/ruby.
@@ -1618,6 +1640,17 @@ applications:
                         value: vfs
                       - name: BUILDAH_ISOLATION
                         value: chroot
+                      # cargo/rustc (and make -j, nproc) read the HOST cpu count
+                      # (8 on these nodes), NOT the cgroup cpu limit — so cargo
+                      # defaults to -j8 and 8 parallel rustc blow past the 8Gi limit
+                      # → cgroup OOMKill ("cargo builds destroyed"). Pin parallelism
+                      # to the cpu allotment so peak memory stays well under 8Gi.
+                      - name: CARGO_BUILD_JOBS
+                        value: "2"
+                      # CI gets no benefit from incremental and it inflates peak
+                      # memory + disk; off is the CI norm.
+                      - name: CARGO_INCREMENTAL
+                        value: "0"
                       - name: RUNNER_TOOL_CACHE
                         value: /opt/hostedtoolcache
                       - name: SCCACHE_BUCKET
@@ -1869,6 +1902,17 @@ applications:
                         value: vfs
                       - name: BUILDAH_ISOLATION
                         value: chroot
+                      # cargo/rustc (and make -j, nproc) read the HOST cpu count
+                      # (8 on these nodes), NOT the cgroup cpu limit — so cargo
+                      # defaults to -j8 and 8 parallel rustc blow past the 8Gi limit
+                      # → cgroup OOMKill ("cargo builds destroyed"). Pin parallelism
+                      # to the cpu allotment so peak memory stays well under 8Gi.
+                      - name: CARGO_BUILD_JOBS
+                        value: "2"
+                      # CI gets no benefit from incremental and it inflates peak
+                      # memory + disk; off is the CI norm.
+                      - name: CARGO_INCREMENTAL
+                        value: "0"
                       # ruby/setup-ruby always installs under /opt/hostedtoolcache
                       # on Linux, so anchor the whole tool cache there to share
                       # one volume across setup-node/java/ruby.
