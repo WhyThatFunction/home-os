@@ -1242,9 +1242,14 @@ applications:
                   podAntiAffinity:
                     requiredDuringSchedulingIgnoredDuringExecution:
                       - topologyKey: kubernetes.io/hostname
+                        # cross-set, cross-namespace: at most ONE runner of
+                        # ANY scale-set per node. namespaceSelector {} spans
+                        # the per-set namespaces (anti-affinity defaults to
+                        # same-ns); component=runner excludes the listeners.
+                        namespaceSelector: {}
                         labelSelector:
                           matchLabels:
-                            app.kubernetes.io/instance: arc-runner-set-sky
+                            app.kubernetes.io/component: runner
                 # fsGroup makes the emptyDir volumes group-owned by 1001 and
                 # group-writable, so the uid-1001 runner can mkdir inside the
                 # tool cache mounted at /opt/hostedtoolcache (ruby/setup-ruby
@@ -1269,7 +1274,7 @@ applications:
                         memory: 1Gi
                       limits:
                         cpu: "2"
-                        memory: 6Gi
+                        memory: 8Gi
                     env:
                       # Rootless container build/run (buildah/podman) with no
                       # /dev/fuse or userns: vfs storage + chroot isolation.
@@ -1369,9 +1374,14 @@ applications:
                   podAntiAffinity:
                     requiredDuringSchedulingIgnoredDuringExecution:
                       - topologyKey: kubernetes.io/hostname
+                        # cross-set, cross-namespace: at most ONE runner of
+                        # ANY scale-set per node. namespaceSelector {} spans
+                        # the per-set namespaces (anti-affinity defaults to
+                        # same-ns); component=runner excludes the listeners.
+                        namespaceSelector: {}
                         labelSelector:
                           matchLabels:
-                            app.kubernetes.io/instance: arc-runner-set-sky-frontend
+                            app.kubernetes.io/component: runner
                 # fsGroup makes the emptyDir volumes group-owned by 1001 and
                 # group-writable, so the uid-1001 runner can mkdir inside the
                 # tool cache mounted at /opt/hostedtoolcache (ruby/setup-ruby
@@ -1396,7 +1406,7 @@ applications:
                         memory: 1Gi
                       limits:
                         cpu: "2"
-                        memory: 6Gi
+                        memory: 8Gi
                     env:
                       # Rootless container build/run (buildah/podman) with no
                       # /dev/fuse or userns: vfs storage + chroot isolation.
@@ -1549,9 +1559,14 @@ applications:
                   podAntiAffinity:
                     requiredDuringSchedulingIgnoredDuringExecution:
                       - topologyKey: kubernetes.io/hostname
+                        # cross-set, cross-namespace: at most ONE runner of
+                        # ANY scale-set per node. namespaceSelector {} spans
+                        # the per-set namespaces (anti-affinity defaults to
+                        # same-ns); component=runner excludes the listeners.
+                        namespaceSelector: {}
                         labelSelector:
                           matchLabels:
-                            app.kubernetes.io/instance: arc-runner-set-sse
+                            app.kubernetes.io/component: runner
                 securityContext:
                   fsGroup: 1001
                 imagePullSecrets:
@@ -1581,7 +1596,7 @@ applications:
                         memory: 1Gi
                       limits:
                         cpu: "2"
-                        memory: 6Gi
+                        memory: 8Gi
                     env:
                       # Rootless container build/run (buildah/podman) with no
                       # /dev/fuse or userns: vfs storage + chroot isolation.
@@ -1787,9 +1802,14 @@ applications:
                   podAntiAffinity:
                     requiredDuringSchedulingIgnoredDuringExecution:
                       - topologyKey: kubernetes.io/hostname
+                        # cross-set, cross-namespace: at most ONE runner of
+                        # ANY scale-set per node. namespaceSelector {} spans
+                        # the per-set namespaces (anti-affinity defaults to
+                        # same-ns); component=runner excludes the listeners.
+                        namespaceSelector: {}
                         labelSelector:
                           matchLabels:
-                            app.kubernetes.io/instance: arc-runner-set-vymalo
+                            app.kubernetes.io/component: runner
                 # fsGroup makes the emptyDir volumes group-owned by 1001 and
                 # group-writable, so the uid-1001 runner can mkdir inside the
                 # tool cache mounted at /opt/hostedtoolcache (ruby/setup-ruby
@@ -2034,9 +2054,14 @@ applications:
                   podAntiAffinity:
                     requiredDuringSchedulingIgnoredDuringExecution:
                       - topologyKey: kubernetes.io/hostname
+                        # cross-set, cross-namespace: at most ONE runner of
+                        # ANY scale-set per node. namespaceSelector {} spans
+                        # the per-set namespaces (anti-affinity defaults to
+                        # same-ns); component=runner excludes the listeners.
+                        namespaceSelector: {}
                         labelSelector:
                           matchLabels:
-                            app.kubernetes.io/instance: arc-runner-set-vymalo-flutter
+                            app.kubernetes.io/component: runner
                 securityContext:
                   fsGroup: 1001
                 imagePullSecrets:
@@ -2054,7 +2079,7 @@ applications:
                         memory: 4Gi
                       limits:
                         cpu: "2"
-                        memory: 6Gi
+                        memory: 8Gi
                     env:
                       - name: RUNNER_TOOL_CACHE
                         value: /opt/hostedtoolcache
