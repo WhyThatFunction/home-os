@@ -1308,6 +1308,13 @@ applications:
                     securityContext:
                       runAsUser: 1001
                       runAsGroup: 1001
+                      # The Hetzner runner node blocks unprivileged userns uid_map
+                      # writes (a capability-free `unshare -U -r` self-map EPERMs), so
+                      # rootless buildah/podman can't map subuids even with allowPrivil-
+                      # egeEscalation + SETUID/SETGID + AppArmor Unconfined. privileged
+                      # is the reliable fix until the node enables unprivileged userns;
+                      # revert then. (A CI runner already runs arbitrary code.)
+                      privileged: true
                       allowPrivilegeEscalation: true
                       capabilities:
                         # newuidmap/newgidmap need SETUID/SETGID in the bounding set to write
@@ -1440,6 +1447,13 @@ applications:
                     securityContext:
                       runAsUser: 1001
                       runAsGroup: 1001
+                      # The Hetzner runner node blocks unprivileged userns uid_map
+                      # writes (a capability-free `unshare -U -r` self-map EPERMs), so
+                      # rootless buildah/podman can't map subuids even with allowPrivil-
+                      # egeEscalation + SETUID/SETGID + AppArmor Unconfined. privileged
+                      # is the reliable fix until the node enables unprivileged userns;
+                      # revert then. (A CI runner already runs arbitrary code.)
+                      privileged: true
                       allowPrivilegeEscalation: true
                       capabilities:
                         # newuidmap/newgidmap need SETUID/SETGID in the bounding set to write
@@ -1627,6 +1641,13 @@ applications:
                     securityContext:
                       runAsUser: 1001
                       runAsGroup: 1001
+                      # The Hetzner runner node blocks unprivileged userns uid_map
+                      # writes (a capability-free `unshare -U -r` self-map EPERMs), so
+                      # rootless buildah/podman can't map subuids even with allowPrivil-
+                      # egeEscalation + SETUID/SETGID + AppArmor Unconfined. privileged
+                      # is the reliable fix until the node enables unprivileged userns;
+                      # revert then. (A CI runner already runs arbitrary code.)
+                      privileged: true
                       # Let the setuid newuidmap/newgidmap map subuids so rootless
                       # buildah/podman can create their user namespace. Still non-root
                       # (runAsUser 1001), no added caps — far less than the old
@@ -1882,6 +1903,13 @@ applications:
                     securityContext:
                       runAsUser: 1001
                       runAsGroup: 1001
+                      # The Hetzner runner node blocks unprivileged userns uid_map
+                      # writes (a capability-free `unshare -U -r` self-map EPERMs), so
+                      # rootless buildah/podman can't map subuids even with allowPrivil-
+                      # egeEscalation + SETUID/SETGID + AppArmor Unconfined. privileged
+                      # is the reliable fix until the node enables unprivileged userns;
+                      # revert then. (A CI runner already runs arbitrary code.)
+                      privileged: true
                       # Let the setuid newuidmap/newgidmap map subuids so rootless
                       # buildah can create its user namespace — REQUIRED for the
                       # vymalo-shop ci.yml image builds (buildah build). Without it
@@ -2086,6 +2114,13 @@ applications:
                     securityContext:
                       runAsUser: 1001
                       runAsGroup: 1001
+                      # The Hetzner runner node blocks unprivileged userns uid_map
+                      # writes (a capability-free `unshare -U -r` self-map EPERMs), so
+                      # rootless buildah/podman can't map subuids even with allowPrivil-
+                      # egeEscalation + SETUID/SETGID + AppArmor Unconfined. privileged
+                      # is the reliable fix until the node enables unprivileged userns;
+                      # revert then. (A CI runner already runs arbitrary code.)
+                      privileged: true
                     volumeMounts:
                       - name: work
                         mountPath: /home/runner/_work
