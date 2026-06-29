@@ -1304,6 +1304,11 @@ applications:
                       runAsUser: 1001
                       runAsGroup: 1001
                       allowPrivilegeEscalation: true
+                      capabilities:
+                        # newuidmap/newgidmap need SETUID/SETGID in the bounding set to write
+                        # the multi-entry uid_map for rootless buildah/podman (allowPrivilege-
+                        # Escalation alone un-blocks the setuid bit but not the bounding caps).
+                        add: [SETUID, SETGID]
                     volumeMounts:
                       - name: work
                         mountPath: /home/runner/_work
@@ -1421,6 +1426,11 @@ applications:
                       runAsUser: 1001
                       runAsGroup: 1001
                       allowPrivilegeEscalation: true
+                      capabilities:
+                        # newuidmap/newgidmap need SETUID/SETGID in the bounding set to write
+                        # the multi-entry uid_map for rootless buildah/podman (allowPrivilege-
+                        # Escalation alone un-blocks the setuid bit but not the bounding caps).
+                        add: [SETUID, SETGID]
                     volumeMounts:
                       - name: work
                         mountPath: /home/runner/_work
@@ -1597,6 +1607,11 @@ applications:
                       # (runAsUser 1001), no added caps — far less than the old
                       # privileged: true dind sidecar this replaces.
                       allowPrivilegeEscalation: true
+                      capabilities:
+                        # newuidmap/newgidmap need SETUID/SETGID in the bounding set to write
+                        # the multi-entry uid_map for rootless buildah/podman (allowPrivilege-
+                        # Escalation alone un-blocks the setuid bit but not the bounding caps).
+                        add: [SETUID, SETGID]
                     volumeMounts:
                       - name: work
                         mountPath: /home/runner/_work
@@ -1836,6 +1851,11 @@ applications:
                       # non-root (runAsUser 1001), no added caps — far less than the
                       # old privileged dind sidecar. Mirrors arc-runner-set-sse.
                       allowPrivilegeEscalation: true
+                      capabilities:
+                        # newuidmap/newgidmap need SETUID/SETGID in the bounding set to write
+                        # the multi-entry uid_map for rootless buildah/podman (allowPrivilege-
+                        # Escalation alone un-blocks the setuid bit but not the bounding caps).
+                        add: [SETUID, SETGID]
                     volumeMounts:
                       - name: work
                         mountPath: /home/runner/_work
