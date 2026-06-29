@@ -1804,6 +1804,15 @@ applications:
                     securityContext:
                       runAsUser: 1001
                       runAsGroup: 1001
+                      # Let the setuid newuidmap/newgidmap map subuids so rootless
+                      # buildah can create its user namespace — REQUIRED for the
+                      # vymalo-shop ci.yml image builds (buildah build). Without it
+                      # the pod's no_new_privs blocks setuid → "newuidmap: write to
+                      # uid_map failed: Operation not permitted" → single mapping →
+                      # vfs "ApplyLayer ... remount /: permission denied". Still
+                      # non-root (runAsUser 1001), no added caps — far less than the
+                      # old privileged dind sidecar. Mirrors arc-runner-set-sse.
+                      allowPrivilegeEscalation: true
                     volumeMounts:
                       - name: work
                         mountPath: /home/runner/_work
