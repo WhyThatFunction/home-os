@@ -212,6 +212,89 @@ spec:
         maxDuration: 5m
 ---
 # ─────────────────────────────────────────────────────────────────────────
+# 7. vymalo-mobile-payment-gateway — NestJS mobile-money gateway (MTN MoMo +
+#    Orange Money; CQRS + BullMQ) → pay.vymalo.com (CALLBACKS ONLY; the rest of
+#    /v1 is ClusterIP-internal, called by the backend's mobile-money provider).
+#    Single app (role: all, chart default): the Deployment + persistent Redis +
+#    the `mobile_payment` CNPG Database CRD (PreSync hook, wave -1, REUSES the
+#    backend cluster) + the PreSync `prisma db push` migrate Job (wave 0) + its
+#    ExternalSecret. Reuses the backend-owned vymalo-aws SecretStore + ghcr-pull
+#    Secret + the CNPG cluster, so it syncs AFTER the backend AND auth (wave 6).
+#    Image Updater pins the signed digest on the prod overlay; git write-back to
+#    vymalo-shop main. PREREQS (see the overlay header): the AWS SM object
+#    `prod/vymalo-mobile-payment-gateway` (3 secrets), the FIRST signed gateway
+#    image, and a DNS record for pay.vymalo.com.
+# ─────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vymalo-mobile-payment-gateway
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+
+    argocd-image-updater.argoproj.io/image-list: >-
+      app=ghcr.io/vymalo/vymalo-mobile-payment-gateway:latest
+    argocd-image-updater.argoproj.io/app.source-index: "0"
+    # PRIVATE GHCR read credential (see ghcr-pull.externalsecret.yaml).
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vymalo-ghcr-pull
+    argocd-image-updater.argoproj.io/app.update-strategy: digest
+    argocd-image-updater.argoproj.io/app.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: image.tag
+    argocd-image-updater.argoproj.io/app.force-update: "true"
+
+    argocd-image-updater.argoproj.io/app.signature-type: cosign
+    argocd-image-updater.argoproj.io/app.cosign.certificate-oidc-issuer: >-
+      https://token.actions.githubusercontent.com
+    argocd-image-updater.argoproj.io/app.cosign.certificate-identity-regexp: >-
+      ^https://github\.com/vymalo/vymalo-shop/\.github/workflows/ci\.yml@.*$
+
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/git-repository: >-
+      https://github.com/vymalo/vymalo-shop.git
+    argocd-image-updater.argoproj.io/write-back-target: >-
+      helmvalues:deploy/envs/production/vymalo-mobile-payment-gateway.values.yaml
+    argocd-image-updater.argoproj.io/git-credentials: >-
+      secret:argocd/github-app-creds--vymalo
+
+    notifications.argoproj.io/subscribe.on-deployed.vymalo: ""
+    notifications.argoproj.io/subscribe.on-deploy-failed.vymalo: ""
+    notifications.ssegning.me/github-repo-url: https://github.com/vymalo/vymalo-shop
+    notifications.ssegning.me/github-revision: main
+    notifications.ssegning.me/environment-url: https://pay.vymalo.com
+spec:
+  project: default
+  sources:
+    - repoURL: ghcr.io/vymalo/charts
+      chart: vymalo-mobile-payment-gateway
+      targetRevision: 0.1.*
+      helm:
+        releaseName: vymalo-mobile-payment-gateway
+        valueFiles:
+          - $values/deploy/envs/production/vymalo-mobile-payment-gateway.values.yaml
+        ignoreMissingValueFiles: true
+    - repoURL: https://github.com/vymalo/vymalo-shop.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vymalo
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
+---
+# ─────────────────────────────────────────────────────────────────────────
 # 4. vymalo-storefront — Next standalone → shop.vymalo.com
 #    Single app (no CNPG/migrate). Depends on the backend (shared ghcr-pull
 #    Secret + vymalo-aws store); Argo self-heals if it races ahead. Publishable
