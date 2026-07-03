@@ -1,0 +1,8 @@
+# Dashboards-as-code generator deps. Install into a venv:
+#   python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
+#
+# grafana-foundation-sdk uses epoch versioning: the `<epoch>!<grafana-version>`
+# scheme tracks the Grafana schema release (here 10.1.0). Pin to the 10.1.x line
+# so regenerations are reproducible; bump deliberately when moving Grafana lines.
+grafana-foundation-sdk==1769699998!10.1.0
+PyYAML==6.0.3

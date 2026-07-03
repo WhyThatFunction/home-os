@@ -3,6 +3,11 @@ kubeconfig
 talosconfig
 
 *gen*
+# …but the dashboards-as-code generator + its GENERATED CRs must be tracked
+# (Argo/Helm ship the generated CRs). Re-include them despite the *gen* rule.
+!charts/home-apps/otel-lgtm/dashboards/generate.py
+!charts/home-apps/otel-lgtm/templates/generated/
+!charts/home-apps/otel-lgtm/templates/generated/**
 
 .idea
 

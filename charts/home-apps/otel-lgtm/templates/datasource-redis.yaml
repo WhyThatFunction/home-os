@@ -1,0 +1,78 @@
+# Redis datasource (SECONDARY — next up after Postgres) for the otel-lgtm
+# Grafana, as a GrafanaDatasource CR. Lets dashboards read live Redis state
+# (queue depths, cache keyspace, rate-limit counters, etc.).
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# PREREQUISITE — PLUGIN INSTALL REQUIRED (do NOT assume it works out of the box).
+# The Redis datasource is the `redis-datasource` community plugin; it is NOT
+# bundled in the grafana/otel-lgtm image. It must be installed on the Grafana
+# instance before this CR reconciles cleanly. Two options:
+#
+#   (a) Operator-managed plugin (preferred): add the plugin to the Grafana CR in
+#       templates/grafana-instance.yaml, e.g.
+#         spec:
+#           deployment:
+#             spec:
+#               template:
+#                 spec:
+#                   containers:
+#                     - name: grafana
+#                       env:
+#                         - name: GF_INSTALL_PLUGINS
+#                           value: redis-datasource
+#       …but note: our Grafana is an EXTERNAL instance (spec.external), so the
+#       operator does NOT manage its Deployment — (a) does not apply as-is.
+#
+#   (b) Because it's external (otel-lgtm all-in-one), install the plugin ON THE
+#       IMAGE/POD instead: set env `GF_INSTALL_PLUGINS=redis-datasource` on the
+#       lgtm container in values.yaml, or bake it into a derived image. Restart
+#       the pod so Grafana grabs the plugin, THEN apply this CR.
+#
+# Until the plugin is present, the operator will report this datasource as failing
+# to reconcile. That's expected — wire the plugin first (owner review).
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# REVIEW BEFORE APPLYING — parameterized like the Postgres CR.
+# TO POINT AT A REDIS INSTANCE, change:
+#   - spec.datasource.url  → redis://<service>.<ns>.svc.cluster.local:6379
+#   - the password valuesFrom secret name/key (if the instance requires AUTH)
+#   - the CR namespace, so the operator can read the auth secret (same
+#     cross-namespace caveat as the Postgres CR — mirror the secret or create the
+#     CR in the Redis instance's namespace).
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: home-redis
+  labels:
+    app: otel-lgtm
+    team: ssegning-home
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: otel-lgtm
+  resyncPeriod: 5m
+  # TODO(owner): if the target Redis needs AUTH, uncomment and point at the
+  # secret holding the password (INLINE {name,key} shape), then reference it as
+  # ${secureJsonData.password} in secureJsonData below.
+  # valuesFrom:
+  #   - targetPath: secureJsonData.password
+  #     valueFrom:
+  #       secretKeyRef:
+  #         name: <redis-auth-secret>
+  #         key: password
+  datasource:
+    name: home-redis
+    type: redis-datasource
+    access: proxy
+    # TODO(owner): fill in the real Redis service. Example (redis-ha chart):
+    #   redis://redis-ha.redis-ha.svc.cluster.local:6379
+    url: redis://REDIS-SERVICE.NAMESPACE.svc.cluster.local:6379
+    isDefault: false
+    jsonData:
+      client: standalone
+      poolSize: 5
+      timeout: 10
+      pingInterval: 0
+      pipelineWindow: 0
+    # secureJsonData:
+    #   password: ${secureJsonData.password}
