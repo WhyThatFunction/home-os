@@ -1,0 +1,98 @@
+global:
+  version: "latest"
+  labels:
+    app: otel-lgtm
+    team: ssegning-home
+
+lgtm:
+  controllers:
+    main:
+      type: deployment
+      strategy: Recreate
+      replicas: 1
+      pod:
+        labels:
+          app: main-app
+      containers:
+        lgtm:
+          image:
+            repository: docker.io/grafana/otel-lgtm
+            tag: "{{ .Values.global.version }}"
+            pullPolicy: IfNotPresent
+
+          # Grafana lives on :3000 inside the image; its /api/health is the
+          # closest thing to a whole-box readiness signal (the OTLP receivers
+          # come up before it).
+          probes:
+            readiness:
+              enabled: true
+              custom: true
+              spec:
+                httpGet:
+                  path: /api/health
+                  port: 3000
+                initialDelaySeconds: 20
+                periodSeconds: 10
+            liveness:
+              enabled: true
+              custom: true
+              spec:
+                httpGet:
+                  path: /api/health
+                  port: 3000
+                initialDelaySeconds: 60
+                periodSeconds: 30
+
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              memory: 6Gi
+
+  # NOTE: storage is EPHEMERAL for now (the all-in-one keeps Tempo/Loki/
+  # Prometheus data in the container FS) — a pod restart drops telemetry
+  # history. Fine for v1 app observability; revisit with a Longhorn PVC on
+  # the image's data dirs (or a split LGTM stack) if history starts to matter.
+
+  service:
+    main:
+      enabled: true
+      primary: true
+      controller: main
+      type: ClusterIP
+      ports:
+        otlp-grpc:
+          enabled: true
+          port: 4317
+          targetPort: 4317
+        otlp-http:
+          enabled: true
+          port: 4318
+          targetPort: 4318
+        grafana:
+          enabled: true
+          port: 3000
+          targetPort: 3000
+
+  # Grafana UI stays on the HOME network (default admin/admin on first boot —
+  # change it on first login). Only the OTLP ingest paths go public, via the
+  # HTTPRoute in templates/.
+  ingress:
+    grafana:
+      enabled: true
+      annotations:
+        cert-manager.io/cluster-issuer: self-signed-ca
+      className: traefik
+      hosts:
+        - host: grafana.home.ssegning
+          paths:
+            - path: /
+              pathType: Prefix
+              service:
+                identifier: main
+                port: grafana
+      tls:
+        - secretName: grafana-home-ssegning-tls
+          hosts:
+            - grafana.home.ssegning

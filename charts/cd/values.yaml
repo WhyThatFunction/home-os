@@ -1882,6 +1882,44 @@ applications:
         prune: true
         selfHeal: true
 
+  # Same operator, LOCAL cluster (the vymalo workloads + otel-lgtm backend
+  # live in-cluster; home-remote has its own copy above). Enables
+  # OpenTelemetryCollector CRs locally, e.g. a filtering/rate-limiting
+  # collector in front of otel-lgtm if ingest ever needs shaping.
+  - name: otel-operator-local
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
+      targetRevision: 0.113.1
+      chart: opentelemetry-operator
+      helm:
+        releaseName: opentelemetry-operator
+        valuesObject:
+          tolerations:
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
+              effect: NoSchedule
+          admissionWebhooks:
+            autoGenerateCert:
+              enabled: false
+            certManager:
+              issuerRef:
+                kind: ClusterIssuer
+                name: self-signed-ca
+                group: cert-manager.io
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: opentelemetry-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: kserve-crd
     finalizers:
       - resources-finalizer.argocd.argoproj.io

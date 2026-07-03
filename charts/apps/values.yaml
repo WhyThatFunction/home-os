@@ -200,6 +200,27 @@ applications:
         prune: true
         selfHeal: true
 
+  # Self-hosted observability backend (grafana/otel-lgtm all-in-one).
+  # Public OTLP ingest for the vymalo mobile app at otel.vymalo.com (HTTPRoute
+  # in the leaf chart); Grafana UI on grafana.home.ssegning (home network only).
+  - name: otel-lgtm
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/otel-lgtm
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: otel-lgtm
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: opfs-webauthn
     finalizers:
       - resources-finalizer.argocd.argoproj.io

@@ -1,0 +1,33 @@
+# Public OTLP/HTTP ingest for the vymalo mobile app's OpenTelemetry export
+# (the app is built with --dart-define=OTEL_EXPORTER_OTLP_ENDPOINT=
+# https://otel.vymalo.com). TLS edge-terminates at Cloudflare (*.vymalo.com
+# wildcard); the shared Traefik gateway serves plain HTTP — same pattern as
+# the vymalo-shop charts' gateway-route templates.
+#
+# ISOLATION: only the three OTLP ingest paths are matched. Grafana (:3000),
+# and anything else the all-in-one exposes, are NOT publicly routed — the UI
+# is reachable only via the home-network ingress (grafana.home.ssegning).
+# Ingest is unauthenticated for now (mobile clients are anonymous by design);
+# Cloudflare fronts it, and the endpoint only ships in internal builds until
+# that posture is revisited.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: otel-vymalo-com
+  labels:
+    app: otel-lgtm
+    team: ssegning-home
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: kube-system
+  hostnames:
+    - otel.vymalo.com
+  rules:
+    - matches:
+        - path: { type: PathPrefix, value: /v1/traces }
+        - path: { type: PathPrefix, value: /v1/metrics }
+        - path: { type: PathPrefix, value: /v1/logs }
+      backendRefs:
+        - name: otel-lgtm
+          port: 4318

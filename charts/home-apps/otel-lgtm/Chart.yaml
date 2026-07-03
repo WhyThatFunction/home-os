@@ -1,0 +1,15 @@
+apiVersion: v2
+name: otel-lgtm
+description: >-
+  Self-hosted observability backend — grafana/otel-lgtm all-in-one
+  (OTLP ingest + Grafana + Tempo traces + Loki logs + Prometheus metrics).
+  Receives the vymalo mobile app's OpenTelemetry export (otel.vymalo.com).
+type: application
+version: 0.1.0
+appVersion: "latest"
+
+dependencies:
+  - name: app-template
+    version: '*'
+    alias: lgtm
+    repository: https://bjw-s-labs.github.io/helm-charts
