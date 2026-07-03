@@ -4,6 +4,14 @@ global:
     app: otel-lgtm
     team: ssegning-home
 
+# Admin credentials the Grafana-Operator uses to manage the bundled Grafana as
+# an external instance (templates/grafana-instance.yaml). These are the image's
+# first-boot defaults — if you change the password in the UI, change it HERE too
+# (same commit) or dashboard reconciliation breaks. Home-network only.
+grafanaAdmin:
+  user: admin
+  password: admin
+
 lgtm:
   controllers:
     main:

@@ -1,0 +1,71 @@
+# Starter dashboard for the vymalo mobile app's OTel export (service name
+# `vymalo-mobile`, see vymalo-shop mobile/lib/app/otel.dart). Datasource uids
+# are the ones the grafana/otel-lgtm image provisions: prometheus / loki /
+# tempo / pyroscope (verified against docker-otel-lgtm's
+# grafana-datasources.yaml).
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: vymalo-mobile-telemetry
+  labels:
+    app: otel-lgtm
+    team: ssegning-home
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: otel-lgtm
+  json: |
+    {
+      "uid": "vymalo-mobile",
+      "title": "Vymalo Mobile — Telemetry",
+      "schemaVersion": 39,
+      "refresh": "1m",
+      "time": { "from": "now-24h", "to": "now" },
+      "panels": [
+        {
+          "id": 1,
+          "type": "timeseries",
+          "title": "Log records by severity",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "datasource": { "type": "loki", "uid": "loki" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "loki", "uid": "loki" },
+              "expr": "sum by (severity_text) (count_over_time({service_name=\"vymalo-mobile\"} [$__auto]))"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "type": "logs",
+          "title": "Errors & fatals",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "datasource": { "type": "loki", "uid": "loki" },
+          "options": { "showTime": true, "wrapLogMessage": true, "sortOrder": "Descending" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "loki", "uid": "loki" },
+              "expr": "{service_name=\"vymalo-mobile\"} | severity_text =~ `ERROR|FATAL`"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "type": "table",
+          "title": "HTTP client spans (sampled)",
+          "gridPos": { "h": 9, "w": 24, "x": 0, "y": 8 },
+          "datasource": { "type": "tempo", "uid": "tempo" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "tempo", "uid": "tempo" },
+              "queryType": "traceql",
+              "query": "{resource.service.name=\"vymalo-mobile\"}",
+              "limit": 50
+            }
+          ]
+        }
+      ]
+    }

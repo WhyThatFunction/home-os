@@ -1,0 +1,42 @@
+# Grafana-Operator wiring (user decision 2026-07-03): otel-lgtm's BUNDLED
+# Grafana stays the display + backend stack; the operator (grafana-operator-local,
+# watches all namespaces) manages it as an EXTERNAL instance so dashboards are
+# GitOps'd as GrafanaDashboard CRs instead of click-ops.
+#
+# The admin credentials below are otel-lgtm's defaults. If the password is
+# changed in the Grafana UI, update .Values.grafanaAdmin to match or the
+# operator loses access (it reconciles dashboards over the HTTP API).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: otel-lgtm-grafana-admin
+  labels:
+    app: otel-lgtm
+    team: ssegning-home
+type: Opaque
+stringData:
+  user: {{ .Values.grafanaAdmin.user | quote }}
+  password: {{ .Values.grafanaAdmin.password | quote }}
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: Grafana
+metadata:
+  name: otel-lgtm
+  labels:
+    app: otel-lgtm
+    team: ssegning-home
+    # GrafanaDashboard CRs select this instance via this label.
+    dashboards: otel-lgtm
+spec:
+  external:
+    url: http://otel-lgtm.otel-lgtm.svc.cluster.local:3000
+    adminUser:
+      valueFrom:
+        secretKeyRef:
+          name: otel-lgtm-grafana-admin
+          key: user
+    adminPassword:
+      valueFrom:
+        secretKeyRef:
+          name: otel-lgtm-grafana-admin
+          key: password
