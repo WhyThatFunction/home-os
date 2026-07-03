@@ -1,0 +1,82 @@
+# Postgres datasource (PRIMARY app-data source) for the otel-lgtm Grafana,
+# managed by the Grafana Operator as a GrafanaDatasource CR so future dashboards
+# can query application tables directly (not just telemetry).
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# REVIEW BEFORE APPLYING — this references a LIVE CNPG secret.
+# The concrete example wired below is the vymalo backend's CNPG database:
+#   cluster   : vymalo-backend-cnpg           (namespace: vymalo)
+#   rw service: vymalo-backend-cnpg-rw.vymalo.svc.cluster.local:5432
+#   secret    : vymalo-backend-cnpg-app       (CNPG-generated, namespace: vymalo)
+#               keys: username, password, dbname, host, port, uri, ...
+# (Derived from serverless/k/vymalo-shop/argocd-application.yaml —
+#  releaseName: vymalo-backend → fullname vymalo-backend-cnpg-app.)
+#
+# TO POINT AT A DIFFERENT DB, change:
+#   - spec.datasource.url          → <cluster>-rw.<ns>.svc.cluster.local:5432
+#   - spec.datasource.user (${…})  → the CNPG secret's username key
+#   - spec.datasource.database     → the DB name
+#   - spec.valuesFrom[*].valueFrom.secretKeyRef.name → <cluster>-app
+#   - the CR namespace, if the secret lives outside where the operator can read it
+#
+# NOTE (cross-namespace secrets): the Grafana Operator reads valuesFrom secrets
+# from the CR's OWN namespace. This CR is created in the otel-lgtm namespace, but
+# the CNPG secret lives in `vymalo`. Before applying, EITHER:
+#   (a) mirror the needed keys into an otel-lgtm-namespace Secret (e.g. via ESO or
+#       a Kyverno secret-sync), OR
+#   (b) create this GrafanaDatasource CR in the `vymalo` namespace instead
+#       (the instanceSelector still binds it to the otel-lgtm Grafana).
+# Option (b) is simplest; option (a) keeps datasource config beside the chart.
+# Fill this in with the owner — do NOT assume the secret is already reachable.
+#
+# GATED OFF by default (datasources.postgres.enabled=false) so this PR deploys
+# without babysitting — the cross-namespace secret above is the unmet prereq.
+# Flip the flag once the secret is reachable.
+# ─────────────────────────────────────────────────────────────────────────────
+{{- if .Values.datasources.postgres.enabled }}
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: vymalo-backend-postgres
+  labels:
+    app: otel-lgtm
+    team: ssegning-home
+spec:
+  # Bind to the same external Grafana the dashboards use.
+  instanceSelector:
+    matchLabels:
+      dashboards: otel-lgtm
+  # resyncPeriod keeps the datasource converged if edited in the UI.
+  resyncPeriod: 5m
+  # `${ENV}` tokens below are interpolated from valuesFrom at reconcile time —
+  # credentials never land in git.
+  valuesFrom:
+    - targetPath: user
+      valueFrom:
+        # INLINE secretKeyRef {name,key} — matches the operator CRD shape used in
+        # grafana-instance.yaml (NOT the k8s valueFrom.secretKeyRef nesting).
+        secretKeyRef:
+          name: vymalo-backend-cnpg-app
+          key: username
+    - targetPath: secureJsonData.password
+      valueFrom:
+        secretKeyRef:
+          name: vymalo-backend-cnpg-app
+          key: password
+  datasource:
+    name: vymalo-backend-postgres
+    type: grafana-postgresql-datasource
+    access: proxy
+    # CNPG read-write service. Swap to `-ro`/`-r` if you prefer a replica.
+    url: vymalo-backend-cnpg-rw.vymalo.svc.cluster.local:5432
+    user: ${user}
+    # DB name published by the vymalo backend chart (fill in if it differs).
+    database: app
+    isDefault: false
+    jsonData:
+      sslmode: require
+      postgresVersion: 1600
+      timescaledb: false
+    secureJsonData:
+      password: ${secureJsonData.password}
+{{- end }}
