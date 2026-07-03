@@ -46,6 +46,12 @@ PYROSCOPE = DataSourceRef(type_val="grafana-pyroscope-datasource", uid="pyroscop
 INSTANCE_SELECTOR = {"dashboards": "otel-lgtm"}
 CR_LABELS = {"app": "otel-lgtm", "team": "ssegning-home"}
 
+# Every generated dashboard lands in this GrafanaFolder. The value is the
+# `metadata.name` of the hand-authored GrafanaFolder CR (templates/
+# grafana-folder-vymalo.yaml); the operator resolves `folderRef` to a folder in
+# the same namespace, so no folder UID has to be threaded through here.
+FOLDER_REF = "vymalo"
+
 GENERATED_HEADER = (
     "# GENERATED — do not edit by hand.\n"
     "# Source: charts/home-apps/otel-lgtm/dashboards/dashboards/{module}.py\n"
@@ -224,6 +230,9 @@ def wrap_cr(
         "metadata": {"name": cr_name, "labels": dict(CR_LABELS)},
         "spec": {
             "instanceSelector": {"matchLabels": dict(INSTANCE_SELECTOR)},
+            # folderRef points at the GrafanaFolder CR (metadata.name) so every
+            # dashboard is filed under "Vymalo" (templates/grafana-folder-vymalo.yaml).
+            "folderRef": FOLDER_REF,
             # resyncPeriod keeps the dashboard converged if someone click-edits it.
             "resyncPeriod": "5m",
             "json": json.dumps(dashboard_json, indent=2, ensure_ascii=False),
