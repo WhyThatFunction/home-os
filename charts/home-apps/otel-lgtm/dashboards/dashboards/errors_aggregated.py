@@ -19,34 +19,17 @@ multi-select narrows every panel.
 from __future__ import annotations
 
 from grafana_foundation_sdk.builders import dashboard as dash
-from grafana_foundation_sdk.models.dashboard import (
-    GridPos,
-    VariableRefresh,
-    VariableSort,
-)
+from grafana_foundation_sdk.models.dashboard import GridPos
 
 import lib
 
 UID = "errors-aggregated"
 CR_NAME = "errors-aggregated"
 
-# `$service` multi-select over Loki's service_name label values; "All" -> `.*`.
+# `$service` multi-select over Loki's service_name label values; "All" -> `.+`
+# (see lib.service_query_variable — `.*` is empty-compatible and Loki rejects it).
 SERVICE_MATCHER = 'service_name =~ "$service"'
 ERROR_SEVERITY = "severity_text =~ `ERROR|FATAL`"
-
-
-def _service_variable() -> dash.QueryVariable:
-    return (
-        dash.QueryVariable("service")
-        .label("Service")
-        .datasource(lib.LOKI)
-        .query({"label": "service_name", "stream": "", "type": 1})
-        .refresh(VariableRefresh.ON_TIME_RANGE_CHANGED)
-        .sort(VariableSort.ALPHABETICAL_ASC)
-        .multi(True)
-        .include_all(True)
-        .all_value(".*")
-    )
 
 
 def build() -> dash.Dashboard:
@@ -150,7 +133,7 @@ def build() -> dash.Dashboard:
         .refresh("1m")
         .time("now-24h", "now")
         .tags(["errors", "aggregated", "sre"])
-        .with_variable(_service_variable())
+        .with_variable(lib.service_query_variable())
         .with_panel(total_errors)
         .with_panel(distinct_services)
         .with_panel(error_rate_by_service)

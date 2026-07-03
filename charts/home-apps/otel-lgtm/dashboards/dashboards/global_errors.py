@@ -9,37 +9,18 @@ values) lets you narrow without overfitting to one app.
 from __future__ import annotations
 
 from grafana_foundation_sdk.builders import dashboard as dash
-from grafana_foundation_sdk.models.dashboard import (
-    GridPos,
-    VariableRefresh,
-    VariableSort,
-)
+from grafana_foundation_sdk.models.dashboard import GridPos
 
 import lib
 
 UID = "global-errors"
 CR_NAME = "global-errors"
 
-# A `$service` multi-select driven by Loki's service_name label values. When
-# "All" is selected the selector matches everything (no service filter).
+# A `$service` multi-select driven by Loki's service_name label values. "All"
+# resolves to `.+` (see lib.service_query_variable) so the =~ selector spans
+# every service without an empty-compatible matcher Loki would reject.
 SERVICE_MATCHER = 'service_name =~ "$service"'
 ERROR_SEVERITY = "severity_text =~ `ERROR|FATAL`"
-
-
-def _service_variable() -> dash.QueryVariable:
-    return (
-        dash.QueryVariable("service")
-        .label("Service")
-        .datasource(lib.LOKI)
-        # Loki datasource variable query for a label's values.
-        .query({"label": "service_name", "stream": "", "type": 1})
-        .refresh(VariableRefresh.ON_TIME_RANGE_CHANGED)
-        .sort(VariableSort.ALPHABETICAL_ASC)
-        .multi(True)
-        .include_all(True)
-        # "All" resolves to `.*` so the =~ matcher spans every service.
-        .all_value(".*")
-    )
 
 
 def build() -> dash.Dashboard:
@@ -95,7 +76,7 @@ def build() -> dash.Dashboard:
         .refresh("1m")
         .time("now-6h", "now")
         .tags(["errors", "global", "sre"])
-        .with_variable(_service_variable())
+        .with_variable(lib.service_query_variable())
         .with_panel(total_errors)
         .with_panel(services_with_errors)
         .with_panel(error_rate_by_service)

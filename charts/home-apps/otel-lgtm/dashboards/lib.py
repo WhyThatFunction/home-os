@@ -60,6 +60,40 @@ GENERATED_HEADER = (
 
 
 # --------------------------------------------------------------------------- #
+# Template variables
+# --------------------------------------------------------------------------- #
+def service_query_variable() -> dash.QueryVariable:
+    """A `$service` multi-select driven by Loki's `service_name` label values.
+
+    Shared by the error dashboards so the "All" behaviour is defined once.
+
+    IMPORTANT: `all_value` is `.+`, not `.*`. Every selector is
+    `{service_name =~ "$service"}`; when "All" is picked it renders
+    `{service_name=~".+"}`. Loki rejects an empty-compatible matcher like
+    `.*` ("queries require at least one regexp or equality matcher that does
+    not have an empty-compatible value"), so `.+` (≥1 char) is required to keep
+    every panel valid. A specific service selection was always fine.
+    """
+    from grafana_foundation_sdk.models.dashboard import (
+        VariableRefresh,
+        VariableSort,
+    )
+
+    return (
+        dash.QueryVariable("service")
+        .label("Service")
+        .datasource(LOKI)
+        # Loki datasource variable query for a label's values.
+        .query({"label": "service_name", "stream": "", "type": 1})
+        .refresh(VariableRefresh.ON_TIME_RANGE_CHANGED)
+        .sort(VariableSort.ALPHABETICAL_ASC)
+        .multi(True)
+        .include_all(True)
+        .all_value(".+")
+    )
+
+
+# --------------------------------------------------------------------------- #
 # Query factories
 # --------------------------------------------------------------------------- #
 def loki_query(expr: str, ref_id: str = "A") -> LokiQuery:
