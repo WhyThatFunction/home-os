@@ -12,6 +12,24 @@ grafanaAdmin:
   user: admin
   password: admin
 
+# GrafanaDatasource CRs (Postgres + Redis) that let dashboards read live app
+# data, not just telemetry. Both ship DISABLED because each has an UNMET
+# prerequisite — enabling them as-is makes the operator report a failing
+# datasource. Flip to `true` only AFTER wiring the prerequisite (see each
+# template's header comment + dashboards/README.md "Datasources" section).
+datasources:
+  postgres:
+    # Prereq: the CNPG secret `vymalo-backend-cnpg-app` lives in the `vymalo`
+    # namespace; the operator reads valuesFrom secrets from the CR's OWN
+    # namespace. Mirror the secret into otel-lgtm (ESO/Kyverno) OR move the CR
+    # to `vymalo` before enabling.
+    enabled: false
+  redis:
+    # Prereq: the `redis-datasource` community plugin is NOT in the otel-lgtm
+    # image. Install it (GF_INSTALL_PLUGINS=redis-datasource on the lgtm
+    # container) and fill in the real URL/auth before enabling.
+    enabled: false
+
 lgtm:
   controllers:
     main:

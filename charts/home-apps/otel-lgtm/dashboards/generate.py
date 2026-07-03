@@ -33,6 +33,7 @@ OUTPUT_DIR = HERE.parent / "templates" / "generated"
 DASHBOARDS: dict[str, str] = {
     "vymalo_mobile": "dashboard-vymalo-mobile",
     "global_errors": "dashboard-global-errors",
+    "errors_aggregated": "dashboard-errors-aggregated",
 }
 
 

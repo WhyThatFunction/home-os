@@ -14,9 +14,10 @@ dashboards/
 ├── lib.py                 # shared: datasource refs, panel/query factories, CR wrapper
 ├── generate.py            # entrypoint: renders every registered dashboard to a CR
 ├── requirements.txt       # pinned deps (SDK + PyYAML)
-├── dashboards/            # one module per dashboard
-│   ├── vymalo_mobile.py   # uid vymalo-mobile  (ported from the old hand-written CR)
-│   └── global_errors.py   # uid global-errors  (cross-service error zones)
+├── dashboards/               # one module per dashboard
+│   ├── vymalo_mobile.py      # uid vymalo-mobile     (ported from the old hand-written CR)
+│   ├── global_errors.py      # uid global-errors     (cross-service error zones)
+│   └── errors_aggregated.py  # uid errors-aggregated (errors-only, count + last-seen table)
 └── README.md              # this file
 ```
 
@@ -84,7 +85,11 @@ regenerated CRs under `../templates/generated/`.
 ## Datasources (Postgres + Redis)
 
 Two `GrafanaDatasource` CRs live in `../templates/` (they're not dashboards, so
-they're hand-authored, not generated):
+they're hand-authored, not generated). Both are **gated OFF by default** in
+`values.yaml` (`datasources.postgres.enabled` / `datasources.redis.enabled`)
+because each has an unmet prerequisite — enabling one as-is makes the operator
+report a failing datasource. Flip the flag to `true` only after wiring the
+prerequisite below:
 
 - **`../templates/datasource-postgres.yaml`** — Postgres (primary), wired as a
   concrete example to the vymalo backend CNPG DB. **Review before applying:** it

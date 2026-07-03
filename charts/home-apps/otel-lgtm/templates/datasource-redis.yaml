@@ -39,6 +39,11 @@
 #   - the CR namespace, so the operator can read the auth secret (same
 #     cross-namespace caveat as the Postgres CR — mirror the secret or create the
 #     CR in the Redis instance's namespace).
+#
+# GATED OFF by default (datasources.redis.enabled=false) so this PR deploys
+# without babysitting — the missing `redis-datasource` plugin is the unmet
+# prereq. Flip the flag once the plugin is installed and the URL/auth are set.
+{{- if .Values.datasources.redis.enabled }}
 apiVersion: grafana.integreatly.org/v1beta1
 kind: GrafanaDatasource
 metadata:
@@ -76,3 +81,4 @@ spec:
       pipelineWindow: 0
     # secureJsonData:
     #   password: ${secureJsonData.password}
+{{- end }}

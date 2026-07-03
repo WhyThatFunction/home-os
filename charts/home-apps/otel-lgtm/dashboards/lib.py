@@ -61,9 +61,78 @@ def loki_query(expr: str, ref_id: str = "A") -> LokiQuery:
     return LokiQuery().expr(expr).ref_id(ref_id)
 
 
+def loki_instant_query(expr: str, ref_id: str = "A") -> LokiQuery:
+    """A Loki *instant* metric target — one value per series over the range.
+
+    Instant queries collapse each stream to a single sample, which is exactly
+    what a per-(service, version) COUNT table wants: one row per label set. Pair
+    with an aggregating LogQL expr like `sum by (...) (count_over_time(... [$__range]))`.
+    """
+    return LokiQuery().expr(expr).ref_id(ref_id).instant(True)
+
+
 def tempo_traceql(query: str, ref_id: str = "A", limit: int = 50) -> TempoQuery:
     """A Tempo target using TraceQL (query_type='traceql')."""
     return TempoQuery().query_type("traceql").query(query).ref_id(ref_id).limit(limit)
+
+
+# --------------------------------------------------------------------------- #
+# Transformation factories — the SDK models a transformation as a free-form
+# {id, options} pair (DataTransformerConfig). We build the option dicts by hand
+# because they are transformer-specific and Grafana keeps them loosely typed.
+# --------------------------------------------------------------------------- #
+def transformation(id_val: str, options: dict[str, Any], *, ref_id: str | None = None):
+    """A DataTransformerConfig with a transformer id + its options dict.
+
+    Pass `ref_id` to scope the transformation to a single query's frame via a
+    `byFrameRefID` matcher (leaving other query frames untouched).
+    """
+    from grafana_foundation_sdk.models.dashboard import (
+        DataTransformerConfig,
+        MatcherConfig,
+    )
+
+    filter_val = (
+        MatcherConfig(id_val="byFrameRefID", options=ref_id)
+        if ref_id is not None
+        else None
+    )
+    return DataTransformerConfig(id_val=id_val, options=options, filter_val=filter_val)
+
+
+def group_by(fields: dict[str, dict[str, Any]], *, ref_id: str | None = None):
+    """A `groupBy` transformation.
+
+    `fields` maps a field name to its config, e.g.::
+
+        {
+          "service_name":    {"aggregations": [], "operation": "groupby"},
+          "service_version": {"aggregations": [], "operation": "groupby"},
+          "Value":           {"aggregations": ["sum"], "operation": "aggregate"},
+          "Time":            {"aggregations": ["lastNotNull"], "operation": "aggregate"},
+        }
+
+    Scope it to one query frame with `ref_id` (recommended when other targets
+    on the same panel must pass through untouched).
+    """
+    return transformation("groupBy", {"fields": fields}, ref_id=ref_id)
+
+
+def organize(
+    *,
+    exclude: dict[str, bool] | None = None,
+    rename: dict[str, str] | None = None,
+    order: list[str] | None = None,
+):
+    """An `organize` transformation: hide, rename, and reorder fields."""
+    return transformation(
+        "organize",
+        {
+            "excludeByName": exclude or {},
+            "renameByName": rename or {},
+            "indexByName": {name: i for i, name in enumerate(order or [])},
+        },
+    )
 
 
 # --------------------------------------------------------------------------- #

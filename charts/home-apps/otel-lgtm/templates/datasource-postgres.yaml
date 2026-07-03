@@ -28,7 +28,12 @@
 #       (the instanceSelector still binds it to the otel-lgtm Grafana).
 # Option (b) is simplest; option (a) keeps datasource config beside the chart.
 # Fill this in with the owner — do NOT assume the secret is already reachable.
+#
+# GATED OFF by default (datasources.postgres.enabled=false) so this PR deploys
+# without babysitting — the cross-namespace secret above is the unmet prereq.
+# Flip the flag once the secret is reachable.
 # ─────────────────────────────────────────────────────────────────────────────
+{{- if .Values.datasources.postgres.enabled }}
 apiVersion: grafana.integreatly.org/v1beta1
 kind: GrafanaDatasource
 metadata:
@@ -74,3 +79,4 @@ spec:
       timescaledb: false
     secureJsonData:
       password: ${secureJsonData.password}
+{{- end }}
