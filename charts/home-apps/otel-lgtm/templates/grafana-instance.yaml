@@ -30,13 +30,12 @@ metadata:
 spec:
   external:
     url: http://otel-lgtm.otel-lgtm.svc.cluster.local:3000
+    # SecretKeySelector INLINE ({name, key}) — the operator's CRD is not the
+    # k8s valueFrom.secretKeyRef shape (that nesting fails validation with
+    # "adminPassword.key: Required value").
     adminUser:
-      valueFrom:
-        secretKeyRef:
-          name: otel-lgtm-grafana-admin
-          key: user
+      name: otel-lgtm-grafana-admin
+      key: user
     adminPassword:
-      valueFrom:
-        secretKeyRef:
-          name: otel-lgtm-grafana-admin
-          key: password
+      name: otel-lgtm-grafana-admin
+      key: password
