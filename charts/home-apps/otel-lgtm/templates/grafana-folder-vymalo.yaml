@@ -1,0 +1,26 @@
+# GrafanaFolder for the Vymalo dashboards (user decision 2026-07-03): group all
+# generated GrafanaDashboard CRs under a "Vymalo" folder so the same otel-lgtm
+# Grafana can host other purposes later. Hand-authored (singleton, not per
+# dashboard) — the generator only emits the per-dashboard GrafanaDashboard CRs,
+# which point back here via `spec.folderRef: vymalo` (folderRef = this CR's
+# metadata.name; operator 5.23.0 resolves it in-namespace, so no UID
+# coordination is needed).
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaFolder
+metadata:
+  name: vymalo
+  labels:
+    app: otel-lgtm
+    team: ssegning-home
+spec:
+  title: "Vymalo"
+  # Stable UID keeps the folder URL fixed across reconciles / re-imports.
+  uid: vymalo
+  # Same instanceSelector the generated dashboards use to bind to the external
+  # otel-lgtm Grafana (see templates/grafana-instance.yaml, label
+  # `dashboards: otel-lgtm`).
+  instanceSelector:
+    matchLabels:
+      dashboards: otel-lgtm
+  # Keep the folder converged if someone renames it in the UI.
+  resyncPeriod: 5m

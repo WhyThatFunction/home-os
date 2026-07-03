@@ -46,11 +46,51 @@ PYROSCOPE = DataSourceRef(type_val="grafana-pyroscope-datasource", uid="pyroscop
 INSTANCE_SELECTOR = {"dashboards": "otel-lgtm"}
 CR_LABELS = {"app": "otel-lgtm", "team": "ssegning-home"}
 
+# Every generated dashboard lands in this GrafanaFolder. The value is the
+# `metadata.name` of the hand-authored GrafanaFolder CR (templates/
+# grafana-folder-vymalo.yaml); the operator resolves `folderRef` to a folder in
+# the same namespace, so no folder UID has to be threaded through here.
+FOLDER_REF = "vymalo"
+
 GENERATED_HEADER = (
     "# GENERATED — do not edit by hand.\n"
     "# Source: charts/home-apps/otel-lgtm/dashboards/dashboards/{module}.py\n"
     "# Edit the .py and re-run `python generate.py` (or `make dashboards`).\n"
 )
+
+
+# --------------------------------------------------------------------------- #
+# Template variables
+# --------------------------------------------------------------------------- #
+def service_query_variable() -> dash.QueryVariable:
+    """A `$service` multi-select driven by Loki's `service_name` label values.
+
+    Shared by the error dashboards so the "All" behaviour is defined once.
+
+    IMPORTANT: `all_value` is `.+`, not `.*`. Every selector is
+    `{service_name =~ "$service"}`; when "All" is picked it renders
+    `{service_name=~".+"}`. Loki rejects an empty-compatible matcher like
+    `.*` ("queries require at least one regexp or equality matcher that does
+    not have an empty-compatible value"), so `.+` (≥1 char) is required to keep
+    every panel valid. A specific service selection was always fine.
+    """
+    from grafana_foundation_sdk.models.dashboard import (
+        VariableRefresh,
+        VariableSort,
+    )
+
+    return (
+        dash.QueryVariable("service")
+        .label("Service")
+        .datasource(LOKI)
+        # Loki datasource variable query for a label's values.
+        .query({"label": "service_name", "stream": "", "type": 1})
+        .refresh(VariableRefresh.ON_TIME_RANGE_CHANGED)
+        .sort(VariableSort.ALPHABETICAL_ASC)
+        .multi(True)
+        .include_all(True)
+        .all_value(".+")
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -224,6 +264,9 @@ def wrap_cr(
         "metadata": {"name": cr_name, "labels": dict(CR_LABELS)},
         "spec": {
             "instanceSelector": {"matchLabels": dict(INSTANCE_SELECTOR)},
+            # folderRef points at the GrafanaFolder CR (metadata.name) so every
+            # dashboard is filed under "Vymalo" (templates/grafana-folder-vymalo.yaml).
+            "folderRef": FOLDER_REF,
             # resyncPeriod keeps the dashboard converged if someone click-edits it.
             "resyncPeriod": "5m",
             "json": json.dumps(dashboard_json, indent=2, ensure_ascii=False),
