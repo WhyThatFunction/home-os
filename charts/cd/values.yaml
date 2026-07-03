@@ -1920,6 +1920,38 @@ applications:
         prune: true
         selfHeal: true
 
+  # Grafana operator, LOCAL cluster — mirrored from adorsys-gis/ai-helm's
+  # observability child (user request: keep a local copy to simplify deployment;
+  # CRD-managed Grafana/dashboards/datasources, e.g. in front of otel-lgtm).
+  # Simplifications vs ai-helm: no depsOverlay (their egress-NetworkPolicy fix
+  # for a default-deny cluster — this cluster has no default-deny baseline) and
+  # values inline instead of a values repo.
+  - name: grafana-operator-local
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      # OCI path must include the chart name (see ai-helm's note: without it
+      # ArgoCD pulls grafana/helm-charts and GHCR 403s).
+      repoURL: oci://ghcr.io/grafana/helm-charts/grafana-operator
+      # TAG GOTCHA (from ai-helm): tags <= 5.20.0 are v-prefixed, >= 5.21 are
+      # NOT (5.23.0, not v5.23.0).
+      targetRevision: 5.23.0
+      chart: grafana-operator
+      helm:
+        releaseName: grafana-operator
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: observability
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+        - SkipDryRunOnMissingResource=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: kserve-crd
     finalizers:
       - resources-finalizer.argocd.argoproj.io
