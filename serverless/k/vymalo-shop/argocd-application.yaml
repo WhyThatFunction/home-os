@@ -124,15 +124,16 @@ spec:
         maxDuration: 5m
 ---
 # ─────────────────────────────────────────────────────────────────────────
-# 3. vymalo-backend-knative — server + worker + admin SPA + Redis + ConfigMap
-#    + HTTPRoute + the `medusa db:migrate` PreSync hook. Owns the images, so the
-#    Image Updater annotations live here. (Role name "knative" is legacy — it
-#    renders plain Deployments, not a KSvc.)
+# 3. vymalo-backend — server + worker + admin SPA + Redis + ConfigMap
+#    + HTTPRoute + the `medusa db:migrate` Job. Owns the images, so the Image
+#    Updater annotations live here. (Renamed from the legacy `vymalo-backend-knative`;
+#    the app has no resources-finalizer, so the deployer prunes the old app by
+#    ORPHANING its resources, which this app then adopts — no workload restart.)
 # ─────────────────────────────────────────────────────────────────────────
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: vymalo-backend-knative
+  name: vymalo-backend
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "2"
@@ -212,9 +213,7 @@ spec:
         releaseName: vymalo-backend
         parameters:
           # The app slice (Deployments + Services + ConfigMap + migrate + HPA +
-          # route + redis). Renamed from the legacy `knative` role. The Argo
-          # Application resource keeps its `vymalo-backend-knative` name so a
-          # rename doesn't prune + recreate the running workload.
+          # route + redis). Renamed from the legacy `knative` role.
           - name: role
             value: app
         valueFiles:
