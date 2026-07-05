@@ -380,43 +380,6 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: cloudnative-pg
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: infrastructure
-    source:
-      repoURL: https://charts.bitnami.com/bitnami
-      targetRevision: 1.0.11
-      chart: cloudnative-pg
-      helm:
-        valuesObject:
-          global:
-            defaultStorageClass: longhorn-local
-            security:
-              allowInsecureImages: true
-          operator:
-            image:
-              registry: bitnamilegacy
-              repository: cloudnative-pg
-            postgresqlImage:
-              registry: bitnamilegacy
-              repository: postgresql
-          pluginBarmanCloud:
-            enabled: true
-            image:
-              repository: bitnamilegacy/plugin-barman-cloud
-            sidecarImage:
-              repository: bitnamilegacy/plugin-barman-cloud-sidecar
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: cloudnative-pg
-    syncPolicy:
-      syncOptions:
-        - ServerSideApply=true
-      automated:
-        prune: true
-        selfHeal: true
-
   - name: traefik
     finalizers:
       - resources-finalizer.argocd.argoproj.io
