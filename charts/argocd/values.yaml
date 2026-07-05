@@ -8,10 +8,10 @@ controller:
     minAvailable: 1
   resources:
     requests:
-      cpu: 1
-      memory: 2Gi
+      cpu: 500m
+      memory: 1Gi
     limits:
-      memory: 4Gi # no CPU limit — let it burst during sync storms
+      memory: 2Gi # no CPU limit — let it burst during sync storms
   env:
     - name: ARGOCD_CONTROLLER_REPLICAS # required for sharding to actually distribute clusters across replicas
       value: "2"
@@ -19,10 +19,10 @@ controller:
 # Single redis is a SPOF and a reconcile/UI latency source (cache rebuild on restart).
 # redis-ha gives a 3-node sentinel cluster; it is mutually exclusive with `redis`.
 redis:
-  enabled: false
+  enabled: true
 
 redis-ha:
-  enabled: true
+  enabled: false
 
 server:
   autoscaling:
@@ -52,10 +52,10 @@ repoServer:
     targetCPUUtilizationPercentage: 80
   resources:
     requests:
-      cpu: 1
-      memory: 1Gi
+      cpu: 500m
+      memory: 512Mi
     limits:
-      memory: 2Gi
+      memory: 1Gi
   pdb:
     enabled: true
     minAvailable: 1 # minAvailable:2 with minReplicas:2 blocks ALL voluntary disruption (drains/rollouts hang)
