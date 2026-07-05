@@ -27,8 +27,8 @@ redis-ha:
 server:
   autoscaling:
     enabled: true
-    minReplicas: 2
-    maxReplicas: 3
+    minReplicas: 1
+    maxReplicas: 2
     targetCPUUtilizationPercentage: 80
   resources:
     requests:
@@ -47,8 +47,8 @@ server:
 repoServer:
   autoscaling:
     enabled: true
-    minReplicas: 2
-    maxReplicas: 5 # render is bursty and CPU-bound; raise the ceiling
+    minReplicas: 1
+    maxReplicas: 2 # render is bursty and CPU-bound; raise the ceiling
     targetCPUUtilizationPercentage: 80
   resources:
     requests:
@@ -57,11 +57,10 @@ repoServer:
     limits:
       memory: 1Gi
   pdb:
-    enabled: true
-    minAvailable: 1 # minAvailable:2 with minReplicas:2 blocks ALL voluntary disruption (drains/rollouts hang)
+    enabled: false
 
 applicationSet:
-  replicas: 3
+  replicas: 2
   resources:
     requests:
       cpu: 250m
@@ -70,7 +69,7 @@ applicationSet:
       memory: 512Mi
   pdb:
     enabled: true
-    minAvailable: 2
+    minAvailable: 1
 
 dex:
   pdb:
