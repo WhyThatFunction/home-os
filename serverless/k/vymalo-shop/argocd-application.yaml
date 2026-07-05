@@ -137,15 +137,19 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "2"
 
-    # Two images: server/worker (`app`) + admin SPA (`admin`). ONE line — a
-    # folded `>-` injects a space after the comma and breaks the parser.
-    argocd-image-updater.argoproj.io/image-list: "app=ghcr.io/vymalo/vymalo-backend:latest,admin=ghcr.io/vymalo/vymalo-admin:latest"
+    # Three images: server (`app`) + worker (`worker`, SAME backend image, separate
+    # app-template controller) + admin SPA (`admin`). ONE line — a folded `>-`
+    # injects a space after the comma and breaks the parser. `app` and `worker`
+    # resolve the same repo → the same signed digest, so server + worker never drift.
+    argocd-image-updater.argoproj.io/image-list: "app=ghcr.io/vymalo/vymalo-backend:latest,worker=ghcr.io/vymalo/vymalo-backend:latest,admin=ghcr.io/vymalo/vymalo-admin:latest"
     # Multi-source app: Helm image params live on source 0 (the OCI chart).
     argocd-image-updater.argoproj.io/app.source-index: "0"
+    argocd-image-updater.argoproj.io/worker.source-index: "0"
     argocd-image-updater.argoproj.io/admin.source-index: "0"
     # PRIVATE GHCR: the controller needs a read credential to query digests, or
     # it gets `unauthorized`. ESO Secret created in ghcr-pull.externalsecret.yaml.
     argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vymalo-ghcr-pull
+    argocd-image-updater.argoproj.io/worker.pull-secret: pullsecret:argocd/vymalo-ghcr-pull
     argocd-image-updater.argoproj.io/admin.pull-secret: pullsecret:argocd/vymalo-ghcr-pull
     argocd-image-updater.argoproj.io/app.update-strategy: digest
     # The workload runs on the bjw-s app-template dependency, so the image lives
@@ -153,6 +157,12 @@ metadata:
     argocd-image-updater.argoproj.io/app.helm.image-name: app-template.controllers.server.containers.app.image.repository
     argocd-image-updater.argoproj.io/app.helm.image-tag: app-template.controllers.server.containers.app.image.tag
     argocd-image-updater.argoproj.io/app.force-update: "true"
+    # Worker = the SAME image as the server, pinned to its own app-template controller
+    # path so Image Updater keeps both in lockstep on every promotion.
+    argocd-image-updater.argoproj.io/worker.update-strategy: digest
+    argocd-image-updater.argoproj.io/worker.helm.image-name: app-template.controllers.worker.containers.app.image.repository
+    argocd-image-updater.argoproj.io/worker.helm.image-tag: app-template.controllers.worker.containers.app.image.tag
+    argocd-image-updater.argoproj.io/worker.force-update: "true"
     argocd-image-updater.argoproj.io/admin.update-strategy: digest
     argocd-image-updater.argoproj.io/admin.helm.image-name: app-template.controllers.admin.containers.spa.image.repository
     argocd-image-updater.argoproj.io/admin.helm.image-tag: app-template.controllers.admin.containers.spa.image.tag
@@ -164,6 +174,11 @@ metadata:
     argocd-image-updater.argoproj.io/app.cosign.certificate-oidc-issuer: >-
       https://token.actions.githubusercontent.com
     argocd-image-updater.argoproj.io/app.cosign.certificate-identity-regexp: >-
+      ^https://github\.com/vymalo/vymalo-shop/\.github/workflows/ci\.yml@.*$
+    argocd-image-updater.argoproj.io/worker.signature-type: cosign
+    argocd-image-updater.argoproj.io/worker.cosign.certificate-oidc-issuer: >-
+      https://token.actions.githubusercontent.com
+    argocd-image-updater.argoproj.io/worker.cosign.certificate-identity-regexp: >-
       ^https://github\.com/vymalo/vymalo-shop/\.github/workflows/ci\.yml@.*$
     argocd-image-updater.argoproj.io/admin.signature-type: cosign
     argocd-image-updater.argoproj.io/admin.cosign.certificate-oidc-issuer: >-
