@@ -239,8 +239,6 @@ applications:
         prune: true
         selfHeal: true
 
-  # Named distinctly from the child Application it deploys (vymalo-shop) to
-  # avoid an argocd-namespace name collision / self-referential sync loop.
   - name: vymalo-shop-deployer
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -255,35 +253,6 @@ applications:
     syncPolicy:
       syncOptions:
         - CreateNamespace=true
-      automated:
-        prune: true
-        selfHeal: true
-
-  # vaam-store-prod umbrella. Deploys three child Applications (sync-waved):
-  #   secrets (0) → pg + redis (5) → app (10)
-  # Children defined under charts/home-apps/vaam-store-prod-deployer.
-  - name: vaam-store-prod-deployer
-    enabled: false
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: external
-    # ServerSideDiff computes the diff via an SSA dry-run, so fields the
-    # apiserver/ESO default in (and that this app never declares) are not
-    # flagged as drift. Avoids the permanent cosmetic OutOfSync on the 2
-    # GHCR ExternalSecrets the deployer renders, with no brittle field lists.
-    additionalAnnotations:
-      argocd.argoproj.io/compare-options: ServerSideDiff=true
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: charts/home-apps/vaam-store-prod-deployer
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: argocd                # the 3 child Application CRs land here
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=false
-        - ServerSideApply=true
       automated:
         prune: true
         selfHeal: true
