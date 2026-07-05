@@ -41,6 +41,10 @@ spec:
         parameters:
           - name: role
             value: externalsecrets
+          # This slice renders only the ESO resources — disable the app-template
+          # workload so it isn't also created here (the `app` slice owns it).
+          - name: app-template.workload.enabled
+            value: "false"
         valueFiles:
           - $values/deploy/envs/production/vymalo-backend.values.yaml
         ignoreMissingValueFiles: true
@@ -85,6 +89,10 @@ spec:
         parameters:
           - name: role
             value: cnpg
+          # This slice renders only the CNPG Cluster + barman backup — disable the
+          # app-template workload so it isn't also created here.
+          - name: app-template.workload.enabled
+            value: "false"
         valueFiles:
           - $values/deploy/envs/production/vymalo-backend.values.yaml
         ignoreMissingValueFiles: true
@@ -140,12 +148,14 @@ metadata:
     argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vymalo-ghcr-pull
     argocd-image-updater.argoproj.io/admin.pull-secret: pullsecret:argocd/vymalo-ghcr-pull
     argocd-image-updater.argoproj.io/app.update-strategy: digest
-    argocd-image-updater.argoproj.io/app.helm.image-name: image.repository
-    argocd-image-updater.argoproj.io/app.helm.image-tag: image.tag
+    # The workload runs on the bjw-s app-template dependency, so the image lives
+    # under the app-template controller path (was top-level image.* pre-migration).
+    argocd-image-updater.argoproj.io/app.helm.image-name: app-template.controllers.server.containers.app.image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: app-template.controllers.server.containers.app.image.tag
     argocd-image-updater.argoproj.io/app.force-update: "true"
     argocd-image-updater.argoproj.io/admin.update-strategy: digest
-    argocd-image-updater.argoproj.io/admin.helm.image-name: admin.image.repository
-    argocd-image-updater.argoproj.io/admin.helm.image-tag: admin.image.tag
+    argocd-image-updater.argoproj.io/admin.helm.image-name: app-template.controllers.admin.containers.spa.image.repository
+    argocd-image-updater.argoproj.io/admin.helm.image-tag: app-template.controllers.admin.containers.spa.image.tag
     argocd-image-updater.argoproj.io/admin.force-update: "true"
 
     # cosign keyless verification — refuse any digest not signed by this repo's
@@ -186,8 +196,12 @@ spec:
       helm:
         releaseName: vymalo-backend
         parameters:
+          # The app slice (Deployments + Services + ConfigMap + migrate + HPA +
+          # route + redis). Renamed from the legacy `knative` role. The Argo
+          # Application resource keeps its `vymalo-backend-knative` name so a
+          # rename doesn't prune + recreate the running workload.
           - name: role
-            value: knative
+            value: app
         valueFiles:
           - $values/deploy/envs/production/vymalo-backend.values.yaml
         ignoreMissingValueFiles: true
@@ -239,8 +253,8 @@ metadata:
     # PRIVATE GHCR read credential (see ghcr-pull.externalsecret.yaml).
     argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vymalo-ghcr-pull
     argocd-image-updater.argoproj.io/app.update-strategy: digest
-    argocd-image-updater.argoproj.io/app.helm.image-name: image.repository
-    argocd-image-updater.argoproj.io/app.helm.image-tag: image.tag
+    argocd-image-updater.argoproj.io/app.helm.image-name: app-template.controllers.server.containers.app.image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: app-template.controllers.server.containers.app.image.tag
     argocd-image-updater.argoproj.io/app.force-update: "true"
 
     argocd-image-updater.argoproj.io/app.signature-type: cosign
@@ -314,8 +328,8 @@ metadata:
     # PRIVATE GHCR read credential (see ghcr-pull.externalsecret.yaml).
     argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vymalo-ghcr-pull
     argocd-image-updater.argoproj.io/app.update-strategy: digest
-    argocd-image-updater.argoproj.io/app.helm.image-name: image.repository
-    argocd-image-updater.argoproj.io/app.helm.image-tag: image.tag
+    argocd-image-updater.argoproj.io/app.helm.image-name: app-template.controllers.main.containers.app.image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: app-template.controllers.main.containers.app.image.tag
     argocd-image-updater.argoproj.io/app.force-update: "true"
 
     argocd-image-updater.argoproj.io/app.signature-type: cosign
@@ -389,8 +403,8 @@ metadata:
     # PRIVATE GHCR read credential (see ghcr-pull.externalsecret.yaml).
     argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vymalo-ghcr-pull
     argocd-image-updater.argoproj.io/app.update-strategy: digest
-    argocd-image-updater.argoproj.io/app.helm.image-name: image.repository
-    argocd-image-updater.argoproj.io/app.helm.image-tag: image.tag
+    argocd-image-updater.argoproj.io/app.helm.image-name: app-template.controllers.main.containers.app.image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: app-template.controllers.main.containers.app.image.tag
     argocd-image-updater.argoproj.io/app.force-update: "true"
 
     argocd-image-updater.argoproj.io/app.signature-type: cosign
@@ -469,8 +483,8 @@ metadata:
     # PRIVATE GHCR read credential (see ghcr-pull.externalsecret.yaml).
     argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vymalo-ghcr-pull
     argocd-image-updater.argoproj.io/app.update-strategy: digest
-    argocd-image-updater.argoproj.io/app.helm.image-name: image.repository
-    argocd-image-updater.argoproj.io/app.helm.image-tag: image.tag
+    argocd-image-updater.argoproj.io/app.helm.image-name: app-template.controllers.server.containers.app.image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: app-template.controllers.server.containers.app.image.tag
     argocd-image-updater.argoproj.io/app.force-update: "true"
 
     argocd-image-updater.argoproj.io/app.signature-type: cosign
