@@ -50,9 +50,10 @@ extraObjects:
       namespace: argocd
     spec:
       applicationRefs:
-        # Medusa replatform. Backend is a 3-app role split; only the knative app
-        # carries the image-updater annotations (server `app` + admin SPA).
-        - namePattern: vymalo-backend-knative
+        # Medusa replatform. Backend is a 3-app role split; only the app-role app
+        # (vymalo-backend) carries the image-updater annotations (server `app` +
+        # worker + admin SPA).
+        - namePattern: vymalo-backend
           useAnnotations: true
         - namePattern: vymalo-storefront
           useAnnotations: true
