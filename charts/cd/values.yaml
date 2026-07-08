@@ -1198,7 +1198,7 @@ applications:
     project: arc-runner
     sources:
       - repoURL: "oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set"
-        targetRevision: 0.13.1
+        targetRevision: "0.*"
         chart: "."
         helm:
           releaseName: arc-runner-set-sse
