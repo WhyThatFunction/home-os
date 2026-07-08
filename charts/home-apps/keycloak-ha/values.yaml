@@ -121,8 +121,12 @@ rawResources:
                   volumeMounts:
                     - name: spi-volume
                       mountPath: /opt/keycloak/providers
+                    # Mount into a SUBDIRECTORY, not conf/truststores itself:
+                    # Keycloak scans conf/truststores recursively, and mounting at
+                    # the dir root would mask any operator-managed truststores
+                    # (spec.truststores → conf/truststores/secret-…/configmap-…).
                     - name: lightbridge-truststore
-                      mountPath: /opt/keycloak/conf/truststores
+                      mountPath: /opt/keycloak/conf/truststores/lightbridge
                       readOnly: true
 
   otel:
