@@ -1209,7 +1209,7 @@ applications:
             runnerGroup: flaky-rescue
 
             maxRunners: 4
-            minRunners: 1
+            minRunners: 0
 
             controllerServiceAccount:
               namespace: arc-systems
