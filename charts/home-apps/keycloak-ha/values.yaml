@@ -46,6 +46,8 @@ rawResources:
                       value: "v86b23a7"
                     - name: WEBHOOK_VERSION
                       value: "0.9.1"
+                    - name: LIGHTBRIDGE_KC_SPI
+                      value: "0.1.1"
                   command:
                     - /bin/sh
                   args:
@@ -61,6 +63,11 @@ rawResources:
                       wget -O /spi/keycloak-webhook-provider-core.jar https://github.com/vymalo/keycloak-webhook/releases/download/v$WEBHOOK_VERSION/keycloak-webhook-provider-core-$WEBHOOK_VERSION-all.jar
                       wget -O /spi/keycloak-webhook-provider-syslog.jar https://github.com/vymalo/keycloak-webhook/releases/download/v$WEBHOOK_VERSION/keycloak-webhook-provider-syslog-$WEBHOOK_VERSION-all.jar
                       wget -O /spi/keycloak-webhook-provider-http.jar https://github.com/vymalo/keycloak-webhook/releases/download/v$WEBHOOK_VERSION/keycloak-webhook-provider-http-$WEBHOOK_VERSION-all.jar
+                      
+                      wget -O /spi/lightbridge-kc-spi--context-client.jar https://github.com/ADORSYS-GIS/lightbridge-keycloak-spi/releases/download/v$LIGHTBRIDGE_KC_SPI/context-client-$LIGHTBRIDGE_KC_SPI.jar
+                      wget -O /spi/lightbridge-kc-spi--protocol-mapper.jar https://github.com/ADORSYS-GIS/lightbridge-keycloak-spi/releases/download/v$LIGHTBRIDGE_KC_SPI/protocol-mapper-$LIGHTBRIDGE_KC_SPI.jar
+                      wget -O /spi/lightbridge-kc-spi--spi-common.jar https://github.com/ADORSYS-GIS/lightbridge-keycloak-spi/releases/download/v$LIGHTBRIDGE_KC_SPI/spi-common-$LIGHTBRIDGE_KC_SPI.jar
+                      wget -O /spi/lightbridge-kc-spi--token-exchange.jar https://github.com/ADORSYS-GIS/lightbridge-keycloak-spi/releases/download/v$LIGHTBRIDGE_KC_SPI/token-exchange-$LIGHTBRIDGE_KC_SPI.jar
                       
                       echo "Downloaded theme";
                       ls -lash /spi;
