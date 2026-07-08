@@ -5,6 +5,12 @@ rawResources:
     spec:
       spec:
         instances: 3
+        additionalOptions:
+          # Point Keycloak's system truststore at the mounted CA dir so the SPI's
+          # JDK HttpClient (default SSLContext) trusts the OPA server cert. conf/
+          # truststores is the default scan dir; set explicitly to be unambiguous.
+          - name: truststore-paths
+            value: /opt/keycloak/conf/truststores
         db:
           database: app
           host: "{{ .Release.Name }}-cluster-rw"
@@ -37,6 +43,17 @@ rawResources:
               volumes:
                 - name: spi-volume
                   emptyDir: { }
+                # CA (self-signed-ca) that signed the Lightbridge OPA server's
+                # authz-tls cert in the converse namespace. Mounted into Keycloak's
+                # system truststore so the SPI's JDK HttpClient (default SSLContext)
+                # trusts https://lightbridge-opa.converse.svc:3000. Only ca.crt is
+                # projected (never tls.key) so the truststore loader stays clean.
+                - name: lightbridge-truststore
+                  secret:
+                    secretName: '{{ .Release.Name }}-lightbridge-truststore'
+                    items:
+                      - key: ca.crt
+                        path: lightbridge-opa-ca.crt
 
               initContainers:
                 - name: install-spi
@@ -78,9 +95,35 @@ rawResources:
 
               containers:
                 - name: keycloak
+                  # Lightbridge context-resolution SPI (context-client) config. The
+                  # provider reads these LIGHTBRIDGE_* env fallbacks (see the SPI's
+                  # LightbridgeConfigFactory) and calls the backend on a project_id
+                  # token exchange to seal account_id/project_id into the JWT.
+                  env:
+                    - name: LIGHTBRIDGE_RESOLVER_BASE_URL
+                      value: https://lightbridge-opa.converse.svc:3000
+                    - name: LIGHTBRIDGE_RESOLVER_PATH
+                      value: /idp/v1/resolve-context
+                    - name: LIGHTBRIDGE_AUTH_MODE
+                      value: BASIC
+                    - name: LIGHTBRIDGE_BASIC_USERNAME
+                      value: authorino
+                    - name: LIGHTBRIDGE_BASIC_PASSWORD
+                      valueFrom:
+                        secretKeyRef:
+                          name: '{{ .Release.Name }}-lightbridge-opa'
+                          key: password
+                    - name: LIGHTBRIDGE_PROJECT_ID_PARAM
+                      value: project_id
+                    # Fail closed: only the camer-digital realm may use the exchange.
+                    - name: LIGHTBRIDGE_ALLOWED_REALMS
+                      value: camer-digital
                   volumeMounts:
                     - name: spi-volume
                       mountPath: /opt/keycloak/providers
+                    - name: lightbridge-truststore
+                      mountPath: /opt/keycloak/conf/truststores
+                      readOnly: true
 
   otel:
     enabled: true
@@ -275,6 +318,54 @@ rawResources:
     spec:
       spec:
         serverName: auth.verif.fyi
+
+  # ────────────────────────────────────────────────────────────────────
+  # Lightbridge context-resolution SPI wiring (keycloak ns → converse ns).
+  # The token-exchange SPI calls the OPA/validation server in `converse`
+  # (lightbridge-opa.converse.svc:3000/idp/v1/resolve-context) over TLS with
+  # Basic auth. Two supporting resources:
+  #   1. lightbridge-truststore — a throwaway leaf cert from the SAME
+  #      self-signed-ca ClusterIssuer that signs converse's authz-tls; we mount
+  #      only its ca.crt so Keycloak trusts the OPA server cert (SAN *.converse.svc).
+  #   2. lightbridge-opa — the shared OPA Basic-auth password (authorino/…),
+  #      pulled from the SAME store key converse's opa-secret uses so the two
+  #      sides always match.
+  # ────────────────────────────────────────────────────────────────────
+  lightbridge-truststore:
+    enabled: true
+    apiVersion: cert-manager.io/v1
+    kind: Certificate
+    spec:
+      spec:
+        secretName: '{{ .Release.Name }}-lightbridge-truststore'
+        commonName: '{{ .Release.Name }}-lightbridge-truststore'
+        dnsNames:
+          - '{{ .Release.Name }}-lightbridge-truststore'
+        issuerRef:
+          name: self-signed-ca
+          kind: ClusterIssuer
+          group: cert-manager.io
+        usages:
+          - server auth
+
+  lightbridge-opa:
+    enabled: true
+    apiVersion: external-secrets.io/v1
+    kind: ExternalSecret
+    spec:
+      spec:
+        refreshInterval: 1h0m0s
+        secretStoreRef:
+          name: ssegning-aws
+          kind: ClusterSecretStore
+        target:
+          name: '{{ .Release.Name }}-lightbridge-opa'
+          creationPolicy: Owner
+        data:
+          - secretKey: password
+            remoteRef:
+              key: "ai/camer/digital/prod/env"
+              property: lightbridge_opa_password
 
   # ────────────────────────────────────────────────────────────────────
   # Grafana read-only datasource plumbing (ai-helm ADR-0063).
