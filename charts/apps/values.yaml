@@ -257,6 +257,27 @@ applications:
         prune: true
         selfHeal: true
 
+  # Provisions the ArgoCD repository credential (ESO, argocd ns) that lets ArgoCD
+  # pull the PRIVATE converse-frontends OCI chart. The converse-ui workload itself
+  # is deployed by ai-helm's charts/apps app-of-apps, not here.
+  - name: converse-deployer
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: serverless/k/converse
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: serverless-converse
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: lightbridge-authz-ghcr-creds
     finalizers:
       - resources-finalizer.argocd.argoproj.io
