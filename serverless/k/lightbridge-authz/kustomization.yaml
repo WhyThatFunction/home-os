@@ -9,7 +9,8 @@ namespace: argocd
 
 resources:
   # Short-lived App installation token (packages:read) both creds derive from.
-  - github-app-token.generator.yaml
+  # (Filename avoids "gen" — repo .gitignore `*gen*` would drop it otherwise.)
+  - github-app-token.yaml
   # ArgoCD OCI Helm repo cred so it can pull the PRIVATE charts/* packages.
   - charts-oci-repo.externalsecret.yaml
   # image-updater GHCR read cred so it keeps promoting PRIVATE image digests.
