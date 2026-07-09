@@ -257,6 +257,24 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: lightbridge-authz-ghcr-creds
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: serverless/k/lightbridge-authz
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: argocd
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
     #  - name: ai-poc-model-deployment
     #    finalizers:
     #      - resources-finalizer.argocd.argoproj.io
