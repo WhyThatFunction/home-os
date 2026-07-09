@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# The App generator + both ExternalSecrets live in the argocd namespace: the
+# repository cred is read by argocd-server/repo-server, the ghcr-pull cred by the
+# image-updater controller, and the App private-key Secret the generator reads
+# (github-app-creds--adorsys-gis) is already there.
+namespace: argocd
+
+resources:
+  # Short-lived App installation token (packages:read) both creds derive from.
+  - github-app-token.generator.yaml
+  # ArgoCD OCI Helm repo cred so it can pull the PRIVATE charts/* packages.
+  - charts-oci-repo.externalsecret.yaml
+  # image-updater GHCR read cred so it keeps promoting PRIVATE image digests.
+  - image-updater-ghcr-pull.externalsecret.yaml
