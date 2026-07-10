@@ -1,14 +1,17 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# Both ExternalSecrets live in the argocd namespace: the repository cred is read
-# by argocd-server/repo-server (to pull the private OCI chart), the ghcr-pull
-# cred by the image-updater controller. Both are backed by the shared GHCR PAT
-# in ssegning-aws (an App token is 403 on org-private packages — see the files).
+# All ExternalSecrets live in the argocd namespace: the repository/repo-creds are
+# read by argocd-server/repo-server (to pull the private OCI charts), the ghcr-pull
+# cred by the image-updater controller. All are backed by the shared GHCR PAT in
+# ssegning-aws (an App token is 403 on org-private packages — see the files).
 namespace: argocd
 
 resources:
-  # ArgoCD OCI Helm repo cred so it can pull the PRIVATE lightbridge-authz-stack.
+  # ArgoCD OCI repo cred (EXACT) so it can pull the PRIVATE lightbridge-authz-stack.
   - charts-oci-repo.externalsecret.yaml
+  # ArgoCD OCI credential TEMPLATE (repo-creds, PREFIX) covering the whole PRIVATE
+  # adorsys-gis chart registry — every other ai-helm OCI chart, one secret.
+  - adorsys-gis-charts-oci-creds.externalsecret.yaml
   # image-updater GHCR read cred so it keeps promoting PRIVATE image digests.
   - image-updater-ghcr-pull.externalsecret.yaml
