@@ -9,5 +9,5 @@ namespace: argocd
 
 resources:
   # ArgoCD repo cred (ESO) so ArgoCD can pull the PRIVATE OCI Helm chart
-  # ghcr.io/adorsys-gis/converse-frontends/charts/converse-frontend.
+  # ghcr.io/adorsys-gis/charts/converse-frontend.
   - argocd-charts-oci-repo.externalsecret.yaml
