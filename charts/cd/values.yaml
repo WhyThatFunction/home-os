@@ -1208,7 +1208,7 @@ applications:
             runnerScaleSetName: arc-runner-set-sse
             runnerGroup: flaky-rescue
 
-            maxRunners: 4
+            maxRunners: 2
             minRunners: 0
 
             controllerServiceAccount:
@@ -1457,7 +1457,7 @@ applications:
             runnerScaleSetName: adorsys-gis-runner
             runnerGroup: lightbridge-ai
 
-            maxRunners: 4
+            maxRunners: 3
             minRunners: 0
 
             controllerServiceAccount:
