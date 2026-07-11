@@ -11,6 +11,24 @@ This repository follows the [ADORSYS-GIS AI Governance](https://adorsys-gis.gith
 - **Open pull requests** using the [pull request template](.github/PULL_REQUEST_TEMPLATE.md). Fill in every section.
 - Always complete the **AI Usage Declaration**, link a **source of truth**, and attach **verification evidence**.
 
+## Commit messages
+
+**[Conventional Commits](https://www.conventionalcommits.org/), enforced.** Full
+spec: [`docs/commit-conventions.md`](docs/commit-conventions.md). Shape:
+
+```
+<type>[optional scope][!]: <description>
+```
+
+`type` ∈ `feat fix docs style refactor perf test build ci chore revert`; a `!` or
+`BREAKING CHANGE:` footer marks a breaking change. Explain **why** in the body; add
+`Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>` for AI-assisted commits.
+Because we squash-merge, the **PR title** must be a valid Conventional Commit too.
+
+**Enforced** by a local `commit-msg` hook (enable once: `git config core.hooksPath
+.githooks`) and the required `Commit Lint` CI gate (PR title + every commit) — both
+via the single validator [`tools/commit-lint.sh`](tools/commit-lint.sh).
+
 ## Definition of Ready / Done gates
 
 Work is **Ready** only when its intent is clear, its source of truth is linked, its scope and acceptance criteria are explicit, and any AI-generated content has been reviewed by a human. Work is **Done** only when acceptance criteria are met, tests pass, verification evidence is attached, and a named human owner accepts responsibility for the result. A governance CI check enforces that every PR body declares AI usage, references a source of truth, and shows verification evidence — see the [AI Working Agreement](https://adorsys-gis.github.io/ai-governance/12-ai-working-agreement) and the [Doctrine](https://adorsys-gis.github.io/ai-governance/13-doctrine).
