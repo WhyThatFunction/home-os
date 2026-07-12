@@ -1056,7 +1056,7 @@ applications:
                       # OOMKilled the pod. This is a low-volume transactional
                       # gateway, so pin a small fixed count.
                       APPRISE_WORKER_COUNT: "2"
-                      LOG_LEVEL: "DEBUG"
+                      #LOG_LEVEL: "DEBUG"
                     probes:
                       liveness:
                         enabled: true
