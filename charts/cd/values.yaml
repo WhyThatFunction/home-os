@@ -1087,50 +1087,76 @@ applications:
                 ports:
                   http:
                     port: 8000
-            rawResources:
+            # Standard K8s NetworkPolicy via the bjw-s app-template
+            # `networkpolicies` field. Handles ingress (only vymalo may call)
+            # and the boring egress (cluster DNS + the postfix relay).
+            # FQDN-restricted external HTTPS egress lives in the
+            # CiliumNetworkPolicy below — standard NetworkPolicy can't express
+            # FQDN destinations.
+            networkpolicies:
               netpol:
+                controller: apprise
+                policyTypes:
+                  - Ingress
+                  - Egress
+                rules:
+                  ingress:
+                    # Only the vymalo apps may trigger notifications.
+                    - from:
+                        - namespaceSelector:
+                            matchLabels:
+                              kubernetes.io/metadata.name: vymalo
+                      ports:
+                        - protocol: TCP
+                          port: 8000
+                  egress:
+                    # Cluster DNS resolution (CoreDNS in kube-system).
+                    - to:
+                        - namespaceSelector:
+                            matchLabels:
+                              kubernetes.io/metadata.name: kube-system
+                      ports:
+                        - protocol: UDP
+                          port: 53
+                        - protocol: TCP
+                          port: 53
+                    # The postfix relay (submission + smtp).
+                    - to:
+                        - namespaceSelector:
+                            matchLabels:
+                              kubernetes.io/metadata.name: mail-system
+                      ports:
+                        - protocol: TCP
+                          port: 587
+                        - protocol: TCP
+                          port: 25
+            # CiliumNetworkPolicy for FQDN-restricted egress to external APIs.
+            # Cilium is the cluster CNI (see cluster/controlplane.yaml) and is
+            # the only thing here that can match egress by domain name —
+            # standard NetworkPolicy is IP/CIDR/namespace only.
+            # NOTE: requires Cilium's DNS proxy enabled in the cluster (the
+            # default for Cilium running in kube-proxy-replacement mode, which
+            # this cluster uses — kube-proxy is disabled in the Talos config).
+            rawResources:
+              graph-api:
                 enabled: true
-                apiVersion: networking.k8s.io/v1
-                kind: NetworkPolicy
+                forceRename: apprise-graph-api
+                apiVersion: cilium.io/v2
+                kind: CiliumNetworkPolicy
                 spec:
                   spec:
-                    podSelector:
+                    endpointSelector:
                       matchLabels:
                         app.kubernetes.io/name: apprise
-                    policyTypes:
-                      - Ingress
-                      - Egress
-                    ingress:
-                      # Only the vymalo apps may trigger notifications.
-                      - from:
-                          - namespaceSelector:
-                              matchLabels:
-                                kubernetes.io/metadata.name: vymalo
-                        ports:
-                          - protocol: TCP
-                            port: 8000
                     egress:
-                      # DNS resolution.
-                      - to:
-                          - namespaceSelector:
-                              matchLabels:
-                                kubernetes.io/metadata.name: kube-system
-                        ports:
-                          - protocol: UDP
-                            port: 53
-                          - protocol: TCP
-                            port: 53
-                      # The postfix relay (submission + smtp). Future external
-                      # channels (e.g. WhatsApp) would add a 443 egress rule.
-                      - to:
-                          - namespaceSelector:
-                              matchLabels:
-                                kubernetes.io/metadata.name: mail-system
-                        ports:
-                          - protocol: TCP
-                            port: 587
-                          - protocol: TCP
-                            port: 25
+                      # WhatsApp / Meta Graph API. Other external notification
+                      # channels can be appended here as additional toFQDNs.
+                      - toFQDNs:
+                          - matchName: graph.facebook.com
+                        toPorts:
+                          - ports:
+                              - port: "443"
+                                protocol: TCP
     destination:
       server: https://kubernetes.default.svc
       namespace: notification-system
