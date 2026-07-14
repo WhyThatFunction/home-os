@@ -1266,28 +1266,22 @@ applications:
                     securityContext:
                       runAsUser: 1001
                       runAsGroup: 1001
-                      # The Hetzner runner node blocks unprivileged userns uid_map
-                      # writes (a capability-free `unshare -U -r` self-map EPERMs), so
-                      # rootless buildah/podman can't map subuids even with allowPrivil-
-                      # egeEscalation + SETUID/SETGID + AppArmor Unconfined. privileged
-                      # is the reliable fix until the node enables unprivileged userns;
-                      # revert then. (A CI runner already runs arbitrary code.)
+                      # The Hetzner runner nodes block unprivileged userns uid_map
+                      # writes, so rootless buildah/podman can't map subuids for a
+                      # `podman run` — and a NON-privileged pod can't be made to (a
+                      # shared host userns EPERMs newuidmap's multi-range map; a
+                      # hostUsers:false pod's fixed 65536-uid namespace has no room for
+                      # a subuid range, so image extraction dies on /etc/shadow). See
+                      # home-os#106/#107. `privileged` runs the inner container without
+                      # id-shifting, which is the reliable fix for podman-run jobs.
+                      # (A CI runner already executes arbitrary job code.)
+                      #
+                      # privileged ALREADY grants all capabilities, disables
+                      # no_new_privs, and runs unconfined by AppArmor + seccomp — so no
+                      # allowPrivilegeEscalation / capabilities.add / appArmorProfile is
+                      # needed here (verified end-to-end: bare `privileged: true` runs
+                      # `podman run postgres:17-alpine` fine, AppArmor `unconfined`).
                       privileged: true
-                      # Let the setuid newuidmap/newgidmap map subuids so rootless
-                      # buildah/podman can create their user namespace. Still non-root
-                      # (runAsUser 1001), no added caps — far less than the old
-                      # privileged: true dind sidecar this replaces.
-                      allowPrivilegeEscalation: true
-                      capabilities:
-                        # newuidmap/newgidmap need SETUID/SETGID in the bounding set to write
-                        # the multi-entry uid_map for rootless buildah/podman (allowPrivilege-
-                        # Escalation alone un-blocks the setuid bit but not the bounding caps).
-                        add: [SETUID, SETGID]
-                      # The containerd default AppArmor profile (cri-containerd.apparmor.d,
-                      # enforce) denies the rootless userns / uid_map write even with the caps
-                      # above — confirmed via diagnostics on webank-mobile#114. Unconfine it.
-                      appArmorProfile:
-                        type: Unconfined
                     volumeMounts:
                       - name: work
                         mountPath: /home/runner/_work
@@ -1515,28 +1509,22 @@ applications:
                     securityContext:
                       runAsUser: 1001
                       runAsGroup: 1001
-                      # The Hetzner runner node blocks unprivileged userns uid_map
-                      # writes (a capability-free `unshare -U -r` self-map EPERMs), so
-                      # rootless buildah/podman can't map subuids even with allowPrivil-
-                      # egeEscalation + SETUID/SETGID + AppArmor Unconfined. privileged
-                      # is the reliable fix until the node enables unprivileged userns;
-                      # revert then. (A CI runner already runs arbitrary code.)
+                      # The Hetzner runner nodes block unprivileged userns uid_map
+                      # writes, so rootless buildah/podman can't map subuids for a
+                      # `podman run` — and a NON-privileged pod can't be made to (a
+                      # shared host userns EPERMs newuidmap's multi-range map; a
+                      # hostUsers:false pod's fixed 65536-uid namespace has no room for
+                      # a subuid range, so image extraction dies on /etc/shadow). See
+                      # home-os#106/#107. `privileged` runs the inner container without
+                      # id-shifting, which is the reliable fix for podman-run jobs.
+                      # (A CI runner already executes arbitrary job code.)
+                      #
+                      # privileged ALREADY grants all capabilities, disables
+                      # no_new_privs, and runs unconfined by AppArmor + seccomp — so no
+                      # allowPrivilegeEscalation / capabilities.add / appArmorProfile is
+                      # needed here (verified end-to-end: bare `privileged: true` runs
+                      # `podman run postgres:17-alpine` fine, AppArmor `unconfined`).
                       privileged: true
-                      # Let the setuid newuidmap/newgidmap map subuids so rootless
-                      # buildah/podman can create their user namespace. Still non-root
-                      # (runAsUser 1001), no added caps — far less than the old
-                      # privileged: true dind sidecar this replaces.
-                      allowPrivilegeEscalation: true
-                      capabilities:
-                        # newuidmap/newgidmap need SETUID/SETGID in the bounding set to write
-                        # the multi-entry uid_map for rootless buildah/podman (allowPrivilege-
-                        # Escalation alone un-blocks the setuid bit but not the bounding caps).
-                        add: [SETUID, SETGID]
-                      # The containerd default AppArmor profile (cri-containerd.apparmor.d,
-                      # enforce) denies the rootless userns / uid_map write even with the caps
-                      # above — confirmed via diagnostics on webank-mobile#114. Unconfine it.
-                      appArmorProfile:
-                        type: Unconfined
                     volumeMounts:
                       - name: work
                         mountPath: /home/runner/_work
