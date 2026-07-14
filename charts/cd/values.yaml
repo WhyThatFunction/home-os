@@ -1158,6 +1158,105 @@ applications:
         prune: true
         selfHeal: true
 
+  # Node tuning for PURELY-ROOTLESS runners. The runner pods (below) run rootless
+  # buildah/podman/BuildKit, which must write a multi-entry uid_map to create an
+  # unprivileged user namespace. Ubuntu 24.04 / kernel >= 6.8 nodes default
+  # `kernel.apparmor_restrict_unprivileged_userns=1`, which EPERMs that write even
+  # for a capability-free `unshare -U -r`. It is an UNNAMESPACED node sysctl, so no
+  # pod securityContext can re-grant it — the fix lives on the node. This DaemonSet
+  # flips it to 0 (and raises user.max_user_namespaces) on every node, which lets
+  # the runner pods drop `privileged: true` and stay non-privileged. The only
+  # privileged surface is this tiny init container, run briefly at pod start —
+  # strictly less privilege than the old per-runner `privileged: true`.
+  - name: arc-node-tuning
+    # Sync BEFORE the runner Applications (default wave 0): the parent app-of-apps
+    # processes wave -1 and waits for this Application to report Healthy — i.e. the
+    # DaemonSet's init container has applied the sysctls on every current node —
+    # before syncing the now-rootless runners at wave 0. Closes the initial-rollout
+    # window where a runner could go rootless on a not-yet-tuned node. (A brand-new
+    # autoscaled node still races DaemonSet-vs-runner scheduling, but that self-heals
+    # and home-remote is a fixed node pool today.)
+    additionalAnnotations:
+      argocd.argoproj.io/sync-wave: "-1"
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: arc-runner
+    sources:
+      - repoURL: https://bjw-s-labs.github.io/helm-charts
+        targetRevision: 4.6.2
+        chart: app-template
+        helm:
+          releaseName: arc-node-tuning
+          valuesObject:
+            controllers:
+              node-tuning:
+                type: daemonset
+                strategy: RollingUpdate
+                initContainers:
+                  # Privileged ONLY here, and only for the few ms it takes to write
+                  # two /proc/sys keys; then it exits and the pod is just `pause`.
+                  # On node reboot the sysctls reset to the kernel default and the
+                  # pod is recreated, so the init re-applies them — no drift.
+                  set-sysctls:
+                    image:
+                      repository: busybox
+                      tag: "1.37"
+                    command:
+                      - /bin/sh
+                      - -c
+                      - |
+                        set -eux
+                        # Non-namespaced: allow unprivileged userns so rootless
+                        # buildah/podman/BuildKit can write their uid_map WITHOUT
+                        # the runner pod being privileged. GUARD the write: a node
+                        # whose kernel lacks this key (non-Ubuntu / AppArmor not
+                        # built in) doesn't restrict userns anyway, and an unguarded
+                        # `sysctl -w` there would exit non-zero → set -e →
+                        # CrashLoopBackOff, also skipping the max_user_namespaces
+                        # bump below. (home-remote is Ubuntu today, so this is
+                        # defensive, but tolerations:Exists runs us on every node.)
+                        if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+                          sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+                        fi
+                        # Headroom for many concurrent rootless userns across runners.
+                        # This key exists on every Linux kernel, so it stays unguarded
+                        # — a failure here IS unexpected and should surface (CrashLoop).
+                        sysctl -w user.max_user_namespaces=280000
+                    securityContext:
+                      privileged: true
+                      runAsUser: 0
+                containers:
+                  # Non-privileged keep-alive so the DaemonSet pod stays Running
+                  # (and thus re-runs the init container on every reschedule/reboot).
+                  pause:
+                    image:
+                      repository: registry.k8s.io/pause
+                      tag: "3.10"
+                    resources:
+                      requests:
+                        cpu: 5m
+                        memory: 8Mi
+                      limits:
+                        memory: 16Mi
+            defaultPodOptions:
+              # Cover EVERY node a runner can schedule onto. The scale sets use only
+              # podAntiAffinity (no nodeSelector), and k3s server nodes are
+              # schedulable, so a runner can land anywhere — tolerate everything.
+              nodeSelector:
+                kubernetes.io/os: linux
+              tolerations:
+                - operator: Exists
+    destination:
+      name: home-remote
+      namespace: arc-systems
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: gis-sse-runners
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -1266,27 +1365,32 @@ applications:
                     securityContext:
                       runAsUser: 1001
                       runAsGroup: 1001
-                      # The Hetzner runner node blocks unprivileged userns uid_map
-                      # writes (a capability-free `unshare -U -r` self-map EPERMs), so
-                      # rootless buildah/podman can't map subuids even with allowPrivil-
-                      # egeEscalation + SETUID/SETGID + AppArmor Unconfined. privileged
-                      # is the reliable fix until the node enables unprivileged userns;
-                      # revert then. (A CI runner already runs arbitrary code.)
-                      privileged: true
+                      # PURELY ROOTLESS — no `privileged: true`. The arc-node-tuning
+                      # DaemonSet sets kernel.apparmor_restrict_unprivileged_userns=0
+                      # on every node, so rootless buildah/podman/BuildKit can write
+                      # their multi-entry uid_map without this pod being privileged.
+                      # Do NOT re-add `privileged`: if a userns write EPERMs again,
+                      # verify the DaemonSet actually ran on THIS node by reading
+                      # /proc/sys/kernel/apparmor_restrict_unprivileged_userns — don't
+                      # reach for privileged. (A CI runner already runs arbitrary code,
+                      # but privileged is a strictly larger grant than the node sysctl.)
                       # Let the setuid newuidmap/newgidmap map subuids so rootless
                       # buildah/podman can create their user namespace. Still non-root
-                      # (runAsUser 1001), no added caps — far less than the old
-                      # privileged: true dind sidecar this replaces.
+                      # (runAsUser 1001), no added caps beyond SETUID/SETGID.
                       allowPrivilegeEscalation: true
                       capabilities:
                         # newuidmap/newgidmap need SETUID/SETGID in the bounding set to write
                         # the multi-entry uid_map for rootless buildah/podman (allowPrivilege-
                         # Escalation alone un-blocks the setuid bit but not the bounding caps).
                         add: [SETUID, SETGID]
-                      # The containerd default AppArmor profile (cri-containerd.apparmor.d,
-                      # enforce) denies the rootless userns / uid_map write even with the caps
-                      # above — confirmed via diagnostics on webank-mobile#114. Unconfine it.
+                      # The containerd default AppArmor + seccomp profiles deny the
+                      # rootless userns / uid_map write (AppArmor confirmed on
+                      # webank-mobile#114). BuildKit's upstream k8s example runs BOTH
+                      # Unconfined; with `privileged` gone they must be set explicitly
+                      # (privileged implied them before).
                       appArmorProfile:
+                        type: Unconfined
+                      seccompProfile:
                         type: Unconfined
                     volumeMounts:
                       - name: work
@@ -1515,27 +1619,32 @@ applications:
                     securityContext:
                       runAsUser: 1001
                       runAsGroup: 1001
-                      # The Hetzner runner node blocks unprivileged userns uid_map
-                      # writes (a capability-free `unshare -U -r` self-map EPERMs), so
-                      # rootless buildah/podman can't map subuids even with allowPrivil-
-                      # egeEscalation + SETUID/SETGID + AppArmor Unconfined. privileged
-                      # is the reliable fix until the node enables unprivileged userns;
-                      # revert then. (A CI runner already runs arbitrary code.)
-                      privileged: true
+                      # PURELY ROOTLESS — no `privileged: true`. The arc-node-tuning
+                      # DaemonSet sets kernel.apparmor_restrict_unprivileged_userns=0
+                      # on every node, so rootless buildah/podman/BuildKit can write
+                      # their multi-entry uid_map without this pod being privileged.
+                      # Do NOT re-add `privileged`: if a userns write EPERMs again,
+                      # verify the DaemonSet actually ran on THIS node by reading
+                      # /proc/sys/kernel/apparmor_restrict_unprivileged_userns — don't
+                      # reach for privileged. (A CI runner already runs arbitrary code,
+                      # but privileged is a strictly larger grant than the node sysctl.)
                       # Let the setuid newuidmap/newgidmap map subuids so rootless
                       # buildah/podman can create their user namespace. Still non-root
-                      # (runAsUser 1001), no added caps — far less than the old
-                      # privileged: true dind sidecar this replaces.
+                      # (runAsUser 1001), no added caps beyond SETUID/SETGID.
                       allowPrivilegeEscalation: true
                       capabilities:
                         # newuidmap/newgidmap need SETUID/SETGID in the bounding set to write
                         # the multi-entry uid_map for rootless buildah/podman (allowPrivilege-
                         # Escalation alone un-blocks the setuid bit but not the bounding caps).
                         add: [SETUID, SETGID]
-                      # The containerd default AppArmor profile (cri-containerd.apparmor.d,
-                      # enforce) denies the rootless userns / uid_map write even with the caps
-                      # above — confirmed via diagnostics on webank-mobile#114. Unconfine it.
+                      # The containerd default AppArmor + seccomp profiles deny the
+                      # rootless userns / uid_map write (AppArmor confirmed on
+                      # webank-mobile#114). BuildKit's upstream k8s example runs BOTH
+                      # Unconfined; with `privileged` gone they must be set explicitly
+                      # (privileged implied them before).
                       appArmorProfile:
+                        type: Unconfined
+                      seccompProfile:
                         type: Unconfined
                     volumeMounts:
                       - name: work
