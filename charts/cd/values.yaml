@@ -1169,6 +1169,15 @@ applications:
   # privileged surface is this tiny init container, run briefly at pod start —
   # strictly less privilege than the old per-runner `privileged: true`.
   - name: arc-node-tuning
+    # Sync BEFORE the runner Applications (default wave 0): the parent app-of-apps
+    # processes wave -1 and waits for this Application to report Healthy — i.e. the
+    # DaemonSet's init container has applied the sysctls on every current node —
+    # before syncing the now-rootless runners at wave 0. Closes the initial-rollout
+    # window where a runner could go rootless on a not-yet-tuned node. (A brand-new
+    # autoscaled node still races DaemonSet-vs-runner scheduling, but that self-heals
+    # and home-remote is a fixed node pool today.)
+    additionalAnnotations:
+      argocd.argoproj.io/sync-wave: "-1"
     finalizers:
       - resources-finalizer.argocd.argoproj.io
     project: arc-runner
@@ -1199,9 +1208,19 @@ applications:
                         set -eux
                         # Non-namespaced: allow unprivileged userns so rootless
                         # buildah/podman/BuildKit can write their uid_map WITHOUT
-                        # the runner pod being privileged.
-                        sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+                        # the runner pod being privileged. GUARD the write: a node
+                        # whose kernel lacks this key (non-Ubuntu / AppArmor not
+                        # built in) doesn't restrict userns anyway, and an unguarded
+                        # `sysctl -w` there would exit non-zero → set -e →
+                        # CrashLoopBackOff, also skipping the max_user_namespaces
+                        # bump below. (home-remote is Ubuntu today, so this is
+                        # defensive, but tolerations:Exists runs us on every node.)
+                        if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+                          sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+                        fi
                         # Headroom for many concurrent rootless userns across runners.
+                        # This key exists on every Linux kernel, so it stays unguarded
+                        # — a failure here IS unexpected and should surface (CrashLoop).
                         sysctl -w user.max_user_namespaces=280000
                     securityContext:
                       privileged: true
