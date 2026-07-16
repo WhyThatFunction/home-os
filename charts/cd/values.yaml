@@ -581,7 +581,7 @@ applications:
               metadata:
                 name: traefik-certificate
               spec:
-                secretName: traefik.home.ssegning-tls
+                secretName: traefik.netcup.ssegning-tls
                 issuerRef:
                   kind: ClusterIssuer
                   name: self-signed-ca
