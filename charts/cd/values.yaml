@@ -666,6 +666,10 @@ applications:
       path: charts/cert
       helm:
         releaseName: cert
+        valuesObject:
+          cert-manager:
+            config:
+              enableGatewayAPI: false
     destination:
       name: netcup-k8s
       namespace: kube-system
