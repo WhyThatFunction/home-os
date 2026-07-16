@@ -586,7 +586,7 @@ applications:
                   kind: ClusterIssuer
                   name: self-signed-ca
                   group: cert-manager.io
-                commonName: traefik.home.ssegning
+                commonName: traefik.netcup.ssegning
                 dnsNames: 
                   - traefik.netcup.ssegning
             - |
