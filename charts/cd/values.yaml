@@ -539,7 +539,7 @@ applications:
               hostPort: 443
             traefik:
               expose:
-                #web: true
+                web: true
                 websecure: true
           nodeSelector:
             node-role.kubernetes.io/worker: worker
@@ -675,8 +675,8 @@ applications:
           solvers:
             cloudflare:
               enabled: false
-          commonAnnotations:
-            "helm.sh/hook": "dummy"
+          #commonAnnotations:
+          #  "helm.sh/hook": "dummy"
     destination:
       name: netcup-k8s
       namespace: kube-system
