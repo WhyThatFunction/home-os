@@ -1,0 +1,12 @@
+---
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: longhorn                       # -> mounts at /var/mnt/longhorn
+provisioning:
+  minSize: 10GiB
+  diskSelector:
+    match: disk.dev_path == "/dev/vdb"
+  grow: true                         # fill the whole block-storage disk
+filesystem:
+  type: xfs
+

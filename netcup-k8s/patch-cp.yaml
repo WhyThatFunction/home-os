@@ -1,0 +1,48 @@
+cluster:
+  network:
+    cni:
+      name: none          # you install Cilium yourself after bootstrap
+  proxy:
+    disabled: true        # kube-proxy replaced by Cilium
+  # Namespaces created at bootstrap. MetalLB (extraManifests + metal-ci pool)
+  # was removed — it can't hand out working LB IPs across separate public-IP
+  # netcup hosts. Add a real LB strategy later.
+  inlineManifests:
+    - name: argocd-ns
+      contents: |-
+        apiVersion: v1
+        kind: Namespace
+        metadata:
+          name: argocd
+    - name: monitoring-ns
+      contents: |-
+        apiVersion: v1
+        kind: Namespace
+        metadata:
+          name: monitoring
+          labels:
+            pod-security.kubernetes.io/enforce: privileged
+            pod-security.kubernetes.io/enforce-version: latest
+            pod-security.kubernetes.io/audit: privileged
+            pod-security.kubernetes.io/audit-version: latest
+            pod-security.kubernetes.io/warn: privileged
+            pod-security.kubernetes.io/warn-version: latest
+    - name: cloudnative-pg-ns
+      contents: |-
+        apiVersion: v1
+        kind: Namespace
+        metadata:
+          name: cloudnative-pg
+    - name: longhorn-system-ns
+      contents: |-
+        apiVersion: v1
+        kind: Namespace
+        metadata:
+          name: longhorn-system
+          labels:
+            pod-security.kubernetes.io/enforce: privileged
+            pod-security.kubernetes.io/enforce-version: latest
+            pod-security.kubernetes.io/audit: privileged
+            pod-security.kubernetes.io/audit-version: latest
+            pod-security.kubernetes.io/warn: privileged
+            pod-security.kubernetes.io/warn-version: latest

@@ -1,0 +1,24 @@
+machine:
+  kubelet:
+    extraMounts:
+      - destination: "/var/mnt/longhorn" # Destination is the absolute path where the mount will be placed in the container.
+        type: bind # Type specifies the mount kind.
+        source: "/var/mnt/longhorn" # Source specifies the source path of the mount.
+        # Options are fstab style mount options.
+        options:
+          - bind
+          - rshared
+          - rw
+
+  # # MachineSysctls usage example.
+  sysctls:
+    vm.nr_hugepages: "1024"
+  
+  # # Configures the kernel.
+  kernel:
+    # Kernel modules to load.
+    modules:
+      #- name: brtfs # Module name.
+      - name: nvme_tcp
+      - name: vfio_pci
+
