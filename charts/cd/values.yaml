@@ -501,6 +501,121 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: traefik-netcup
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://traefik.github.io/charts
+      targetRevision: "*"
+      chart: traefik
+      helm:
+        valuesObject:
+          additionalArguments:
+            - "--api.dashboard=true"
+            - "--api.insecure=true"
+            - "--serversTransport.insecureSkipVerify=true"
+            - "--log.level=ERROR"
+            - "--entryPoints.web.http.redirections.entryPoint.to=:443"
+            - "--entryPoints.web.http.redirections.entryPoint.scheme=https"
+            - "--entryPoints.web.http2.maxConcurrentStreams=1000"
+            - "--entryPoints.websecure.http2.maxConcurrentStreams=1000"
+            - "--global.sendAnonymousUsage=false"
+            # Uncomment the next line if you want to use your self-signed cert for Traefik dashboard
+            # - "--entrypoints.websecure.http.tls.domains[0].main=*.netcup.ssegning"
+          logs:
+            access:
+              enabled: false
+          deployment:
+            kind: DaemonSet
+          service:
+            type: ClusterIP
+          ports:
+            web:
+              hostPort: 80
+            websecure:
+              hostPort: 443
+            traefik:
+              expose:
+                #web: true
+                websecure: true
+          nodeSelector:
+            node-role.kubernetes.io/worker: worker
+          providers:
+            kubernetesCRD:
+              allowCrossNamespace: true
+
+          gateway:
+            namespacePolicy: All
+            listeners:
+              web:
+                namespacePolicy:
+                  from: All
+              websecure:
+                port: 8443
+                protocol: HTTPS
+                namespacePolicy:
+                  from: All
+                certificateRefs:
+                  - name: 'wildcard-netcup-ssegning-tls'
+                    kind: Secret
+                    group: ''
+                mode: Terminate
+
+          ingressRoute:
+            dashboard:
+              enabled: true
+              entryPoints:
+                #- web
+                - websecure
+              matchRule: Host(`traefik.netcup.ssegning`)
+              tls:
+                secretName: traefik.netcup.ssegning-tls
+
+          extraObjects:
+            - |
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: traefik-certificate
+              spec:
+                secretName: traefik.home.ssegning-tls
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: self-signed-ca
+                  group: cert-manager.io
+                commonName: traefik.home.ssegning
+                dnsNames: 
+                  - traefik.netcup.ssegning
+            - |
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: wildcard-netcup-ssegning-certificate
+              spec:
+                secretName: wildcard-netcup-ssegning-tls
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: self-signed-ca
+                  group: cert-manager.io
+                commonName: serverless.netcup.ssegning
+                dnsNames: 
+                  - "*.serverless.netcup.ssegning"
+                  - "serverless.netcup.ssegning"
+
+    destination:
+      name: netcup-k8s
+      namespace: traefik-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      managedNamespaceMetadata:
+        labels:
+          pod-security.kubernetes.io/enforce: privileged
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: cert
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -535,6 +650,24 @@ applications:
                 effect: NoSchedule
     destination:
       name: home-remote
+      namespace: kube-system
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: cert-netcup
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/cert
+      helm:
+        releaseName: cert
+    destination:
+      name: netcup-k8s
       namespace: kube-system
     syncPolicy:
       automated:
