@@ -457,7 +457,7 @@ applications:
             dashboard:
               enabled: true
               entryPoints:
-                - web
+                #- web
                 - websecure
               matchRule: Host(`traefik.home.ssegning`)
               tls:
@@ -559,7 +559,7 @@ applications:
                 namespacePolicy:
                   from: All
                 certificateRefs:
-                  - name: 'wildcard-netcup-ssegning-tls'
+                  - name: 'wildcard-netcup-tls'
                     kind: Secret
                     group: ''
                 mode: Terminate
@@ -568,11 +568,11 @@ applications:
             dashboard:
               enabled: true
               entryPoints:
-                #- web
+                - web
                 - websecure
               matchRule: Host(`traefik.netcup.ssegning`)
               tls:
-                secretName: traefik.netcup.ssegning-tls
+                secretName: wildcard-netcup-tls
 
           extraObjects:
             - |
@@ -581,27 +581,15 @@ applications:
               metadata:
                 name: traefik-certificate
               spec:
-                secretName: traefik.netcup.ssegning-tls
+                secretName: wildcard-netcup-tls
                 issuerRef:
                   kind: ClusterIssuer
                   name: self-signed-ca
                   group: cert-manager.io
                 commonName: traefik.netcup.ssegning
                 dnsNames: 
+                  - *.netcup.ssegning
                   - traefik.netcup.ssegning
-            - |
-              apiVersion: cert-manager.io/v1
-              kind: Certificate
-              metadata:
-                name: wildcard-netcup-ssegning-certificate
-              spec:
-                secretName: wildcard-netcup-ssegning-tls
-                issuerRef:
-                  kind: ClusterIssuer
-                  name: self-signed-ca
-                  group: cert-manager.io
-                commonName: serverless.netcup.ssegning
-                dnsNames: 
                   - "*.serverless.netcup.ssegning"
                   - "serverless.netcup.ssegning"
 
