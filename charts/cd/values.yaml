@@ -517,17 +517,9 @@ applications:
             - "--api.dashboard=true"
             - "--api.insecure=true"
             - "--serversTransport.insecureSkipVerify=true"
-            - "--log.level=ERROR"
-            - "--entryPoints.web.http.redirections.entryPoint.to=:443"
-            - "--entryPoints.web.http.redirections.entryPoint.scheme=https"
-            - "--entryPoints.web.http2.maxConcurrentStreams=1000"
-            - "--entryPoints.websecure.http2.maxConcurrentStreams=1000"
             - "--global.sendAnonymousUsage=false"
             # Uncomment the next line if you want to use your self-signed cert for Traefik dashboard
             # - "--entrypoints.websecure.http.tls.domains[0].main=*.netcup.ssegning"
-          logs:
-            access:
-              enabled: false
           deployment:
             kind: DaemonSet
           service:
@@ -535,6 +527,12 @@ applications:
           ports:
             web:
               hostPort: 80
+              http:
+                redirections:
+                  entryPoint:
+                    to: websecure
+                    scheme: https
+                    permanent: true
             websecure:
               hostPort: 443
             traefik:
