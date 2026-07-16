@@ -588,7 +588,7 @@ applications:
                   group: cert-manager.io
                 commonName: traefik.netcup.ssegning
                 dnsNames: 
-                  - *.netcup.ssegning
+                  - "*.netcup.ssegning"
                   - traefik.netcup.ssegning
                   - "*.serverless.netcup.ssegning"
                   - "serverless.netcup.ssegning"
