@@ -20,10 +20,10 @@ solvers:
     enabledStaging: true
     commonAnnotations: ~
 
-commonAnnotations:
-  "helm.sh/hook": "post-install,post-upgrade,pre-delete"
+commonAnnotations: {}
+  #"helm.sh/hook": "post-install,post-upgrade,pre-delete"
   #"helm.sh/hook-delete-policy": "hook-succeeded"
-  "helm.sh/hook-weight": "10"
+  #"helm.sh/hook-weight": "10"
 
 cert-manager:
   installCRDs: true
