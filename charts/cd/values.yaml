@@ -783,6 +783,56 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: cnpg-netcup
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://cloudnative-pg.github.io/charts
+      targetRevision: "0.*"
+      chart: cloudnative-pg
+      helm:
+        releaseName: cnpg
+        valuesObject:
+          resources:
+            limits:
+              cpu: 100m
+              memory: 200Mi
+            requests:
+              cpu: 100m
+              memory: 100Mi
+    destination:
+      name: netcup-k8s
+      namespace: cnpg-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: cnpg-barman-cloud-netcup
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://cloudnative-pg.github.io/charts
+      targetRevision: "0.*"
+      chart: plugin-barman-cloud
+      helm:
+        releaseName: cnpg-barman-cloud
+    destination:
+      name: netcup-k8s
+      namespace: cnpg-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: local-kube-state-metrics
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -793,6 +843,27 @@ applications:
       chart: kube-state-metrics
     destination:
       server: https://kubernetes.default.svc
+      namespace: observability
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: netcup-kube-state-metrics
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://prometheus-community.github.io/helm-charts
+      targetRevision: "*"
+      chart: kube-state-metrics
+      helm:
+        releaseName: kube-state-metrics
+    destination:
+      name: netcup-k8s
       namespace: observability
     syncPolicy:
       syncOptions:
