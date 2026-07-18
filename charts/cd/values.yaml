@@ -1948,6 +1948,7 @@ applications:
               - x64
               - vps
               - buildah
+              - self-hosted
               - vymalo-vps
 
             maxRunners: 10
