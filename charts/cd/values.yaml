@@ -1943,7 +1943,7 @@ applications:
             githubConfigSecret: gh-runner-secret-pat
             runnerScaleSetName: vymalo-netcup-set
             runnerGroup: default
-            runnerScaleSetLabels:
+            scaleSetLabels:
               - linux
               - x64
               - vps
