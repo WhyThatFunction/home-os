@@ -1,12 +1,5 @@
 # Applied to ALL nodes: talosctl gen config --config-patch @patch-all.yaml
 machine:
-  network:
-    # netcup DHCP hands out an address but no usable resolver, so image pulls
-    # fail with "lookup ghcr.io ... connection refused". Set upstream DNS
-    # explicitly. (The interface still gets its IP/gateway via DHCP.)
-    nameservers:
-      - 1.1.1.1
-      - 8.8.8.8
   features:
     # KubePrism gives each node a local loadbalanced endpoint to the API server
     # at localhost:7445. Cilium's kube-proxy replacement points here. On by
