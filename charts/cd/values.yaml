@@ -44,6 +44,8 @@ projects:
     destinations:
       - namespace: "*"
         name: home-remote
+      - namespace: "*"
+        name: netcup-k8s
     clusterResourceWhitelist:
       - group: "*"
         kind: "*"
