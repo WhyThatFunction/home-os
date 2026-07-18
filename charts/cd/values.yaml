@@ -2027,9 +2027,9 @@ applications:
                       - name: SCCACHE_ENDPOINT
                         value: s3.ssegning.me
                       - name: TURBO_API
-                        value: http://turbo-cache.turbo-cache.svc.cluster.local
+                        value: https://turbo-cache-api.ai.camer.digital
                       - name: TURBO_TEAM
-                        value: vaam
+                        value: vymalo
                       - name: TURBO_TOKEN
                         valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: turbo-token } }
                       - name: SCCACHE_S3_ACCESS_KEY_ID
@@ -2073,7 +2073,7 @@ applications:
                   - name: tool-cache
                     emptyDir: { }
                   - name: containers
-                    emptyDir: { sizeLimit: 20Gi }
+                    emptyDir: { sizeLimit: 30Gi }
 
       - repoURL: https://bjw-s-labs.github.io/helm-charts
         targetRevision: 4.6.2
@@ -2282,9 +2282,9 @@ applications:
                       - name: SCCACHE_ENDPOINT
                         value: s3.ssegning.me
                       - name: TURBO_API
-                        value: http://turbo-cache.turbo-cache.svc.cluster.local
+                        value: https://turbo-cache-api.ai.camer.digital
                       - name: TURBO_TEAM
-                        value: vaam
+                        value: adorsys-gis
                       - name: TURBO_TOKEN
                         valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: turbo-token } }
                       - name: SCCACHE_S3_ACCESS_KEY_ID
@@ -2328,7 +2328,7 @@ applications:
                   - name: tool-cache
                     emptyDir: { }
                   - name: containers
-                    emptyDir: { sizeLimit: 20Gi }
+                    emptyDir: { sizeLimit: 30Gi }
 
       - repoURL: https://bjw-s-labs.github.io/helm-charts
         targetRevision: 4.6.2
