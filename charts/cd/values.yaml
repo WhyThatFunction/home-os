@@ -678,15 +678,6 @@ applications:
       path: charts/cert
       helm:
         releaseName: cert
-        valuesObject:
-          cert-manager:
-            config:
-              enableGatewayAPI: false
-          solvers:
-            cloudflare:
-              enabled: false
-          #commonAnnotations:
-          #  "helm.sh/hook": "dummy"
     destination:
       name: netcup-k8s
       namespace: kube-system
