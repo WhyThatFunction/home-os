@@ -552,6 +552,10 @@ applications:
             spec:
               type: ClusterIP
           ports:
+            web:
+              port: :80
+            websecure:
+              port: :443
             traefik:
               expose:
                 web: true
