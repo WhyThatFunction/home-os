@@ -369,7 +369,7 @@ applications:
     project: infrastructure
     source:
       repoURL: https://github.com/kubernetes-sigs/gateway-api.git
-      targetRevision: "*"
+      targetRevision: "v1.*"
       path: config/crd
     destination:
       name: netcup-k8s
