@@ -584,6 +584,9 @@ applications:
                   - name: 'wildcard-netcup-tls'
                     kind: Secret
                     group: ''
+                  - name: 'wildcard-sls-server-tls'
+                    kind: Secret
+                    group: ''
                 mode: Terminate
 
           ingressRoute:
