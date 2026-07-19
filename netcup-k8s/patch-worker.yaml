@@ -13,6 +13,7 @@ machine:
   # # MachineSysctls usage example.
   sysctls:
     vm.nr_hugepages: "1024"
+    user.max_user_namespaces: "15000"
   
   # # Configures the kernel.
   kernel:
