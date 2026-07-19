@@ -1031,6 +1031,32 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: knative-operator-netcup
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://knative.github.io/operator
+      targetRevision: "v1.*"
+      chart: knative-operator
+      helm:
+        releaseName: knative-operator
+    destination:
+      name: netcup-k8s
+      namespace: knative-operator
+    syncPolicy:
+      managedNamespaceMetadata:
+        labels:
+          pod-security.kubernetes.io/enforce: privileged
+          pod-security.kubernetes.io/audit: privileged
+          pod-security.kubernetes.io/warn: privileged
+      syncOptions:
+        - ServerSideApply=true
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: external-secrets
     finalizers:
       - resources-finalizer.argocd.argoproj.io
