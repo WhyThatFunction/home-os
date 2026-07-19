@@ -614,6 +614,21 @@ applications:
                   - traefik.netcup.ssegning
                   - "*.serverless.netcup.ssegning"
                   - "serverless.netcup.ssegning"
+            - |
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: sls-certificate
+              spec:
+                secretName: wildcard-sls-server-tls
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: cert-cloudflare
+                  group: cert-manager.io
+                commonName: servers.segning.pro
+                dnsNames: 
+                  - servers.segning.pro
+                  - "*.sls.servers.segning.pro"
 
     destination:
       name: netcup-k8s
@@ -672,12 +687,37 @@ applications:
     finalizers:
       - resources-finalizer.argocd.argoproj.io
     project: infrastructure
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: charts/cert
-      helm:
-        releaseName: cert
+    sources:
+      - repoURL: https://github.com/whythatfunction/home-os
+        targetRevision: HEAD
+        path: charts/cert
+        helm:
+          releaseName: cert
+
+      - repoURL: https://bjw-s-labs.github.io/helm-charts
+        targetRevision: "4.*"
+        chart: app-template
+        helm:
+          valuesObject:
+            rawResources:
+              cloudflare-api-secret:
+                enabled: true
+                apiVersion: external-secrets.io/v1
+                kind: ExternalSecret
+                spec:
+                  spec:
+                    refreshInterval: 0h10m0s
+                    secretStoreRef:
+                      name: ssegning-aws
+                      kind: ClusterSecretStore
+                    target:
+                      name: cloudflare-secret
+                      creationPolicy: Owner
+                    data:
+                      - secretKey: api-token
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: cloudflare_token
     destination:
       name: netcup-k8s
       namespace: kube-system
@@ -1486,7 +1526,7 @@ applications:
                         # ANY scale-set per node. namespaceSelector {} spans
                         # the per-set namespaces (anti-affinity defaults to
                         # same-ns); component=runner excludes the listeners.
-                        namespaceSelector: {}
+                        namespaceSelector: { }
                         labelSelector:
                           matchLabels:
                             app.kubernetes.io/component: runner
@@ -1734,7 +1774,7 @@ applications:
                         # ANY scale-set per node. namespaceSelector {} spans
                         # the per-set namespaces (anti-affinity defaults to
                         # same-ns); component=runner excludes the listeners.
-                        namespaceSelector: {}
+                        namespaceSelector: { }
                         labelSelector:
                           matchLabels:
                             app.kubernetes.io/component: runner
@@ -1984,7 +2024,7 @@ applications:
                         # ANY scale-set per node. namespaceSelector {} spans
                         # the per-set namespaces (anti-affinity defaults to
                         # same-ns); component=runner excludes the listeners.
-                        namespaceSelector: {}
+                        namespaceSelector: { }
                         labelSelector:
                           matchLabels:
                             app.kubernetes.io/component: runner
@@ -2239,7 +2279,7 @@ applications:
                         # ANY scale-set per node. namespaceSelector {} spans
                         # the per-set namespaces (anti-affinity defaults to
                         # same-ns); component=runner excludes the listeners.
-                        namespaceSelector: {}
+                        namespaceSelector: { }
                         labelSelector:
                           matchLabels:
                             app.kubernetes.io/component: runner
