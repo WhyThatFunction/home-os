@@ -1,0 +1,6 @@
+# nodeip.yaml
+machine:
+  kubelet:
+    nodeIP:
+      validSubnets:
+        - 100.64.0.0/10
