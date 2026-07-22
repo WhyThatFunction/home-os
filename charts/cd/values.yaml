@@ -1693,8 +1693,6 @@ applications:
         selfHeal: true
 
   - name: gis-sse-runners
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
     project: arc-runner
     sources:
       - repoURL: "oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set"
@@ -1941,8 +1939,6 @@ applications:
         selfHeal: true
 
   - name: gis-lightbridge-ai-runners
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
     project: arc-runner
     sources:
       - repoURL: "oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set"
@@ -2184,8 +2180,6 @@ applications:
         selfHeal: true
 
   - name: vymalo-runners
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
     project: arc-runner
     sources:
       - repoURL: "oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set"
@@ -2439,8 +2433,6 @@ applications:
         selfHeal: true
 
   - name: adorsys-gis-runner-runners
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
     project: arc-runner
     sources:
       - repoURL: "oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set"
