@@ -310,7 +310,12 @@ applications:
       namespace: argocd
     syncPolicy:
       automated:
-        prune: true
+        # TEMPORARILY false during the ARC runner ApplicationSet cutover (see
+        # arc-runner-appset migration) so cd's prune can't cascade-delete the
+        # 4 runner Applications while ownership moves from this Helm-rendered
+        # list to an ApplicationSet. Revert to true once the cutover is
+        # confirmed stable (cd no longer tracks those 4 in its resource tree).
+        prune: false
         selfHeal: true
 
   - name: home-secrets
