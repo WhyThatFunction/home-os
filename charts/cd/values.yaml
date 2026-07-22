@@ -1005,21 +1005,10 @@ applications:
     project: infrastructure
     source:
       repoURL: https://knative.github.io/operator
-      targetRevision: v1.22.1
+      targetRevision: "v1.*"
       chart: knative-operator
       helm:
-        valuesObject:
-          knative_operator:
-            knative_operator:
-              tolerations:
-                - key: node-role.kubernetes.io/control-plane
-                  operator: Exists
-                  effect: NoSchedule
-            operator_webhook:
-              tolerations:
-                - key: node-role.kubernetes.io/control-plane
-                  operator: Exists
-                  effect: NoSchedule
+        releaseName: knative-operator
     destination:
       name: home-remote
       namespace: knative-operator
@@ -2646,7 +2635,7 @@ applications:
     project: infrastructure
     source:
       repoURL: "https://bjw-s-labs.github.io/helm-charts"
-      targetRevision: "4.6.2"
+      targetRevision: "4.*"
       chart: "app-template"
       helm:
         releaseName: knative-serving
@@ -2690,7 +2679,7 @@ applications:
                       kubernetes.podspec-persistent-volume-claim: "enabled"
                       kubernetes.podspec-persistent-volume-write: "enabled"
                     domain:
-                      "serverless.vaam.store": ""
+                      "serverless.mlops.camer.digital": ""
                     gateway:
                       external-gateways: |
                         - class: traefik
