@@ -1,0 +1,189 @@
+applications:
+  - name: secret-store
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/secret-store
+    destination:
+      name: home-remote
+      namespace: secret-store-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: netcup-secret-store
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/secret-store
+    destination:
+      name: netcup-k8s
+      namespace: secret-store-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: external-secrets
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://charts.external-secrets.io
+      targetRevision: v2.5.0
+      chart: external-secrets
+      helm:
+        valuesObject:
+          tolerations:
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
+              effect: NoSchedule
+          webhook:
+            certManager:
+              enabled: true
+              cert:
+                create: true
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: self-signed-ca
+                  group: cert-manager.io
+    destination:
+      name: home-remote
+      namespace: external-secrets
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: local-external-secrets
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://charts.external-secrets.io
+      targetRevision: v2.5.0
+      chart: external-secrets
+      helm:
+        releaseName: external-secrets
+        valuesObject:
+          webhook:
+            certManager:
+              enabled: true
+              cert:
+                create: true
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: self-signed-ca
+                  group: cert-manager.io
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: external-secrets
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: netcup-external-secrets
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://charts.external-secrets.io
+      targetRevision: "v2.*"
+      chart: external-secrets
+      helm:
+        releaseName: external-secrets
+        valuesObject:
+          webhook:
+            certManager:
+              enabled: true
+              cert:
+                create: true
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: self-signed-ca
+                  group: cert-manager.io
+    destination:
+      name: netcup-k8s
+      namespace: external-secrets
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  # The ssegning-aws ClusterSecretStore on homeos (same chart as the
+  # home-remote `secret-store` app). Requires the `awssm-secret` AWS-creds
+  # Secret in the secret-store-system namespace on homeos (provisioned
+  # out-of-band, e.g. via the home-secrets app).
+  - name: local-secret-store
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/home-apps/secret-store
+      helm:
+        valuesObject:
+          secretStores:
+            vymalo-secret-store:
+              aws:
+                service: SecretsManager
+                region: eu-central-1
+                auth:
+                  secretRef:
+                    accessKeyIDSecretRef:
+                      name: awssm-secret
+                      key: access-key
+                      namespace: secret-store-system
+                    secretAccessKeySecretRef:
+                      name: awssm-secret
+                      key: secret-access-key
+                      namespace: secret-store-system
+            vaam-secret-store:
+              aws:
+                service: SecretsManager
+                region: eu-central-1
+                auth:
+                  secretRef:
+                    accessKeyIDSecretRef:
+                      name: awssm-secret
+                      key: access-key
+                      namespace: secret-store-system
+                    secretAccessKeySecretRef:
+                      name: awssm-secret
+                      key: secret-access-key
+                      namespace: secret-store-system
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: secret-store-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+

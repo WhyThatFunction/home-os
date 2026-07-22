@@ -1,0 +1,6 @@
+dependencies:
+- name: common
+  repository: file://../home-apps/common
+  version: 2.31.4
+digest: sha256:6a1847bbf24102cf07118dc8e55b0eff0ffb19049ef627006b9fc3a381a73fb3
+generated: "2026-07-22T22:45:12.32402+02:00"

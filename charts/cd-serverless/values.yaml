@@ -1,0 +1,216 @@
+applications:
+  - name: knative-operator
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://knative.github.io/operator
+      targetRevision: "v1.*"
+      chart: knative-operator
+      helm:
+        releaseName: knative-operator
+    destination:
+      name: home-remote
+      namespace: knative-operator
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: knative-operator-netcup
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://knative.github.io/operator
+      targetRevision: "v1.*"
+      chart: knative-operator
+      helm:
+        releaseName: knative-operator
+    destination:
+      name: netcup-k8s
+      namespace: knative-operator
+    syncPolicy:
+      managedNamespaceMetadata:
+        labels:
+          pod-security.kubernetes.io/enforce: privileged
+          pod-security.kubernetes.io/audit: privileged
+          pod-security.kubernetes.io/warn: privileged
+      syncOptions:
+        - ServerSideApply=true
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: knative-serving
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: "https://bjw-s-labs.github.io/helm-charts"
+      targetRevision: "4.*"
+      chart: "app-template"
+      helm:
+        releaseName: knative-serving
+        valuesObject:
+          rawResources:
+            serving:
+              apiVersion: operator.knative.dev/v1beta1
+              kind: KnativeServing
+              spec:
+                spec:
+                  workloads:
+                    - name: net-gateway-api-webhook
+                      resources:
+                        - container: webhook
+                          requests:
+                            cpu: 100m
+                            memory: 100Mi
+                          limits:
+                            cpu: 500m
+                            memory: 500Mi
+                      livenessProbes:
+                        - container: webhook
+                          initialDelaySeconds: 60
+                          periodSeconds: 10
+                          failureThreshold: 6
+                    - name: controller
+                      resources:
+                        - container: controller
+                          requests:
+                            cpu: 300m
+                            memory: 100Mi
+                          limits:
+                            cpu: 1000m
+                            memory: 250Mi
+                  ingress:
+                    gateway-api:
+                      enabled: true
+                  config:
+                    features:
+                      kubernetes.podspec-nodeselector: "enabled"
+                      kubernetes.podspec-persistent-volume-claim: "enabled"
+                      kubernetes.podspec-persistent-volume-write: "enabled"
+                    domain:
+                      "serverless.mlops.camer.digital": ""
+                    gateway:
+                      external-gateways: |
+                        - class: traefik
+                          gateway: kube-system/traefik-gateway
+                          service: kube-system/traefik
+                      local-gateways: |
+                        - class: traefik
+                          gateway: kube-system/traefik-gateway
+                          service: kube-system/traefik
+                    network:
+                      ingress-class: gateway-api.ingress.networking.knative.dev
+                      domain-template: "{{ `{{ .Name }}` }}-{{ `{{ .Namespace }}` }}--{{ `{{ .Domain }}` }}"
+                    certmanager:
+                      issuerRef: |
+                        kind: ClusterIssuer
+                        name: cert-home-cert-http
+                      clusterLocalIssuerRef: |
+                        kind: ClusterIssuer
+                        name: self-signed-ca
+                      systemInternalIssuerRef: |
+                        kind: ClusterIssuer
+                        name: self-signed-ca
+    destination:
+      name: home-remote
+      namespace: knative-serving
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: knative-serving-netcup
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: "https://bjw-s-labs.github.io/helm-charts"
+      targetRevision: "4.*"
+      chart: "app-template"
+      helm:
+        releaseName: knative-serving
+        valuesObject:
+          rawResources:
+            serving:
+              apiVersion: operator.knative.dev/v1beta1
+              kind: KnativeServing
+              spec:
+                spec:
+                  workloads:
+                    - name: net-gateway-api-webhook
+                      resources:
+                        - container: webhook
+                          requests:
+                            cpu: 100m
+                            memory: 100Mi
+                          limits:
+                            cpu: 500m
+                            memory: 500Mi
+                      livenessProbes:
+                        - container: webhook
+                          initialDelaySeconds: 60
+                          periodSeconds: 10
+                          failureThreshold: 6
+                    - name: controller
+                      resources:
+                        - container: controller
+                          requests:
+                            cpu: 300m
+                            memory: 100Mi
+                          limits:
+                            cpu: 1000m
+                            memory: 250Mi
+                  ingress:
+                    gateway-api:
+                      enabled: true
+                  config:
+                    features:
+                      kubernetes.podspec-nodeselector: "enabled"
+                      kubernetes.podspec-persistent-volume-claim: "enabled"
+                      kubernetes.podspec-persistent-volume-write: "enabled"
+                    domain:
+                      "sls.servers.segning.pro": ""
+                    gateway:
+                      external-gateways: |
+                        - class: traefik
+                          gateway: kube-system/traefik-gateway
+                          service: kube-system/traefik
+                      local-gateways: |
+                        - class: traefik
+                          gateway: kube-system/traefik-gateway
+                          service: kube-system/traefik
+                    network:
+                      ingress-class: gateway-api.ingress.networking.knative.dev
+                      domain-template: "{{ `{{ .Name }}` }}--ns-{{ `{{ .Namespace }}` }}.{{ `{{ .Domain }}` }}"
+                    certmanager:
+                      issuerRef: |
+                        kind: ClusterIssuer
+                        name: cert-cloudflare
+                      clusterLocalIssuerRef: |
+                        kind: ClusterIssuer
+                        name: self-signed-ca
+                      systemInternalIssuerRef: |
+                        kind: ClusterIssuer
+                        name: self-signed-ca
+    destination:
+      name: netcup-k8s
+      namespace: knative-serving
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+

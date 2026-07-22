@@ -1,0 +1,86 @@
+applications:
+  - name: arc-runners
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: arc-runner
+    source:
+      repoURL: "oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller"
+      targetRevision: "0.*"
+      chart: "."
+      helm:
+        releaseName: arc
+        valuesObject:
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+    destination:
+      name: home-remote
+      namespace: arc-systems
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: arc-runners-netcup
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: arc-runner
+    source:
+      repoURL: "oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller"
+      targetRevision: "0.*"
+      chart: "."
+      helm:
+        releaseName: arc
+        valuesObject:
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+    destination:
+      name: netcup-k8s
+      namespace: arc-systems
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: turbo-cache
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: arc-runner
+    sources:
+      - repoURL: ghcr.io/vymalo/charts
+        chart: turbo-cache
+        targetRevision: 0.1.*
+        helm:
+          releaseName: turbo-cache
+          valueFiles:
+            - $values/deploy/envs/production/turbo-cache.values.yaml
+          ignoreMissingValueFiles: true
+      - repoURL: https://github.com/vymalo/vymalo-shop.git
+        targetRevision: main
+        ref: values
+    destination:
+      name: home-remote
+      namespace: turbo-cache
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
