@@ -2,7 +2,7 @@ global:
   domain: argocd.ssegning.me
 
 controller:
-  replicas: 2 # = number of destination clusters; the controller shards by cluster, not by app count
+  replicas: 3 # = number of destination clusters (home-remote, netcup-k8s, in-cluster); the controller shards by cluster, not by app count
   pdb:
     enabled: true
     minAvailable: 1
@@ -14,7 +14,7 @@ controller:
       memory: 2Gi # no CPU limit — let it burst during sync storms
   env:
     - name: ARGOCD_CONTROLLER_REPLICAS # required for sharding to actually distribute clusters across replicas
-      value: "2"
+      value: "3"
 
 # Single redis is a SPOF and a reconcile/UI latency source (cache rebuild on restart).
 # redis-ha gives a 3-node sentinel cluster; it is mutually exclusive with `redis`.
