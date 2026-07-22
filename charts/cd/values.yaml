@@ -602,7 +602,7 @@ arcRunnerPools:
     runnerScaleSetName: adorsys-gis-runner
     runnerGroup: lightbridge-ai
     maxRunners: 3
-    requestsMemory: 1Gi
+    requestsMemory: 8Gi
     containersSizeLimit: 20Gi
     turboApi: http://turbo-cache.turbo-cache.svc.cluster.local
     turboTeam: vaam
@@ -622,8 +622,8 @@ arcRunnerPools:
       - buildah
       - self-hosted
       - vymalo-vps
-    maxRunners: 10
-    requestsMemory: 2Gi
+    maxRunners: 5
+    requestsMemory: 8Gi
     containersSizeLimit: 30Gi
     turboApi: https://turbo-cache-api.ai.camer.digital
     turboTeam: vymalo
@@ -643,8 +643,8 @@ arcRunnerPools:
       - buildah
       - self-hosted
       - adorsys-gis-runner
-    maxRunners: 7
-    requestsMemory: 2Gi
+    maxRunners: 4
+    requestsMemory: 8Gi
     containersSizeLimit: 30Gi
     turboApi: https://turbo-cache-api.ai.camer.digital
     turboTeam: adorsys-gis
