@@ -1,0 +1,33 @@
+applications:
+  - name: storage
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/storage
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: kube-system
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: s3
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/s3
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: s3
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+

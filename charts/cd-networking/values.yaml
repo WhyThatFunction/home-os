@@ -1,0 +1,438 @@
+applications:
+  - name: gateway-api-crds
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://github.com/kubernetes-sigs/gateway-api.git
+      targetRevision: v1.5.1
+      path: config/crd
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: kube-system
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: gateway-api-crds-netcup
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://github.com/kubernetes-sigs/gateway-api.git
+      targetRevision: "v1.*"
+      path: config/crd
+    destination:
+      name: netcup-k8s
+      namespace: kube-system
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: gateway-api-crds-remote
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://github.com/kubernetes-sigs/gateway-api.git
+      targetRevision: "v1.*"
+      path: config/crd
+    destination:
+      name: home-remote
+      namespace: kube-system
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: traefik
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://traefik.github.io/charts
+      targetRevision: 40.2.0
+      chart: traefik
+      helm:
+        valuesObject:
+          additionalArguments:
+            - "--api.dashboard=true"
+            - "--api.insecure=true"
+            - "--serversTransport.insecureSkipVerify=true"
+            - "--log.level=ERROR"
+            - "--entryPoints.web.http.redirections.entryPoint.to=:443"
+            - "--entryPoints.web.http.redirections.entryPoint.scheme=https"
+            - "--entryPoints.web.http2.maxConcurrentStreams=1000"
+            - "--entryPoints.websecure.http2.maxConcurrentStreams=1000"
+            - "--global.sendAnonymousUsage=false"
+            # Uncomment the next line if you want to use your self-signed cert for Traefik dashboard
+            # - "--entrypoints.websecure.http.tls.domains[0].main=*.home.ssegning"
+          logs:
+            access:
+              enabled: false
+          deployment:
+            replicas: 3
+          service:
+            loadBalancerIP: 10.10.0.140
+          ports:
+            web:
+              forwardedHeaders:
+                trustedIPs:
+                  - 10.10.0.0/24
+            websecure:
+              forwardedHeaders:
+                trustedIPs:
+                  - 10.10.0.0/24
+            traefik:
+              expose:
+                web: true
+                websecure: true
+          providers:
+            kubernetesCRD:
+              allowCrossNamespace: true
+            kubernetesGateway:
+              enabled: true
+              experimentalChannel: false
+            #knative:
+            #  enabled: true
+
+          #experimental:
+          #  knative: true
+
+          gateway:
+            namespacePolicy: All
+            listeners:
+              web:
+                namespacePolicy:
+                  from: All
+              websecure:
+                port: 8443
+                protocol: HTTPS
+                namespacePolicy:
+                  from: All
+                certificateRefs:
+                  - name: 'wildcard-sls-ssegning-com-tls'
+                    kind: Secret
+                    group: ''
+                mode: Terminate
+          
+          ingressRoute:
+            dashboard:
+              enabled: true
+              entryPoints:
+                #- web
+                - websecure
+              matchRule: Host(`traefik.home.ssegning`)
+              tls:
+                secretName: traefik.home.ssegning-tls
+          
+          extraObjects:
+            - |
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: traefik-certificate
+              spec:
+                secretName: traefik.home.ssegning-tls
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: self-signed-ca
+                  group: cert-manager.io
+                commonName: traefik.home.ssegning
+                dnsNames: 
+                  - traefik.home.ssegning
+            - |
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: wildcard-sls-ssegning-com-certificate
+              spec:
+                secretName: wildcard-sls-ssegning-com-tls
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: cert-cloudflare
+                  group: cert-manager.io
+                #commonName: sls.ssegning.com
+                dnsNames: 
+                  - "*.ssegning.com"
+                  #- sls.ssegning.com
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: kube-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: traefik-netcup
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://traefik.github.io/charts
+      targetRevision: "*"
+      chart: traefik
+      helm:
+        releaseName: traefik
+        valuesObject:
+          additionalArguments:
+            - "--api.dashboard=true"
+            - "--api.insecure=true"
+            - "--serversTransport.insecureSkipVerify=true"
+            - "--entryPoints.web.http.redirections.entryPoint.to=:443"
+            - "--entryPoints.web.http.redirections.entryPoint.scheme=https"
+            - "--entryPoints.web.http.redirections.entryPoint.permanent=true"
+            - "--entryPoints.web.http2.maxConcurrentStreams=1000"
+            - "--entryPoints.websecure.http2.maxConcurrentStreams=1000"
+            - "--global.sendAnonymousUsage=false"
+            # Uncomment the next line if you want to use your self-signed cert for Traefik dashboard
+            # - "--entrypoints.websecure.http.tls.domains[0].main=*.netcup.ssegning"
+          deployment:
+            kind: DaemonSet
+          service:
+            spec:
+              type: ClusterIP
+          ports:
+            web:
+              hostPort: 80
+            websecure:
+              hostPort: 443
+            traefik:
+              expose:
+                web: true
+                websecure: true
+          nodeSelector:
+            node-role.kubernetes.io/worker: worker
+          providers:
+            kubernetesCRD:
+              allowCrossNamespace: true
+            kubernetesGateway:
+              enabled: true
+              experimentalChannel: false
+
+          gateway:
+            namespacePolicy: All
+            listeners:
+              web:
+                namespacePolicy:
+                  from: All
+              websecure:
+                port: 8443
+                protocol: HTTPS
+                namespacePolicy:
+                  from: All
+                certificateRefs:
+                  - name: 'wildcard-netcup-tls'
+                    kind: Secret
+                    group: ''
+                  - name: 'wildcard-sls-server-tls'
+                    kind: Secret
+                    group: ''
+                mode: Terminate
+
+          ingressRoute:
+            dashboard:
+              enabled: true
+              entryPoints:
+                - web
+                - websecure
+              matchRule: Host(`traefik.netcup.ssegning`)
+              tls:
+                secretName: wildcard-netcup-tls
+
+          extraObjects:
+            - |
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: traefik-certificate
+              spec:
+                secretName: wildcard-netcup-tls
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: self-signed-ca
+                  group: cert-manager.io
+                commonName: traefik.netcup.ssegning
+                dnsNames: 
+                  - "*.netcup.ssegning"
+                  - traefik.netcup.ssegning
+                  - "*.serverless.netcup.ssegning"
+                  - "serverless.netcup.ssegning"
+            - |
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: sls-certificate
+              spec:
+                secretName: wildcard-sls-server-tls
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: cert-cloudflare
+                  group: cert-manager.io
+                commonName: servers.segning.pro
+                dnsNames: 
+                  - servers.segning.pro
+                  - "*.sls.servers.segning.pro"
+
+    destination:
+      name: netcup-k8s
+      namespace: traefik-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      managedNamespaceMetadata:
+        labels:
+          pod-security.kubernetes.io/enforce: privileged
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: traefik-remote
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://traefik.github.io/charts
+      targetRevision: "*"
+      chart: traefik
+      helm:
+        releaseName: traefik
+        valuesObject:
+          additionalArguments:
+            - "--entryPoints.web.http.redirections.entryPoint.to=:443"
+            - "--entryPoints.web.http.redirections.entryPoint.scheme=https"
+            - "--entryPoints.web.http.redirections.entryPoint.permanent=true"
+            #- "--entryPoints.web.http2.maxConcurrentStreams=1000"
+            #- "--entryPoints.websecure.http2.maxConcurrentStreams=1000"
+            - "--global.sendAnonymousUsage=false"
+          deployment:
+            kind: DaemonSet
+
+          service:
+            enabled: true
+            type: LoadBalancer
+            annotations:
+              load-balancer.hetzner.cloud/name: "traefik-ingress"
+              load-balancer.hetzner.cloud/location: "nbg1"
+              load-balancer.hetzner.cloud/use-private-ip: "true"
+              load-balancer.hetzner.cloud/health-check-interval: "10s"
+              load-balancer.hetzner.cloud/health-check-timeout: "5s"
+              load-balancer.hetzner.cloud/health-check-retries: "3"
+
+          ports:
+            web:
+              http:
+                redirections:
+                  entryPoint:
+                    to: websecure
+                    scheme: https
+                    permanent: true
+            websecure:
+              http:
+                tls:
+                  enabled: true
+
+          ingressRoute:
+            dashboard:
+              enabled: false
+
+          providers:
+            kubernetesCRD:
+              enabled: true
+              allowCrossNamespace: true
+              allowExternalNameServices: true
+            kubernetesIngress:
+              enabled: true
+              allowExternalNameServices: true
+            kubernetesGateway:
+              enabled: true
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          podSecurityContext:
+            runAsNonRoot: true
+            runAsGroup: 65532
+            runAsUser: 65532
+            seccompProfile:
+              type: RuntimeDefault
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+
+          metrics:
+            prometheus:
+              enabled: true
+              serviceMonitor:
+                enabled: false
+                namespace: observability
+
+          gateway:
+            namespacePolicy: All
+            listeners:
+              web:
+                namespacePolicy:
+                  from: All
+              websecure:
+                port: 8443
+                protocol: HTTPS
+                namespacePolicy:
+                  from: All
+                certificateRefs:
+                  - name: 'wildcard-ai-server-tls'
+                    kind: Secret
+                    group: ''
+                mode: Terminate
+
+          extraObjects:
+            - |
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: ai-certificate
+              spec:
+                secretName: wildcard-ai-server-tls
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: cert-cloudflare
+                  group: cert-manager.io
+                commonName: ai.camer.digital
+                dnsNames: 
+                  - ai.camer.digital
+                  - "*.ai.camer.digital"
+                  - "*.coder-ai.ai.camer.digital"
+                  - "*.mlops.ai.camer.digital"
+                  - "*.serverless.mlops.ai.camer.digital"
+
+    destination:
+      name: home-remote
+      namespace: traefik
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      managedNamespaceMetadata:
+        labels:
+          pod-security.kubernetes.io/enforce: privileged
+      automated:
+        prune: true
+        selfHeal: true
+
