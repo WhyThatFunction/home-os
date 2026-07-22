@@ -381,6 +381,24 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: gateway-api-crds-remote
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://github.com/kubernetes-sigs/gateway-api.git
+      targetRevision: "v1.*"
+      path: config/crd
+    destination:
+      name: home-remote
+      namespace: kube-system
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: nvidia
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -636,6 +654,144 @@ applications:
     destination:
       name: netcup-k8s
       namespace: traefik-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      managedNamespaceMetadata:
+        labels:
+          pod-security.kubernetes.io/enforce: privileged
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: traefik-remote
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://traefik.github.io/charts
+      targetRevision: "*"
+      chart: traefik
+      helm:
+        releaseName: traefik
+        valuesObject:
+          deployment:
+            kind: DaemonSet
+
+          service:
+            enabled: true
+            type: LoadBalancer
+            annotations:
+              load-balancer.hetzner.cloud/name: "traefik-ingress"
+              load-balancer.hetzner.cloud/location: "nbg1"
+              load-balancer.hetzner.cloud/use-private-ip: "true"
+              load-balancer.hetzner.cloud/health-check-interval: "10s"
+              load-balancer.hetzner.cloud/health-check-timeout: "5s"
+              load-balancer.hetzner.cloud/health-check-retries: "3"
+
+          ports:
+            web:
+              http:
+                redirections:
+                  entryPoint:
+                    to: websecure
+                    scheme: https
+                    permanent: true
+            websecure:
+              http:
+                tls:
+                  enabled: true
+
+          ingressRoute:
+            dashboard:
+              enabled: false
+
+          providers:
+            kubernetesCRD:
+              enabled: true
+              allowCrossNamespace: true
+              allowExternalNameServices: true
+            kubernetesIngress:
+              enabled: true
+              allowExternalNameServices: true
+            kubernetesGateway:
+              enabled: true
+
+          logs:
+            general:
+              level: INFO
+            access:
+              enabled: true
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          podSecurityContext:
+            runAsNonRoot: true
+            runAsGroup: 65532
+            runAsUser: 65532
+            seccompProfile:
+              type: RuntimeDefault
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+
+          metrics:
+            prometheus:
+              enabled: true
+              serviceMonitor:
+                enabled: false
+                namespace: observability
+
+          gateway:
+            namespacePolicy: All
+            listeners:
+              web:
+                namespacePolicy:
+                  from: All
+              websecure:
+                port: 8443
+                protocol: HTTPS
+                namespacePolicy:
+                  from: All
+                certificateRefs:
+                  - name: 'wildcard-ai-server-tls'
+                    kind: Secret
+                    group: ''
+                mode: Terminate
+
+          extraObjects:
+            - |
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: ai-certificate
+              spec:
+                secretName: wildcard-ai-server-tls
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: cert-cloudflare
+                  group: cert-manager.io
+                commonName: ai.camer.digital
+                dnsNames: 
+                  - ai.camer.digital
+                  - "*.ai.camer.digital"
+                  - "*.coder-ai.ai.camer.digital"
+                  - "*.mlops.ai.camer.digital"
+                  - "*.serverless.mlops.ai.camer.digital"
+
+    destination:
+      name: netcup-k8s
+      namespace: traefik
     syncPolicy:
       syncOptions:
         - CreateNamespace=true
