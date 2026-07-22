@@ -9,9 +9,12 @@ controller:
   resources:
     requests:
       cpu: 500m
-      memory: 1Gi
+      memory: 1.5Gi
+    # Bumped from 2Gi after the cd chart split (#112) turned 1 large chart into
+    # 10 (cd + 9 cd-<group> app-of-apps) — the resulting burst of concurrent
+    # first-syncs OOMKilled a controller replica within minutes of merge.
     limits:
-      memory: 2Gi # no CPU limit — let it burst during sync storms
+      memory: 3Gi # no CPU limit — let it burst during sync storms
   env:
     - name: ARGOCD_CONTROLLER_REPLICAS # required for sharding to actually distribute clusters across replicas
       value: "3"
@@ -53,9 +56,14 @@ repoServer:
   resources:
     requests:
       cpu: 500m
-      memory: 512Mi
-    limits:
       memory: 1Gi
+    # Bumped from 1Gi after the cd chart split (#112): repo-server now has to
+    # `helm template` 10 charts (cd + 9 cd-<group> app-of-apps) instead of 1,
+    # and their simultaneous first-syncs OOMKilled the sole repo-server pod
+    # within minutes of merge — a fleet-wide outage, since repo-server does
+    # manifest generation for every Application, not just the new ones.
+    limits:
+      memory: 2Gi
   pdb:
     enabled: false
 
