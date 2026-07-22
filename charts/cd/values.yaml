@@ -675,6 +675,13 @@ applications:
       helm:
         releaseName: traefik
         valuesObject:
+          additionalArguments:
+            - "--entryPoints.web.http.redirections.entryPoint.to=:443"
+            - "--entryPoints.web.http.redirections.entryPoint.scheme=https"
+            - "--entryPoints.web.http.redirections.entryPoint.permanent=true"
+            #- "--entryPoints.web.http2.maxConcurrentStreams=1000"
+            #- "--entryPoints.websecure.http2.maxConcurrentStreams=1000"
+            - "--global.sendAnonymousUsage=false"
           deployment:
             kind: DaemonSet
 
@@ -715,12 +722,6 @@ applications:
               enabled: true
               allowExternalNameServices: true
             kubernetesGateway:
-              enabled: true
-
-          logs:
-            general:
-              level: INFO
-            access:
               enabled: true
 
           resources:
