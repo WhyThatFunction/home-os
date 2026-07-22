@@ -791,7 +791,7 @@ applications:
                   - "*.serverless.mlops.ai.camer.digital"
 
     destination:
-      name: netcup-k8s
+      name: home-remote
       namespace: traefik
     syncPolicy:
       syncOptions:
