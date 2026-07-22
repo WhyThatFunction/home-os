@@ -73,8 +73,8 @@ spec:
                       cpu: 500m
                       memory: {{ .requestsMemory }}
                     limits:
-                      cpu: "2"
-                      memory: 8Gi
+                      cpu: "4"
+                      memory: 12Gi
                   env:
                     # Rootless container build/run (buildah/podman) with no
                     # /dev/fuse or userns: vfs storage + chroot isolation.

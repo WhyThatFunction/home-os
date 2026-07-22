@@ -1,9 +1,9 @@
 dependencies:
 - name: common
   repository: https://charts.bitnami.com/bitnami
-  version: 2.40.0
+  version: 2.41.0
 - name: cert-manager
   repository: https://charts.jetstack.io
-  version: v1.20.2
-digest: sha256:2fe8a6f5374818d44cfef7a080a6f70f4ce7991bbe47624511e0efeae0f60a8d
-generated: "2026-05-21T08:33:57.159299+02:00"
+  version: v1.21.0
+digest: sha256:5fefbb361bb6e8844ac46d643d65736922797d0c402530a0afa2ae3c3d0c1f70
+generated: "2026-07-22T14:17:23.14226+02:00"
