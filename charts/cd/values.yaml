@@ -587,8 +587,8 @@ arcRunnerPools:
     githubConfigUrl: https://github.com/ADORSYS-GIS
     runnerScaleSetName: arc-runner-set-sse
     runnerGroup: flaky-rescue
-    maxRunners: 10
-    requestsMemory: 1Gi
+    maxRunners: 2
+    requestsMemory: 8Gi
     containersSizeLimit: 20Gi
     turboApi: http://turbo-cache.turbo-cache.svc.cluster.local
     turboTeam: vaam
