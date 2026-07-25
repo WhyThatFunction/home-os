@@ -9,7 +9,7 @@ controller:
   resources:
     requests:
       cpu: 500m
-      memory: 1.5Gi
+      memory: 2Gi
     # Bumped from 2Gi after the cd chart split (#112) turned 1 large chart into
     # 10 (cd + 9 cd-<group> app-of-apps) — the resulting burst of concurrent
     # first-syncs OOMKilled a controller replica within minutes of merge.
