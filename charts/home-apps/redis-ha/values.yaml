@@ -390,21 +390,30 @@ controllers:
                  {i=index($0,ph); if(i>0)$0=substr($0,1,i-1) p substr($0,i+length(ph)); print}' \
               /usr/local/etc/haproxy/haproxy.cfg > /tmp/haproxy.cfg
             exec haproxy -W -db -f /tmp/haproxy.cfg
+        # Probes hit the dedicated cleartext `healthz` frontend (below), NOT the
+        # TLS-only :6379 write port. A plain tcpSocket/httpGet probe against :6379
+        # opens a raw TCP connection and never completes the TLS handshake HAProxy
+        # requires there, so every probe tick logged "Connection closed during SSL
+        # handshake" — ~93% of this deployment's log volume. :8404 carries no redis
+        # traffic (just a static 200 from `monitor-uri`), so it needs no TLS/CA of
+        # its own and doesn't touch the self-signed-ca-backed :6379 posture at all.
         probes:
           liveness:
             enabled: true
             custom: true
             spec:
-              tcpSocket:
-                port: 6379
+              httpGet:
+                path: /healthz
+                port: 8404
               initialDelaySeconds: 5
               periodSeconds: 15
           readiness:
             enabled: true
             custom: true
             spec:
-              tcpSocket:
-                port: 6379
+              httpGet:
+                path: /healthz
+                port: 8404
               periodSeconds: 10
         resources:
           requests:
@@ -589,6 +598,14 @@ configMaps:
           timeout resolve 1s
           timeout retry 1s
           hold valid 10s
+        # Cleartext process-health endpoint for the kubelet's own liveness/readiness
+        # probes (see controllers.haproxy.containers.app.probes) — deliberately NOT
+        # behind TLS since it carries no redis traffic, just "is HAProxy up".
+        # Keeps the actual :6379 write path exclusively TLS via self-signed-ca.
+        frontend healthz
+          mode http
+          bind *:8404
+          monitor-uri /healthz
         frontend redis_write
           bind *:6379 ssl crt /etc/haproxy/certs/tls-combined.pem
           default_backend redis_master
