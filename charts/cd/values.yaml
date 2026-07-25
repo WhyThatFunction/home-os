@@ -596,20 +596,6 @@ arcRunnerPools:
     namespace: gh-runners-gis-sse-runners
     managedNamespacePrivileged: true
 
-  - name: gis-lightbridge-ai-runners
-    releaseName: adorsys-gis-runner
-    githubConfigUrl: https://github.com/ADORSYS-GIS
-    runnerScaleSetName: adorsys-gis-runner
-    runnerGroup: lightbridge-ai
-    maxRunners: 3
-    requestsMemory: 8Gi
-    containersSizeLimit: 20Gi
-    turboApi: http://turbo-cache.turbo-cache.svc.cluster.local
-    turboTeam: vaam
-    destinationCluster: home-remote
-    namespace: gh-runners-lightbridge-ai
-    managedNamespacePrivileged: false
-
   - name: vymalo-runners
     releaseName: vymalo-vps
     githubConfigUrl: https://github.com/vymalo
