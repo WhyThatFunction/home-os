@@ -476,6 +476,11 @@ service:
 
 ingress:
   redisinsight-auth2:
+    annotations:
+      gethomepage.dev/enabled: "true"
+      gethomepage.dev/name: "RedisInsight (oauth2 callback)"
+      gethomepage.dev/group: "Platform"
+      gethomepage.dev/icon: "redis.png"
     hosts:
       - host: "{{ $.Values.global.redisinsight.dns }}"
         paths:
@@ -491,6 +496,10 @@ ingress:
   redisinsight:
     annotations:
       traefik.ingress.kubernetes.io/router.middlewares: "{{ $.Release.Namespace }}-{{ $.Release.Name }}-redisinsight-oauth2-errors@kubernetescrd,{{ $.Release.Namespace }}-{{ $.Release.Name }}-redisinsight-auth@kubernetescrd"
+      gethomepage.dev/enabled: "true"
+      gethomepage.dev/name: "RedisInsight"
+      gethomepage.dev/group: "Platform"
+      gethomepage.dev/icon: "redis.png"
     hosts:
       - host: "{{ $.Values.global.redisinsight.dns }}"
         paths:

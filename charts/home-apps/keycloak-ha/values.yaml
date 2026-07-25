@@ -29,6 +29,10 @@ rawResources:
           annotations:
             traefik.ingress.kubernetes.io/service.serverstransport: "{{ $.Release.Namespace }}-{{ $.Release.Name }}-keycloak-transport@kubernetescrd"
             traefik.ingress.kubernetes.io/service.serversscheme: "https"
+            gethomepage.dev/enabled: "true"
+            gethomepage.dev/name: "Keycloak"
+            gethomepage.dev/group: "Platform"
+            gethomepage.dev/icon: "keycloak.png"
         hostname:
           hostname: auth.verif.fyi
         proxy:
