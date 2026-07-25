@@ -590,8 +590,8 @@ arcRunnerPools:
     maxRunners: 4
     requestsMemory: 8Gi
     containersSizeLimit: 20Gi
-    turboApi: http://turbo-cache.turbo-cache.svc.cluster.local
-    turboTeam: vaam
+    turboApi: https://turbo-cache-api.ai.camer.digital
+    turboTeam: adorsys-gis
     destinationCluster: netcup-k8s
     namespace: gh-runners-gis-sse-runners
     managedNamespacePrivileged: true
@@ -621,7 +621,7 @@ arcRunnerPools:
     requestsMemory: 8Gi
     containersSizeLimit: 30Gi
     turboApi: https://turbo-cache-api.ai.camer.digital
-    turboTeam: vymalo
+    turboTeam: adorsys-gis
     destinationCluster: netcup-k8s
     namespace: gh-runners-vymalo
     managedNamespacePrivileged: true
