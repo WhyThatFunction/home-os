@@ -587,7 +587,7 @@ arcRunnerPools:
     githubConfigUrl: https://github.com/ADORSYS-GIS
     runnerScaleSetName: arc-runner-set-sse
     runnerGroup: flaky-rescue
-    maxRunners: 2
+    maxRunners: 4
     requestsMemory: 8Gi
     containersSizeLimit: 20Gi
     turboApi: http://turbo-cache.turbo-cache.svc.cluster.local
@@ -595,6 +595,15 @@ arcRunnerPools:
     destinationCluster: netcup-k8s
     namespace: gh-runners-gis-sse-runners
     managedNamespacePrivileged: true
+    scaleSetLabels:
+      - linux
+      - x64
+      - vps
+      - buildah
+      - self-hosted
+      - vymalo-vps
+      - adorsys-gis-runner
+      - gis-ci
 
   - name: vymalo-runners
     releaseName: vymalo-vps
