@@ -210,6 +210,11 @@ configs:
   # carried by one controller pod — the levers below tune that loop rather
   # than adding pods.
   params:
+    # TEMPORARY diagnostic for the OIDC session-refresh investigation (#118)
+    # — offline_access alone didn't fix it, so this is to actually see what
+    # argocd-server does (or doesn't do) with the refresh_token. Revert once
+    # diagnosed.
+    server.log.level: debug
     controller.status.processors: "50" # default 20 — concurrent app diffs
     controller.operation.processors: "25" # default 10 — concurrent syncs
     controller.sharding.algorithm: round-robin # better balance than the legacy hash
