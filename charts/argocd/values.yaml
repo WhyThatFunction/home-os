@@ -248,6 +248,12 @@ configs:
         - profile
         - email
         - argocd_groups
+        # Without this, Keycloak issues no refresh_token at all (it's Optional,
+        # not Default, on the argocd client) — ArgoCD has nothing to silently
+        # renew the session with, so it just bounces to login once the short-
+        # lived access token expires. Assigning the scope on the Keycloak
+        # client alone does nothing; it must be requested here too.
+        - offline_access
 
     "resource.exclusions": |
       [ ]
