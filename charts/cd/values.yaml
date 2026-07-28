@@ -587,8 +587,7 @@ arcRunnerPools:
     githubConfigUrl: https://github.com/ADORSYS-GIS
     runnerScaleSetName: arc-runner-set-sse
     runnerGroup: flaky-rescue
-    maxRunners: 4
-    requestsMemory: 8Gi
+    maxRunners: 5
     containersSizeLimit: 20Gi
     turboApi: https://turbo-cache-api.ai.camer.digital
     turboTeam: adorsys-gis
@@ -618,7 +617,6 @@ arcRunnerPools:
       - self-hosted
       - vymalo-vps
     maxRunners: 5
-    requestsMemory: 8Gi
     containersSizeLimit: 30Gi
     turboApi: https://turbo-cache-api.ai.camer.digital
     turboTeam: adorsys-gis
@@ -638,8 +636,7 @@ arcRunnerPools:
       - buildah
       - self-hosted
       - adorsys-gis-runner
-    maxRunners: 4
-    requestsMemory: 8Gi
+    maxRunners: 5
     containersSizeLimit: 30Gi
     turboApi: https://turbo-cache-api.ai.camer.digital
     turboTeam: adorsys-gis

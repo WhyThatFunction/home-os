@@ -45,7 +45,7 @@ applications:
     project: infrastructure
     source:
       repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
-      targetRevision: 0.113.1
+      targetRevision: "0.*"
       chart: opentelemetry-operator
       helm:
         releaseName: opentelemetry-operator
@@ -79,7 +79,7 @@ applications:
     project: infrastructure
     source:
       repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
-      targetRevision: 0.113.1
+      targetRevision: "0.*"
       chart: opentelemetry-operator
       helm:
         releaseName: opentelemetry-operator
