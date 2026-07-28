@@ -5,7 +5,7 @@ applications:
     project: infrastructure
     source:
       repoURL: https://cloudnative-pg.github.io/charts
-      targetRevision: 0.28.2
+      targetRevision: "0.*"
       chart: cloudnative-pg
       helm:
         releaseName: cnpg
@@ -38,7 +38,7 @@ applications:
     project: infrastructure
     source:
       repoURL: https://cloudnative-pg.github.io/charts
-      targetRevision: 0.5.0
+      targetRevision: "0.*"
       chart: plugin-barman-cloud
       helm:
         releaseName: cnpg-barman-cloud

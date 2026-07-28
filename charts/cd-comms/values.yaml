@@ -5,7 +5,7 @@ applications:
     project: infrastructure
     sources:
       - repoURL: https://bokysan.github.io/docker-postfix
-        targetRevision: 5.1.0
+        targetRevision: "5.*"
         chart: mail
         helm:
           valuesObject:
@@ -17,7 +17,7 @@ applications:
             persistence:
               enabled: true
       - repoURL: https://bjw-s-labs.github.io/helm-charts
-        targetRevision: 4.6.2
+        targetRevision: "4.*"
         chart: app-template
         helm:
           valuesObject:
@@ -74,7 +74,7 @@ applications:
     project: infrastructure
     sources:
       - repoURL: https://bokysan.github.io/docker-postfix
-        targetRevision: 5.1.0
+        targetRevision: "5.*"
         chart: mail
         helm:
           releaseName: mail
@@ -87,7 +87,7 @@ applications:
             persistence:
               enabled: true
       - repoURL: https://bjw-s-labs.github.io/helm-charts
-        targetRevision: 4.6.2
+        targetRevision: "4.*"
         chart: app-template
         helm:
           valuesObject:
@@ -144,7 +144,7 @@ applications:
     project: infrastructure
     sources:
       - repoURL: https://bjw-s-labs.github.io/helm-charts
-        targetRevision: 4.6.2
+        targetRevision: "4.*"
         chart: app-template
         helm:
           releaseName: apprise

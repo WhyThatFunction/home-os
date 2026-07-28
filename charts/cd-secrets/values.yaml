@@ -43,7 +43,7 @@ applications:
     project: infrastructure
     source:
       repoURL: https://charts.external-secrets.io
-      targetRevision: v2.5.0
+      targetRevision: "v2.*"
       chart: external-secrets
       helm:
         valuesObject:
@@ -77,7 +77,7 @@ applications:
     project: infrastructure
     source:
       repoURL: https://charts.external-secrets.io
-      targetRevision: v2.5.0
+      targetRevision: "v2.*"
       chart: external-secrets
       helm:
         releaseName: external-secrets

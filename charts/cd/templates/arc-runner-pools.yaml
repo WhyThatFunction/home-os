@@ -149,7 +149,7 @@ spec:
                   emptyDir: { sizeLimit: {{ .containersSizeLimit }} }
 
     - repoURL: https://bjw-s-labs.github.io/helm-charts
-      targetRevision: 4.6.2
+      targetRevision: "4.*"
       chart: app-template
       helm:
         valuesObject:

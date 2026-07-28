@@ -5,7 +5,7 @@ applications:
     project: infrastructure
     source:
       repoURL: https://github.com/kubernetes-sigs/gateway-api.git
-      targetRevision: v1.5.1
+      targetRevision: "v1.*"
       path: config/crd
     destination:
       server: https://kubernetes.default.svc
@@ -59,7 +59,7 @@ applications:
     project: infrastructure
     source:
       repoURL: https://traefik.github.io/charts
-      targetRevision: 40.2.0
+      targetRevision: "40.*"
       chart: traefik
       helm:
         valuesObject:
