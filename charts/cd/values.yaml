@@ -575,12 +575,26 @@ arcRunnerGhcrDockerconfigTemplate: |
     }
   }
 
+# Runner container cpu/memory (requests == limits, so a runner is never
+# throttled below what it's scheduled for). `standard` is the default every
+# pool below gets unless it sets `resourceProfile: high` explicitly - `high`
+# is only consumed by a pool that opts in, i.e. used only when requested.
+arcRunnerResourceProfiles:
+  standard:
+    cpu: "2"
+    memory: 4Gi
+  high:
+    cpu: "4"
+    memory: 8Gi
+
 # Rendered by templates/arc-runner-pools.yaml into 4 plain Applications
 # (gis-sse-runners, gis-lightbridge-ai-runners, vymalo-runners,
 # adorsys-gis-runner-runners) - previously 4 hand-duplicated ~250-line
 # blocks under `applications:` above, ~95% identical. Only the fields
 # below actually vary per pool; everything else (image, env, affinity,
-# secrets) is shared boilerplate in the template.
+# secrets) is shared boilerplate in the template. Set `resourceProfile: high`
+# on a pool to opt it into arcRunnerResourceProfiles.high (4vCPU/8Gi) instead
+# of the standard-profile default (2vCPU/4Gi).
 arcRunnerPools:
   - name: gis-sse-runners
     releaseName: arc-runner-set-sse
