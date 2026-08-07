@@ -33,18 +33,6 @@ spec:
 
           template:
             spec:
-              affinity:
-                podAntiAffinity:
-                  requiredDuringSchedulingIgnoredDuringExecution:
-                    - topologyKey: kubernetes.io/hostname
-                      # cross-set, cross-namespace: at most ONE runner of
-                      # ANY scale-set per node. namespaceSelector {} spans
-                      # the per-set namespaces (anti-affinity defaults to
-                      # same-ns); component=runner excludes the listeners.
-                      namespaceSelector: { }
-                      labelSelector:
-                        matchLabels:
-                          app.kubernetes.io/component: runner
               securityContext:
                 fsGroup: 1001
               imagePullSecrets:
