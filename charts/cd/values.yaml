@@ -612,11 +612,12 @@ arcRunnerPools:
     destinationCluster: netcup-k8s
     namespace: gh-runners-sse-gis-runners
     managedNamespacePrivileged: true
-    #enableRunner: true
+    enableRunner: true
     scaleSetLabels:
       - adorsys-gis-runner
       - gis-ci
       - gis-sse-runners
+      - arc-runner-set-sse
 
   - name: sse-gis-medium-runners
     releaseName: sse-gis-runners
@@ -663,6 +664,7 @@ arcRunnerPools:
     destinationCluster: netcup-k8s
     namespace: gh-runners-vymalo
     managedNamespacePrivileged: true
+    enableRunner: true
 
   - name: vaam-store-runners
     releaseName: vaam-store-runner
