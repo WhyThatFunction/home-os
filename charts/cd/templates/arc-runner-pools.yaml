@@ -83,6 +83,8 @@ spec:
                     # memory + disk; off is the CI norm.
                     - name: CARGO_INCREMENTAL
                       value: "0"
+                    - name: RUSTC_WRAPPER
+                      value: "sccache"
                     - name: RUNNER_TOOL_CACHE
                       value: /opt/hostedtoolcache
                     - name: SCCACHE_BUCKET
