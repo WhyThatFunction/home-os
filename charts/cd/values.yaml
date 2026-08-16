@@ -583,9 +583,12 @@ arcRunnerResourceProfiles:
   standard:
     cpu: "2"
     memory: 4Gi
-  high:
+  medium:
     cpu: "4"
     memory: 8Gi
+  high:
+    cpu: "6"
+    memory: 12Gi
 
 # Rendered by templates/arc-runner-pools.yaml into 4 plain Applications
 # (gis-sse-runners, gis-lightbridge-ai-runners, vymalo-runners,
@@ -659,4 +662,46 @@ arcRunnerPools:
     turboTeam: adorsys-gis
     destinationCluster: netcup-k8s
     namespace: gh-runners-adorsys-gis
+    managedNamespacePrivileged: true
+
+  - name: vaam-store-runners
+    releaseName: vaam-store-runner
+    githubConfigUrl: https://github.com/vaam-store
+    runnerScaleSetName: ubuntu-amd-x64
+    runnerGroup: default
+    resourceProfile: standard
+    maxRunners: 10
+    containersSizeLimit: 40Gi
+    turboApi: https://turbo-cache-api.ai.camer.digital
+    turboTeam: vaam-store
+    destinationCluster: netcup-k8s
+    namespace: gh-runners-vaam-store
+    managedNamespacePrivileged: true
+
+  - name: vaam-store-medium-runners
+    releaseName: vaam-store-runner
+    githubConfigUrl: https://github.com/vaam-store
+    runnerScaleSetName: ubuntu-amd-x64-medium
+    runnerGroup: default
+    resourceProfile: medium
+    maxRunners: 6
+    containersSizeLimit: 60Gi
+    turboApi: https://turbo-cache-api.ai.camer.digital
+    turboTeam: vaam-store
+    destinationCluster: netcup-k8s
+    namespace: gh-runners-vaam-store-medium
+    managedNamespacePrivileged: true
+
+  - name: vaam-store-high-runners
+    releaseName: vaam-store-runner
+    githubConfigUrl: https://github.com/vaam-store
+    runnerScaleSetName: ubuntu-amd-x64-high
+    runnerGroup: default
+    resourceProfile: high
+    maxRunners: 4
+    containersSizeLimit: 80Gi
+    turboApi: https://turbo-cache-api.ai.camer.digital
+    turboTeam: vaam-store
+    destinationCluster: netcup-k8s
+    namespace: gh-runners-vaam-store-high
     managedNamespacePrivileged: true
