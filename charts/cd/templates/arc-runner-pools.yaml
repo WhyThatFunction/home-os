@@ -9,6 +9,7 @@ metadata:
 spec:
   project: arc-runner
   sources:
+    {{ if .enableRunner }}
     - repoURL: "oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set"
       targetRevision: "0.*"
       chart: "."
@@ -139,6 +140,7 @@ spec:
                   emptyDir: { }
                 - name: containers
                   emptyDir: { sizeLimit: {{ .containersSizeLimit }} }
+    {{- end }}
 
     - repoURL: https://bjw-s-labs.github.io/helm-charts
       targetRevision: "4.*"

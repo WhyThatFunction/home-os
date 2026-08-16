@@ -677,6 +677,7 @@ arcRunnerPools:
     destinationCluster: netcup-k8s
     namespace: gh-runners-vaam-store
     managedNamespacePrivileged: true
+    enableRunner: true
 
   - name: vaam-store-medium-runners
     releaseName: vaam-store-runner
@@ -691,6 +692,7 @@ arcRunnerPools:
     destinationCluster: netcup-k8s
     namespace: gh-runners-vaam-store-medium
     managedNamespacePrivileged: true
+    enableRunner: true
 
   - name: vaam-store-high-runners
     releaseName: vaam-store-runner
@@ -705,3 +707,4 @@ arcRunnerPools:
     destinationCluster: netcup-k8s
     namespace: gh-runners-vaam-store-high
     managedNamespacePrivileged: true
+    enableRunner: true
