@@ -599,69 +599,69 @@ arcRunnerResourceProfiles:
 # on a pool to opt it into arcRunnerResourceProfiles.high (4vCPU/8Gi) instead
 # of the standard-profile default (2vCPU/4Gi).
 arcRunnerPools:
-  - name: gis-sse-runners
-    releaseName: arc-runner-set-sse
+  - name: sse-gis-runners
+    releaseName: sse-gis-runners
     githubConfigUrl: https://github.com/ADORSYS-GIS
-    runnerScaleSetName: arc-runner-set-sse
+    runnerScaleSetName: ubuntu-amd-x64
     runnerGroup: flaky-rescue
     resourceProfile: standard
-    maxRunners: 10
-    containersSizeLimit: 20Gi
+    maxRunners: 20
+    containersSizeLimit: 40Gi
     turboApi: https://turbo-cache-api.ai.camer.digital
     turboTeam: adorsys-gis
     destinationCluster: netcup-k8s
-    namespace: gh-runners-gis-sse-runners
+    namespace: gh-runners-sse-gis-runners
     managedNamespacePrivileged: true
+    enableRunner: true
     scaleSetLabels:
-      - linux
-      - x64
-      - vps
-      - buildah
-      - self-hosted
-      - vymalo-vps
       - adorsys-gis-runner
       - gis-ci
+      - gis-sse-runners
 
-  - name: vymalo-runners
-    releaseName: vymalo-vps
+  - name: sse-gis-medium-runners
+    releaseName: sse-gis-runners
+    githubConfigUrl: https://github.com/ADORSYS-GIS
+    runnerScaleSetName: ubuntu-amd-x64-medium
+    runnerGroup: flaky-rescue
+    resourceProfile: medium
+    maxRunners: 10
+    containersSizeLimit: 40Gi
+    turboApi: https://turbo-cache-api.ai.camer.digital
+    turboTeam: adorsys-gis
+    destinationCluster: netcup-k8s
+    namespace: gh-runners-sse-gis-medium-runners
+    managedNamespacePrivileged: true
+    enableRunner: true
+
+  - name: sse-gis-high-runners
+    releaseName: sse-gis-runners
+    githubConfigUrl: https://github.com/ADORSYS-GIS
+    runnerScaleSetName: ubuntu-amd-x64-high
+    runnerGroup: flaky-rescue
+    resourceProfile: high
+    maxRunners: 4
+    containersSizeLimit: 40Gi
+    turboApi: https://turbo-cache-api.ai.camer.digital
+    turboTeam: adorsys-gis
+    destinationCluster: netcup-k8s
+    namespace: gh-runners-sse-gis-high-runners
+    managedNamespacePrivileged: true
+    enableRunner: true
+
+  - name: vymalo-arc-runners
+    releaseName: vymalo-arc-vps
     githubConfigUrl: https://github.com/vymalo
-    runnerScaleSetName: vymalo-netcup-set
+    runnerScaleSetName: ubuntu-amd-x64
     runnerGroup: default
     scaleSetLabels:
-      - linux
-      - x64
-      - vps
-      - buildah
-      - self-hosted
       - vymalo-vps
     resourceProfile: standard
     maxRunners: 10
     containersSizeLimit: 30Gi
     turboApi: https://turbo-cache-api.ai.camer.digital
-    turboTeam: adorsys-gis
+    turboTeam: vymalo
     destinationCluster: netcup-k8s
     namespace: gh-runners-vymalo
-    managedNamespacePrivileged: true
-
-  - name: adorsys-gis-runner-runners
-    releaseName: adorsys-gis-runner
-    githubConfigUrl: https://github.com/ADORSYS-GIS
-    runnerScaleSetName: adorsys-gis-runner-netcup-set
-    runnerGroup: lightbridge-ai
-    scaleSetLabels:
-      - linux
-      - x64
-      - vps
-      - buildah
-      - self-hosted
-      - adorsys-gis-runner
-    resourceProfile: standard
-    maxRunners: 10
-    containersSizeLimit: 30Gi
-    turboApi: https://turbo-cache-api.ai.camer.digital
-    turboTeam: adorsys-gis
-    destinationCluster: netcup-k8s
-    namespace: gh-runners-adorsys-gis
     managedNamespacePrivileged: true
 
   - name: vaam-store-runners
