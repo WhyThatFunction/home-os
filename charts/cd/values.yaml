@@ -612,7 +612,7 @@ arcRunnerPools:
     destinationCluster: netcup-k8s
     namespace: gh-runners-sse-gis-runners
     managedNamespacePrivileged: true
-    enableRunner: true
+    #enableRunner: true
     scaleSetLabels:
       - adorsys-gis-runner
       - gis-ci
