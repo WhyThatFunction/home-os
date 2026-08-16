@@ -92,6 +92,8 @@ spec:
                       value: sc-cache
                     - name: SCCACHE_REGION
                       value: auto
+                    - name: SCCACHE_S3_USE_SSL
+                      value: 'true'
                     - name: SCCACHE_ENDPOINT
                       value: s3.ssegning.me
                     - name: TURBO_API
