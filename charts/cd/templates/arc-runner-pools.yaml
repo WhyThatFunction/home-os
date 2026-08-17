@@ -34,7 +34,10 @@ spec:
 
           template:
             spec:
+              {{- if .priorityClass }}
               priorityClassName: {{ .releaseName }}
+              {{- end }}
+
               securityContext:
                 fsGroup: 1001
               imagePullSecrets:
