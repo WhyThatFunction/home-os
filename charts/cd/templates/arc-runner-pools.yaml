@@ -229,13 +229,20 @@ spec:
                       remoteRef:
                         key: "prod/meta/test-app"
                         property: github_email
+
+    - repoURL: https://bjw-s-labs.github.io/helm-charts
+      targetRevision: "5.*"
+      chart: app-template
+      helm:
+        valuesObject:
+          rawResources:
             {{- if .priorityClass }}
             priority-class:
               enabled: true
-              apiVersion: scheduling.k8s.io/v1
-              kind: PriorityClass
-              name: {{ .releaseName }}
-              spec:
+              manifest:
+                apiVersion: scheduling.k8s.io/v1
+                kind: PriorityClass
+                name: {{ .releaseName }}
                 value: 1000000
                 globalDefault: false
                 preemptionPolicy: PreemptLowerPriority
