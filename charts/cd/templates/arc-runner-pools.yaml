@@ -230,13 +230,13 @@ spec:
                         key: "prod/meta/test-app"
                         property: github_email
 
+    {{- if .priorityClass }}
     - repoURL: https://bjw-s-labs.github.io/helm-charts
       targetRevision: "5.*"
       chart: app-template
       helm:
         valuesObject:
           rawResources:
-            {{- if .priorityClass }}
             priority-class:
               enabled: true
               manifest:
@@ -246,7 +246,7 @@ spec:
                 value: 1000000
                 globalDefault: false
                 preemptionPolicy: PreemptLowerPriority
-            {{- end }}
+    {{- end }}
 
   destination:
     name: {{ .destinationCluster }}
