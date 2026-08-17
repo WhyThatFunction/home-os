@@ -587,8 +587,8 @@ arcRunnerResourceProfiles:
     cpu: "4"
     memory: 8Gi
   high:
-    cpu: "8"
-    memory: 16Gi
+    cpu: "7"
+    memory: 12Gi
 
 # Rendered by templates/arc-runner-pools.yaml into 4 plain Applications
 # (gis-sse-runners, gis-lightbridge-ai-runners, vymalo-runners,
