@@ -34,7 +34,7 @@ spec:
 
           template:
             spec:
-              priorityClassName: {{ .releaseName }}-high-runners
+              priorityClassName: {{ .Release.Name }}-priority-class
               securityContext:
                 fsGroup: 1001
               imagePullSecrets:
