@@ -34,7 +34,7 @@ spec:
 
           template:
             spec:
-              priorityClassName: {{ .Release.Name }}-priority-class
+              priorityClassName: "{{ $.Release.Name }}-priority-class"
               securityContext:
                 fsGroup: 1001
               imagePullSecrets:
