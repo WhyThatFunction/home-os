@@ -239,11 +239,10 @@ spec:
           rawResources:
             priority-class:
               enabled: true
+              forceRename: {{ .releaseName }}
               manifest:
                 apiVersion: scheduling.k8s.io/v1
                 kind: PriorityClass
-                metadata:
-                  name: {{ .releaseName }}
                 value: 1000000
                 globalDefault: false
                 preemptionPolicy: PreemptLowerPriority
