@@ -242,7 +242,8 @@ spec:
               manifest:
                 apiVersion: scheduling.k8s.io/v1
                 kind: PriorityClass
-                name: {{ .releaseName }}
+                metadata:
+                  name: {{ .releaseName }}
                 value: 1000000
                 globalDefault: false
                 preemptionPolicy: PreemptLowerPriority
