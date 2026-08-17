@@ -34,6 +34,7 @@ spec:
 
           template:
             spec:
+              priorityClassName: high-runners
               securityContext:
                 fsGroup: 1001
               imagePullSecrets:
@@ -233,6 +234,7 @@ spec:
               enabled: true
               apiVersion: scheduling.k8s.io/v1
               kind: PriorityClass
+              name: high-runners
               spec:
                 value: 1000000
                 globalDefault: false
