@@ -648,7 +648,7 @@ arcRunnerPools:
     namespace: gh-runners-sse-gis-high-runners
     managedNamespacePrivileged: true
     enableRunner: true
-    priorityClass: 1000
+    #priorityClass: 1000
 
   - name: vymalo-arc-runners
     releaseName: vymalo-arc-vps
@@ -711,4 +711,4 @@ arcRunnerPools:
     namespace: gh-runners-vaam-store-high
     managedNamespacePrivileged: true
     enableRunner: true
-    priorityClass: 1000
+    #priorityClass: 1000
