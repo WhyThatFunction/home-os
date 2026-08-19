@@ -257,6 +257,29 @@ applications:
         prune: true
         selfHeal: true
 
+  # Deploys the vaam-store/platform 8-service fleet's 8 Argo CD Applications +
+  # its ArgoCD OCI repo cred + image-updater GHCR cred + ImageUpdater CR (all
+  # kustomize-forced into the argocd namespace, same pattern as
+  # vymalo-shop-deployer above). See serverless/k/vaam-store-platform/
+  # argocd-application.yaml's own header for the sync-ordering design.
+  - name: vaam-store-platform-deployer
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: serverless/k/vaam-store-platform
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: serverless-vaam-store-platform
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
   # Provisions the ArgoCD repository credential (ESO, argocd ns) that lets ArgoCD
   # pull the PRIVATE converse-frontends OCI chart. The converse-ui workload itself
   # is deployed by ai-helm's charts/apps app-of-apps, not here.

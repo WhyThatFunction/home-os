@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# The Application objects themselves live in the argocd namespace.
+namespace: argocd
+
+# vaam-store/platform is private, so (like vymalo-shop) it can't be pulled
+# from a raw.githubusercontent URL -- committed locally here.
+resources:
+  - argocd-application.yaml
+  # ArgoCD repo cred (ESO) so it can pull the PRIVATE OCI Helm charts under
+  # ghcr.io/vaam-store/charts/<service>.
+  - argocd-charts-oci-repo.externalsecret.yaml
+  # GHCR read cred (ESO, dockerconfigjson) so the image-updater can query the
+  # PRIVATE ghcr.io/vaam-store/platform/<service> image digests -- referenced
+  # by each app's pull-secret annotation. Without it the controller gets
+  # `unauthorized` and no digest ever promotes. (Mirrors vymalo-shop's
+  # ghcr-pull.externalsecret.yaml.)
+  - ghcr-pull.externalsecret.yaml
+  # CRD-based image-updater activation for the vaam-store-platform apps
+  # (without it, app-only changes never promote a digest -- only chart
+  # republishes deploy).
+  - imageupdater.yaml

@@ -1,0 +1,44 @@
+# This cluster runs the CRD-based argocd-image-updater controller (not the
+# annotation-only sidecar). The controller acts on an Application's
+# argocd-image-updater.argoproj.io/* annotations ONLY when an ImageUpdater CR
+# selects that Application via applicationRefs + useAnnotations: true.
+#
+# Without this CR the 8 vaam-store-platform Applications' image-updater
+# annotations are inert, so app-only changes never promote a new digest --
+# only chart republishes (a Chart.yaml version bump on a
+# deploy/charts/<service>/** change) deploy. This CR activates them: on each
+# reconcile the controller checks GHCR for the new signed digest and (once
+# github-app-creds--vaam-store exists -- NOT YET, see the deploy checklist)
+# writes it back to the per-service prod overlay on vaam-store/platform.
+#
+# namePattern matches every one of the 8 service names exactly (auth-service,
+# vendor-service, catalog-service, order-service, payment-service,
+# delivery-gateway, upload-service, p2p-mailbox-service) -- unlike vymalo's
+# `vymalo-*` glob, there's no shared prefix across these 8 names, so this
+# lists each explicitly rather than a pattern that could accidentally match
+# an unrelated future Application.
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: vaam-store-platform
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: vaam-store-platform
+spec:
+  applicationRefs:
+    - namePattern: auth-service
+      useAnnotations: true
+    - namePattern: vendor-service
+      useAnnotations: true
+    - namePattern: catalog-service
+      useAnnotations: true
+    - namePattern: order-service
+      useAnnotations: true
+    - namePattern: payment-service
+      useAnnotations: true
+    - namePattern: delivery-gateway
+      useAnnotations: true
+    - namePattern: upload-service
+      useAnnotations: true
+    - namePattern: p2p-mailbox-service
+      useAnnotations: true
