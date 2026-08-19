@@ -38,10 +38,28 @@
 #
 # vaam-store/platform is PRIVATE: chart pull uses the repo cred
 # (argocd-charts-oci-repo.externalsecret.yaml here); $values clone + Image
-# Updater git write-back use github-app-creds--vaam-store (NOT YET CREATED --
-# see this PR's description / the deploy checklist; until it exists, image
-# promotion needs a human to bump `image.tag` by hand in each service's
-# deploy/envs/production/<service>.values.yaml on the platform repo).
+# Updater git write-back use ONE shared credential, github-app-creds--vaam-
+# store, mirroring this fleet's existing github-app-creds--vymalo precedent
+# (see vymalo-shop/argocd-application.yaml's own header: "$values clone +
+# Image Updater git write-back use github-app-creds--vymalo"). That Secret
+# is NOT YET CREATED (see the deploy checklist) and, like its vymalo
+# counterpart, is not templated anywhere in this GitOps repo -- ArgoCD's own
+# bootstrap (charts/argocd/README.md: "installed manually once") and its git
+# repository credentials are the one class of secret created out-of-band by
+# a human, the same way github-app-creds--vymalo was.
+#
+# THIS IS A HARD PRE-SYNC GATE, not merely an image-promotion nicety: every
+# one of the 8 Applications below has a SECOND `sources[]` entry (repoURL
+# https://github.com/vaam-store/platform.git, ref: values) that ArgoCD must
+# clone to render `valueFiles`. Without github-app-creds--vaam-store
+# registered as an ArgoCD repository credential (labelled
+# argocd.argoproj.io/secret-type: repository) for that git URL, the clone
+# fails with repo-access-denied and NONE of the 8 Applications can render,
+# regardless of the OCI chart-pull credential above being fine
+# (lightbridge-assistant P1, PR #122). Until the Secret exists, image
+# promotion additionally needs a human to bump `image.tag` by hand in each
+# service's deploy/envs/production/<service>.values.yaml on the platform
+# repo -- but that is the SMALLER consequence of it being missing.
 #
 # CNPG Cluster's `.status` is populated by the operator after bootstrap, not
 # by this Application's own desired state -- ignored on all 7 CNPG-backed
@@ -65,7 +83,7 @@ metadata:
     # PRIVATE GHCR: the controller needs a read credential to list digests,
     # or it gets `unauthorized`. ESO Secret created in
     # ghcr-pull.externalsecret.yaml (this dir).
-    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-ghcr-pull
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
     argocd-image-updater.argoproj.io/app.update-strategy: digest
     # The workload runs on the bjw-s app-template dependency (controller
     # `main`, container `app`) -- that path, NOT the top-level `image.*`
@@ -88,10 +106,13 @@ metadata:
     # git write-back: source is an OCI registry (not git), so an explicit
     # HTTPS git-repository + creds are required. NOT YET FUNCTIONAL -- the
     # github-app-creds--vaam-store Secret this references does not exist yet
-    # (see this PR's description). The controller will log a write-back
-    # failure once it finds a new digest to promote, until a human creates
-    # it; the pull-secret/cosign-verification annotations above still work
-    # without it.
+    # (see this PR's description / human checklist item 2, now a HARD
+    # pre-sync gate, not merely an image-promotion nicety: the SAME missing
+    # Secret is also this Application's `$values` git-clone credential
+    # below (lightbridge-assistant P1, PR #122) -- without it, the first
+    # sync of all 8 Applications fails on repo-access-denied, full stop.
+    # The pull-secret/cosign-verification annotations above are unaffected
+    # (separate GHCR-read credential, already provisioned).
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
     argocd-image-updater.argoproj.io/git-repository: >-
@@ -163,7 +184,7 @@ metadata:
     # PRIVATE GHCR: the controller needs a read credential to list digests,
     # or it gets `unauthorized`. ESO Secret created in
     # ghcr-pull.externalsecret.yaml (this dir).
-    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-ghcr-pull
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
     argocd-image-updater.argoproj.io/app.update-strategy: digest
     # The workload runs on the bjw-s app-template dependency (controller
     # `main`, container `app`) -- that path, NOT the top-level `image.*`
@@ -186,10 +207,13 @@ metadata:
     # git write-back: source is an OCI registry (not git), so an explicit
     # HTTPS git-repository + creds are required. NOT YET FUNCTIONAL -- the
     # github-app-creds--vaam-store Secret this references does not exist yet
-    # (see this PR's description). The controller will log a write-back
-    # failure once it finds a new digest to promote, until a human creates
-    # it; the pull-secret/cosign-verification annotations above still work
-    # without it.
+    # (see this PR's description / human checklist item 2, now a HARD
+    # pre-sync gate, not merely an image-promotion nicety: the SAME missing
+    # Secret is also this Application's `$values` git-clone credential
+    # below (lightbridge-assistant P1, PR #122) -- without it, the first
+    # sync of all 8 Applications fails on repo-access-denied, full stop.
+    # The pull-secret/cosign-verification annotations above are unaffected
+    # (separate GHCR-read credential, already provisioned).
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
     argocd-image-updater.argoproj.io/git-repository: >-
@@ -261,7 +285,7 @@ metadata:
     # PRIVATE GHCR: the controller needs a read credential to list digests,
     # or it gets `unauthorized`. ESO Secret created in
     # ghcr-pull.externalsecret.yaml (this dir).
-    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-ghcr-pull
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
     argocd-image-updater.argoproj.io/app.update-strategy: digest
     # The workload runs on the bjw-s app-template dependency (controller
     # `main`, container `app`) -- that path, NOT the top-level `image.*`
@@ -284,10 +308,13 @@ metadata:
     # git write-back: source is an OCI registry (not git), so an explicit
     # HTTPS git-repository + creds are required. NOT YET FUNCTIONAL -- the
     # github-app-creds--vaam-store Secret this references does not exist yet
-    # (see this PR's description). The controller will log a write-back
-    # failure once it finds a new digest to promote, until a human creates
-    # it; the pull-secret/cosign-verification annotations above still work
-    # without it.
+    # (see this PR's description / human checklist item 2, now a HARD
+    # pre-sync gate, not merely an image-promotion nicety: the SAME missing
+    # Secret is also this Application's `$values` git-clone credential
+    # below (lightbridge-assistant P1, PR #122) -- without it, the first
+    # sync of all 8 Applications fails on repo-access-denied, full stop.
+    # The pull-secret/cosign-verification annotations above are unaffected
+    # (separate GHCR-read credential, already provisioned).
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
     argocd-image-updater.argoproj.io/git-repository: >-
@@ -359,7 +386,7 @@ metadata:
     # PRIVATE GHCR: the controller needs a read credential to list digests,
     # or it gets `unauthorized`. ESO Secret created in
     # ghcr-pull.externalsecret.yaml (this dir).
-    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-ghcr-pull
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
     argocd-image-updater.argoproj.io/app.update-strategy: digest
     # The workload runs on the bjw-s app-template dependency (controller
     # `main`, container `app`) -- that path, NOT the top-level `image.*`
@@ -382,10 +409,13 @@ metadata:
     # git write-back: source is an OCI registry (not git), so an explicit
     # HTTPS git-repository + creds are required. NOT YET FUNCTIONAL -- the
     # github-app-creds--vaam-store Secret this references does not exist yet
-    # (see this PR's description). The controller will log a write-back
-    # failure once it finds a new digest to promote, until a human creates
-    # it; the pull-secret/cosign-verification annotations above still work
-    # without it.
+    # (see this PR's description / human checklist item 2, now a HARD
+    # pre-sync gate, not merely an image-promotion nicety: the SAME missing
+    # Secret is also this Application's `$values` git-clone credential
+    # below (lightbridge-assistant P1, PR #122) -- without it, the first
+    # sync of all 8 Applications fails on repo-access-denied, full stop.
+    # The pull-secret/cosign-verification annotations above are unaffected
+    # (separate GHCR-read credential, already provisioned).
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
     argocd-image-updater.argoproj.io/git-repository: >-
@@ -457,7 +487,7 @@ metadata:
     # PRIVATE GHCR: the controller needs a read credential to list digests,
     # or it gets `unauthorized`. ESO Secret created in
     # ghcr-pull.externalsecret.yaml (this dir).
-    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-ghcr-pull
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
     argocd-image-updater.argoproj.io/app.update-strategy: digest
     # The workload runs on the bjw-s app-template dependency (controller
     # `main`, container `app`) -- that path, NOT the top-level `image.*`
@@ -480,10 +510,13 @@ metadata:
     # git write-back: source is an OCI registry (not git), so an explicit
     # HTTPS git-repository + creds are required. NOT YET FUNCTIONAL -- the
     # github-app-creds--vaam-store Secret this references does not exist yet
-    # (see this PR's description). The controller will log a write-back
-    # failure once it finds a new digest to promote, until a human creates
-    # it; the pull-secret/cosign-verification annotations above still work
-    # without it.
+    # (see this PR's description / human checklist item 2, now a HARD
+    # pre-sync gate, not merely an image-promotion nicety: the SAME missing
+    # Secret is also this Application's `$values` git-clone credential
+    # below (lightbridge-assistant P1, PR #122) -- without it, the first
+    # sync of all 8 Applications fails on repo-access-denied, full stop.
+    # The pull-secret/cosign-verification annotations above are unaffected
+    # (separate GHCR-read credential, already provisioned).
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
     argocd-image-updater.argoproj.io/git-repository: >-
@@ -555,7 +588,7 @@ metadata:
     # PRIVATE GHCR: the controller needs a read credential to list digests,
     # or it gets `unauthorized`. ESO Secret created in
     # ghcr-pull.externalsecret.yaml (this dir).
-    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-ghcr-pull
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
     argocd-image-updater.argoproj.io/app.update-strategy: digest
     # The workload runs on the bjw-s app-template dependency (controller
     # `main`, container `app`) -- that path, NOT the top-level `image.*`
@@ -578,10 +611,13 @@ metadata:
     # git write-back: source is an OCI registry (not git), so an explicit
     # HTTPS git-repository + creds are required. NOT YET FUNCTIONAL -- the
     # github-app-creds--vaam-store Secret this references does not exist yet
-    # (see this PR's description). The controller will log a write-back
-    # failure once it finds a new digest to promote, until a human creates
-    # it; the pull-secret/cosign-verification annotations above still work
-    # without it.
+    # (see this PR's description / human checklist item 2, now a HARD
+    # pre-sync gate, not merely an image-promotion nicety: the SAME missing
+    # Secret is also this Application's `$values` git-clone credential
+    # below (lightbridge-assistant P1, PR #122) -- without it, the first
+    # sync of all 8 Applications fails on repo-access-denied, full stop.
+    # The pull-secret/cosign-verification annotations above are unaffected
+    # (separate GHCR-read credential, already provisioned).
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
     argocd-image-updater.argoproj.io/git-repository: >-
@@ -653,7 +689,7 @@ metadata:
     # PRIVATE GHCR: the controller needs a read credential to list digests,
     # or it gets `unauthorized`. ESO Secret created in
     # ghcr-pull.externalsecret.yaml (this dir).
-    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-ghcr-pull
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
     argocd-image-updater.argoproj.io/app.update-strategy: digest
     # The workload runs on the bjw-s app-template dependency (controller
     # `main`, container `app`) -- that path, NOT the top-level `image.*`
@@ -676,10 +712,13 @@ metadata:
     # git write-back: source is an OCI registry (not git), so an explicit
     # HTTPS git-repository + creds are required. NOT YET FUNCTIONAL -- the
     # github-app-creds--vaam-store Secret this references does not exist yet
-    # (see this PR's description). The controller will log a write-back
-    # failure once it finds a new digest to promote, until a human creates
-    # it; the pull-secret/cosign-verification annotations above still work
-    # without it.
+    # (see this PR's description / human checklist item 2, now a HARD
+    # pre-sync gate, not merely an image-promotion nicety: the SAME missing
+    # Secret is also this Application's `$values` git-clone credential
+    # below (lightbridge-assistant P1, PR #122) -- without it, the first
+    # sync of all 8 Applications fails on repo-access-denied, full stop.
+    # The pull-secret/cosign-verification annotations above are unaffected
+    # (separate GHCR-read credential, already provisioned).
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
     argocd-image-updater.argoproj.io/git-repository: >-
@@ -751,7 +790,7 @@ metadata:
     # PRIVATE GHCR: the controller needs a read credential to list digests,
     # or it gets `unauthorized`. ESO Secret created in
     # ghcr-pull.externalsecret.yaml (this dir).
-    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-ghcr-pull
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
     argocd-image-updater.argoproj.io/app.update-strategy: digest
     # The workload runs on the bjw-s app-template dependency (controller
     # `main`, container `app`) -- that path, NOT the top-level `image.*`
@@ -774,10 +813,13 @@ metadata:
     # git write-back: source is an OCI registry (not git), so an explicit
     # HTTPS git-repository + creds are required. NOT YET FUNCTIONAL -- the
     # github-app-creds--vaam-store Secret this references does not exist yet
-    # (see this PR's description). The controller will log a write-back
-    # failure once it finds a new digest to promote, until a human creates
-    # it; the pull-secret/cosign-verification annotations above still work
-    # without it.
+    # (see this PR's description / human checklist item 2, now a HARD
+    # pre-sync gate, not merely an image-promotion nicety: the SAME missing
+    # Secret is also this Application's `$values` git-clone credential
+    # below (lightbridge-assistant P1, PR #122) -- without it, the first
+    # sync of all 8 Applications fails on repo-access-denied, full stop.
+    # The pull-secret/cosign-verification annotations above are unaffected
+    # (separate GHCR-read credential, already provisioned).
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
     argocd-image-updater.argoproj.io/git-repository: >-

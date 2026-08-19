@@ -11,6 +11,13 @@
 # github-app-creds--vaam-store exists -- NOT YET, see the deploy checklist)
 # writes it back to the per-service prod overlay on vaam-store/platform.
 #
+# github-app-creds--vaam-store is not just this CR's write-back credential:
+# argocd-application.yaml's header notes it is the SAME Secret every
+# Application's `$values` git-clone source needs -- until it's created, the
+# first sync of all 8 Applications fails outright, not just digest
+# promotion. See that file's header for the full explanation
+# (lightbridge-assistant P1, PR #122).
+#
 # namePattern matches every one of the 8 service names exactly (auth-service,
 # vendor-service, catalog-service, order-service, payment-service,
 # delivery-gateway, upload-service, p2p-mailbox-service) -- unlike vymalo's
