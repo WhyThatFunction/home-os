@@ -4,9 +4,9 @@
 #
 # HOSTNAME ASSUMPTION, stated prominently: platform issue #74 tracks a
 # `vaam.store` domain rename that may NOT be settled yet. Every Application
-# below (via its production values file in vaam-store/platform) routes
+# below (via its production values file in vaam-store/deploy) routes
 # through `vaam.store` -- if #74 resolves differently, the fix is a values
-# file change on the platform repo, not here.
+# file change on the deploy repo, not here.
 #
 # ONE APPLICATION PER SERVICE (8 total), not vymalo-backend's 3-way
 # wave-split. vymalo's backend chart needed that split because its migrate
@@ -37,20 +37,33 @@
 # Argo's selfHeal keeps converging.
 #
 # vaam-store/platform is PRIVATE: chart pull uses the repo cred
-# (argocd-charts-oci-repo.externalsecret.yaml here); $values clone + Image
-# Updater git write-back use ONE shared credential, github-app-creds--vaam-
-# store, mirroring this fleet's existing github-app-creds--vymalo precedent
-# (see vymalo-shop/argocd-application.yaml's own header: "$values clone +
-# Image Updater git write-back use github-app-creds--vymalo"). That Secret
-# is NOT YET CREATED (see the deploy checklist) and, like its vymalo
-# counterpart, is not templated anywhere in this GitOps repo -- ArgoCD's own
-# bootstrap (charts/argocd/README.md: "installed manually once") and its git
-# repository credentials are the one class of secret created out-of-band by
-# a human, the same way github-app-creds--vymalo was.
+# (argocd-charts-oci-repo.externalsecret.yaml here) against
+# ghcr.io/vaam-store/charts, still hosted out of platform's own CI --
+# UNCHANGED by the values-repo split below.
+#
+# Production Helm values moved OUT of vaam-store/platform into a dedicated,
+# also-PRIVATE repo, vaam-store/deploy (bootstrapped platform-side at
+# commit f6108f5; deploy/envs/production/ is removed from platform once
+# this lands, see vaam-store/platform#145, a draft PR gated on this file).
+# $values clone + Image Updater git write-back now BOTH target
+# vaam-store/deploy, using ONE shared credential, github-app-creds--vaam-
+# store, mirroring this fleet's existing github-app-creds--vymalo
+# precedent (see vymalo-shop/argocd-application.yaml's own header:
+# "$values clone + Image Updater git write-back use
+# github-app-creds--vymalo"). That Secret is NOT YET CREATED (see the
+# human deployment checklist) and, like its vymalo counterpart, is not
+# templated anywhere in this GitOps repo -- ArgoCD's own bootstrap
+# (charts/argocd/README.md: "installed manually once") and its git
+# repository credentials are the one class of secret created out-of-band
+# by a human, the same way github-app-creds--vymalo was. IMPORTANT: when
+# that GitHub App is installed/granted, it must cover vaam-store/deploy --
+# NOT vaam-store/platform, which this credential no longer reads or
+# writes at all (chart pull above is a separate OCI credential,
+# unaffected).
 #
 # THIS IS A HARD PRE-SYNC GATE, not merely an image-promotion nicety: every
 # one of the 8 Applications below has a SECOND `sources[]` entry (repoURL
-# https://github.com/vaam-store/platform.git, ref: values) that ArgoCD must
+# https://github.com/vaam-store/deploy.git, ref: values) that ArgoCD must
 # clone to render `valueFiles`. Without github-app-creds--vaam-store
 # registered as an ArgoCD repository credential (labelled
 # argocd.argoproj.io/secret-type: repository) for that git URL, the clone
@@ -58,7 +71,7 @@
 # regardless of the OCI chart-pull credential above being fine
 # (lightbridge-assistant P1, PR #122). Until the Secret exists, image
 # promotion additionally needs a human to bump `image.tag` by hand in each
-# service's deploy/envs/production/<service>.values.yaml on the platform
+# service's envs/production/<service>.values.yaml on the deploy
 # repo -- but that is the SMALLER consequence of it being missing.
 #
 # CNPG Cluster's `.status` is populated by the operator after bootstrap, not
@@ -116,9 +129,9 @@ metadata:
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
     argocd-image-updater.argoproj.io/git-repository: >-
-      https://github.com/vaam-store/platform.git
+      https://github.com/vaam-store/deploy.git
     argocd-image-updater.argoproj.io/write-back-target: >-
-      helmvalues:deploy/envs/production/auth-service.values.yaml
+      helmvalues:envs/production/auth-service.values.yaml
     argocd-image-updater.argoproj.io/git-credentials: >-
       secret:argocd/github-app-creds--vaam-store
 
@@ -145,9 +158,9 @@ spec:
       helm:
         releaseName: auth-service
         valueFiles:
-          - $values/deploy/envs/production/auth-service.values.yaml
+          - $values/envs/production/auth-service.values.yaml
         ignoreMissingValueFiles: true
-    - repoURL: https://github.com/vaam-store/platform.git
+    - repoURL: https://github.com/vaam-store/deploy.git
       targetRevision: main
       ref: values
   destination:
@@ -217,9 +230,9 @@ metadata:
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
     argocd-image-updater.argoproj.io/git-repository: >-
-      https://github.com/vaam-store/platform.git
+      https://github.com/vaam-store/deploy.git
     argocd-image-updater.argoproj.io/write-back-target: >-
-      helmvalues:deploy/envs/production/vendor-service.values.yaml
+      helmvalues:envs/production/vendor-service.values.yaml
     argocd-image-updater.argoproj.io/git-credentials: >-
       secret:argocd/github-app-creds--vaam-store
 
@@ -246,9 +259,9 @@ spec:
       helm:
         releaseName: vendor-service
         valueFiles:
-          - $values/deploy/envs/production/vendor-service.values.yaml
+          - $values/envs/production/vendor-service.values.yaml
         ignoreMissingValueFiles: true
-    - repoURL: https://github.com/vaam-store/platform.git
+    - repoURL: https://github.com/vaam-store/deploy.git
       targetRevision: main
       ref: values
   destination:
@@ -318,9 +331,9 @@ metadata:
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
     argocd-image-updater.argoproj.io/git-repository: >-
-      https://github.com/vaam-store/platform.git
+      https://github.com/vaam-store/deploy.git
     argocd-image-updater.argoproj.io/write-back-target: >-
-      helmvalues:deploy/envs/production/catalog-service.values.yaml
+      helmvalues:envs/production/catalog-service.values.yaml
     argocd-image-updater.argoproj.io/git-credentials: >-
       secret:argocd/github-app-creds--vaam-store
 
@@ -347,9 +360,9 @@ spec:
       helm:
         releaseName: catalog-service
         valueFiles:
-          - $values/deploy/envs/production/catalog-service.values.yaml
+          - $values/envs/production/catalog-service.values.yaml
         ignoreMissingValueFiles: true
-    - repoURL: https://github.com/vaam-store/platform.git
+    - repoURL: https://github.com/vaam-store/deploy.git
       targetRevision: main
       ref: values
   destination:
@@ -419,9 +432,9 @@ metadata:
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
     argocd-image-updater.argoproj.io/git-repository: >-
-      https://github.com/vaam-store/platform.git
+      https://github.com/vaam-store/deploy.git
     argocd-image-updater.argoproj.io/write-back-target: >-
-      helmvalues:deploy/envs/production/order-service.values.yaml
+      helmvalues:envs/production/order-service.values.yaml
     argocd-image-updater.argoproj.io/git-credentials: >-
       secret:argocd/github-app-creds--vaam-store
 
@@ -448,9 +461,9 @@ spec:
       helm:
         releaseName: order-service
         valueFiles:
-          - $values/deploy/envs/production/order-service.values.yaml
+          - $values/envs/production/order-service.values.yaml
         ignoreMissingValueFiles: true
-    - repoURL: https://github.com/vaam-store/platform.git
+    - repoURL: https://github.com/vaam-store/deploy.git
       targetRevision: main
       ref: values
   destination:
@@ -520,9 +533,9 @@ metadata:
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
     argocd-image-updater.argoproj.io/git-repository: >-
-      https://github.com/vaam-store/platform.git
+      https://github.com/vaam-store/deploy.git
     argocd-image-updater.argoproj.io/write-back-target: >-
-      helmvalues:deploy/envs/production/payment-service.values.yaml
+      helmvalues:envs/production/payment-service.values.yaml
     argocd-image-updater.argoproj.io/git-credentials: >-
       secret:argocd/github-app-creds--vaam-store
 
@@ -549,9 +562,9 @@ spec:
       helm:
         releaseName: payment-service
         valueFiles:
-          - $values/deploy/envs/production/payment-service.values.yaml
+          - $values/envs/production/payment-service.values.yaml
         ignoreMissingValueFiles: true
-    - repoURL: https://github.com/vaam-store/platform.git
+    - repoURL: https://github.com/vaam-store/deploy.git
       targetRevision: main
       ref: values
   destination:
@@ -621,9 +634,9 @@ metadata:
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
     argocd-image-updater.argoproj.io/git-repository: >-
-      https://github.com/vaam-store/platform.git
+      https://github.com/vaam-store/deploy.git
     argocd-image-updater.argoproj.io/write-back-target: >-
-      helmvalues:deploy/envs/production/delivery-gateway.values.yaml
+      helmvalues:envs/production/delivery-gateway.values.yaml
     argocd-image-updater.argoproj.io/git-credentials: >-
       secret:argocd/github-app-creds--vaam-store
 
@@ -650,9 +663,9 @@ spec:
       helm:
         releaseName: delivery-gateway
         valueFiles:
-          - $values/deploy/envs/production/delivery-gateway.values.yaml
+          - $values/envs/production/delivery-gateway.values.yaml
         ignoreMissingValueFiles: true
-    - repoURL: https://github.com/vaam-store/platform.git
+    - repoURL: https://github.com/vaam-store/deploy.git
       targetRevision: main
       ref: values
   destination:
@@ -722,9 +735,9 @@ metadata:
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
     argocd-image-updater.argoproj.io/git-repository: >-
-      https://github.com/vaam-store/platform.git
+      https://github.com/vaam-store/deploy.git
     argocd-image-updater.argoproj.io/write-back-target: >-
-      helmvalues:deploy/envs/production/upload-service.values.yaml
+      helmvalues:envs/production/upload-service.values.yaml
     argocd-image-updater.argoproj.io/git-credentials: >-
       secret:argocd/github-app-creds--vaam-store
 
@@ -751,9 +764,9 @@ spec:
       helm:
         releaseName: upload-service
         valueFiles:
-          - $values/deploy/envs/production/upload-service.values.yaml
+          - $values/envs/production/upload-service.values.yaml
         ignoreMissingValueFiles: true
-    - repoURL: https://github.com/vaam-store/platform.git
+    - repoURL: https://github.com/vaam-store/deploy.git
       targetRevision: main
       ref: values
   destination:
@@ -823,9 +836,9 @@ metadata:
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
     argocd-image-updater.argoproj.io/git-repository: >-
-      https://github.com/vaam-store/platform.git
+      https://github.com/vaam-store/deploy.git
     argocd-image-updater.argoproj.io/write-back-target: >-
-      helmvalues:deploy/envs/production/p2p-mailbox-service.values.yaml
+      helmvalues:envs/production/p2p-mailbox-service.values.yaml
     argocd-image-updater.argoproj.io/git-credentials: >-
       secret:argocd/github-app-creds--vaam-store
 
@@ -847,9 +860,9 @@ spec:
       helm:
         releaseName: p2p-mailbox-service
         valueFiles:
-          - $values/deploy/envs/production/p2p-mailbox-service.values.yaml
+          - $values/envs/production/p2p-mailbox-service.values.yaml
         ignoreMissingValueFiles: true
-    - repoURL: https://github.com/vaam-store/platform.git
+    - repoURL: https://github.com/vaam-store/deploy.git
       targetRevision: main
       ref: values
   destination:
