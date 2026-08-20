@@ -18,31 +18,3 @@ secretStores:
             name: awssm-secret
             key: secret-access-key
             namespace: secret-store-system
-
-  # A second name into the SAME AWS SecretsManager account/creds as
-  # ssegning-aws above (same awssm-secret in secret-store-system, same
-  # region) -- NOT a separate credential. This exists because
-  # vaam-store/platform's 8 Helm charts hardcode `vaam-secret-store` as their
-  # ExternalSecret `storeName` default (see each chart's own README: "the
-  # name here is a placeholder, not a real AWS Secrets Manager binding" --
-  # this IS that binding). Giving it its own ClusterSecretStore name, rather
-  # than overriding `storeName: ssegning-aws` in all 8 production values
-  # files, keeps those charts' own docs accurate for any other cluster that
-  # installs them, and keeps vaam-store's AWS SM key namespace legible on its
-  # own (bare service names like `auth-service`, `ghcr-pull`) without
-  # needing a prefix to avoid colliding with unrelated ssegning-aws
-  # consumers (vymalo, netcup, ...).
-  vaam-secret-store:
-    aws:
-      service: SecretsManager
-      region: eu-central-1
-      auth:
-        secretRef:
-          accessKeyIDSecretRef:
-            name: awssm-secret
-            key: access-key
-            namespace: secret-store-system
-          secretAccessKeySecretRef:
-            name: awssm-secret
-            key: secret-access-key
-            namespace: secret-store-system

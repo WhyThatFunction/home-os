@@ -8,6 +8,10 @@ namespace: argocd
 # from a raw.githubusercontent URL -- committed locally here.
 resources:
   - argocd-application.yaml
+  # Shared CNPG Postgres cluster + Redis for all 7 Postgres-backed services
+  # (sync-wave -1, before the 8 service Applications). See this file's own
+  # header comment for the direction change it represents.
+  - vaam-store-prod-pg.application.yaml
   # ArgoCD repo cred (ESO) so it can pull the PRIVATE OCI Helm charts under
   # ghcr.io/vaam-store/charts/<service>.
   - argocd-charts-oci-repo.externalsecret.yaml

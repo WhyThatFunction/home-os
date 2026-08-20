@@ -66,16 +66,20 @@ spec:
   secretName: {{ $c.name }}-certificate-holder
   usages:
     - server auth
+  # CNPG's own auto-generated Service names are `<cluster-name>-rw/-r/-ro`
+  # (no extra "-cluster-" infix) -- a previous, never-synced version of this
+  # chart had "-cluster-rw" etc. here, which would NOT have matched the real
+  # Service CNPG creates. Fixed.
   dnsNames:
-    - {{ $c.name }}-cluster-rw
-    - {{ $c.name }}-cluster-rw.{{ .Release.Namespace }}
-    - {{ $c.name }}-cluster-rw.{{ .Release.Namespace }}.svc
-    - {{ $c.name }}-cluster-r
-    - {{ $c.name }}-cluster-r.{{ .Release.Namespace }}
-    - {{ $c.name }}-cluster-r.{{ .Release.Namespace }}.svc
-    - {{ $c.name }}-cluster-ro
-    - {{ $c.name }}-cluster-ro.{{ .Release.Namespace }}
-    - {{ $c.name }}-cluster-ro.{{ .Release.Namespace }}.svc
+    - {{ $c.name }}-rw
+    - {{ $c.name }}-rw.{{ .Release.Namespace }}
+    - {{ $c.name }}-rw.{{ .Release.Namespace }}.svc
+    - {{ $c.name }}-r
+    - {{ $c.name }}-r.{{ .Release.Namespace }}
+    - {{ $c.name }}-r.{{ .Release.Namespace }}.svc
+    - {{ $c.name }}-ro
+    - {{ $c.name }}-ro.{{ .Release.Namespace }}
+    - {{ $c.name }}-ro.{{ .Release.Namespace }}.svc
   issuerRef:
     name: {{ $certs.issuerName }}
     kind: {{ $certs.issuerKind }}
@@ -94,19 +98,23 @@ spec:
   imageName: {{ . | quote }}
   {{- end }}
 
-  # No bootstrap.initdb.secret — CNPG auto-generates the `vaam` role
-  # password and publishes it in the `<cluster>-app` Secret. The
-  # vaam-service chart's compose mode reads username/password/host
-  # from that Secret and overrides dbName per service. Risk: the
-  # generated password CAN contain URL-reserved characters (CNPG uses
-  # sethvargo/go-password with the default symbol set). If we observe
-  # a service failing to parse its postgres URL, rotate that service
-  # to chart's `cnpg.urlFromSecret` mode against a derived Secret.
+  # bootstrap.initdb.secret is set (via templates/externalsecret.yaml,
+  # ExternalSecret {{ $c.name }}-owner-secret) so the `vaam` role's password
+  # is a value a human chose (openssl rand -hex 32, guaranteed URI-safe),
+  # NOT CNPG's own auto-generated one -- CNPG's default generator (sethvargo/
+  # go-password, default symbol set) CAN emit URI-reserved characters, which
+  # would break every vaam-store/platform chart's ExternalSecret template
+  # (string-concatenates this password into a postgres:// URI, does not
+  # percent-encode it -- see those charts' own README, "Pointing at a shared
+  # Postgres cluster"). Controlling the character set at the source removes
+  # that whole risk class instead of working around it downstream.
   bootstrap:
     initdb:
       database: app                        # bootstrap DB; per-service DBs are
                                            # created by the Database CRs below
       owner: vaam
+      secret:
+        name: {{ $c.name }}-owner-secret
 
   {{- if $certs.enabled }}
   certificates:
