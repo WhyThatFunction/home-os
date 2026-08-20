@@ -14,7 +14,7 @@ controller:
     # 10 (cd + 9 cd-<group> app-of-apps) — the resulting burst of concurrent
     # first-syncs OOMKilled a controller replica within minutes of merge.
     limits:
-      memory: 3Gi # no CPU limit — let it burst during sync storms
+      memory: 4Gi # no CPU limit — let it burst during sync storms
   env:
     - name: ARGOCD_CONTROLLER_REPLICAS # required for sharding to actually distribute clusters across replicas
       value: "3"
@@ -23,6 +23,10 @@ controller:
 # redis-ha gives a 3-node sentinel cluster; it is mutually exclusive with `redis`.
 redis:
   enabled: true
+  pdb:
+    enabled: true
+    minAvailable: 1
+
 
 redis-ha:
   enabled: false
@@ -30,9 +34,9 @@ redis-ha:
 server:
   autoscaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 2
-    targetCPUUtilizationPercentage: 80
+    minReplicas: 2
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 60
   resources:
     requests:
       cpu: 250m
@@ -50,9 +54,9 @@ server:
 repoServer:
   autoscaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 2 # render is bursty and CPU-bound; raise the ceiling
-    targetCPUUtilizationPercentage: 80
+    minReplicas: 2
+    maxReplicas: 5 # render is bursty and CPU-bound; raise the ceiling
+    targetCPUUtilizationPercentage: 60
   resources:
     requests:
       cpu: 500m
@@ -65,10 +69,11 @@ repoServer:
     limits:
       memory: 2Gi
   pdb:
-    enabled: false
+    enabled: true
+    minAvailable: 1 # minAvailable:2 with minReplicas:2 blocks ALL voluntary disruption (drains/rollouts hang)
 
 applicationSet:
-  replicas: 2
+  replicas: 3
   resources:
     requests:
       cpu: 250m
@@ -77,7 +82,7 @@ applicationSet:
       memory: 512Mi
   pdb:
     enabled: true
-    minAvailable: 1
+    minAvailable: 2
 
 dex:
   pdb:
@@ -210,11 +215,6 @@ configs:
   # carried by one controller pod — the levers below tune that loop rather
   # than adding pods.
   params:
-    # TEMPORARY diagnostic for the OIDC session-refresh investigation (#118)
-    # — offline_access alone didn't fix it, so this is to actually see what
-    # argocd-server does (or doesn't do) with the refresh_token. Revert once
-    # diagnosed.
-    server.log.level: debug
     controller.status.processors: "50" # default 20 — concurrent app diffs
     controller.operation.processors: "25" # default 10 — concurrent syncs
     controller.sharding.algorithm: round-robin # better balance than the legacy hash
@@ -253,11 +253,6 @@ configs:
         - profile
         - email
         - argocd_groups
-        # Without this, Keycloak issues no refresh_token at all (it's Optional,
-        # not Default, on the argocd client) — ArgoCD has nothing to silently
-        # renew the session with, so it just bounces to login once the short-
-        # lived access token expires. Assigning the scope on the Keycloak
-        # client alone does nothing; it must be requested here too.
         - offline_access
 
     "resource.exclusions": |
