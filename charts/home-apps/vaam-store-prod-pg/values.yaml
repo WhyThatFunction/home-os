@@ -34,10 +34,37 @@ cluster:
   # the extension (below), and CNPG runs ONE Postgres image for every
   # database in the cluster -- there's no per-database image. Matches the
   # image vaam-store/platform's own (now-unused-in-production) per-service
-  # delivery-gateway chart pinned for the identical reason. Verify the tag
-  # is still current before a real install; pin it deliberately, don't
-  # float it.
-  imageName: "ghcr.io/cloudnative-pg/postgis:16-3.4-system-trixie"
+  # delivery-gateway chart's `database.cnpg.imageName` pin, for the
+  # identical reason.
+  #
+  # ghcr.io/cloudnative-pg/postgis and ghcr.io/cloudnative-pg/postgresql
+  # are TWO DIFFERENT repos with DIFFERENT tag conventions -- don't copy a
+  # tag suffix from one to the other. `postgresql` publishes an OS-flavour
+  # suffix (`18.1-system-trixie`, as ../keycloak-ha/values.yaml pins it in
+  # this same home-os fleet). `postgis` does NOT: as of 2026-08-21 its
+  # tags are plain `<pg-major>-<postgis-minor>[-<patch>]` (e.g.
+  # `16-3.4-86`) with zero `-system-trixie`/`-trixie` variants published,
+  # confirmed against the live GHCR tag list
+  # (`ghcr.io/v2/cloudnative-pg/postgis/tags/list`), not assumed. A prior
+  # pin here (`16-3.4-system-trixie`) carried the `postgresql` repo's
+  # suffix over to `postgis`, where the tag simply does not exist -- 100%
+  # ImagePullBackOff, the first-sync outage this comment now warns
+  # against repeating.
+  #
+  # Deliberately patch-PINNED (not the floating `16-3.4`) per this repo's
+  # release-engineering convention: a database operand must not change
+  # under a live cluster on an unrelated pod restart. Bump by re-checking
+  # the tag list above and re-verifying the new tag resolves before
+  # changing this line -- don't just take the newest number on faith.
+  #
+  # PG major is 16, NOT the 18 that ../keycloak-ha/values.yaml pins for
+  # its own (plain, non-postgis) CNPG operand -- that gap is NOT a
+  # deliberate fleet-wide decision, it's simply what this chart's original
+  # guess picked (same unverified origin as the broken tag it used to
+  # carry). Left as 16 here since bumping a database major is out of
+  # scope for a tag fix; revisit deliberately if/when this cluster is
+  # provisioned for real.
+  imageName: "ghcr.io/cloudnative-pg/postgis:16-3.4-86"
   resources:
     requests:
       cpu: 250m
