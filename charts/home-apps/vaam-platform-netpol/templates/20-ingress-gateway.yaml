@@ -1,0 +1,60 @@
+{{- if .Values.enabled }}
+# Ingress from the shared Traefik gateway to all 8 vaam-store/platform
+# services. Every one of the 8 production values files in vaam-store/deploy
+# (envs/production/*.values.yaml) sets `routing.enabled: true` against the
+# same `traefik-gateway` Gateway in kube-system (ADR-0006 context-path
+# routing on the shared vaam.store host) -- so unlike a typical fleet where
+# only a subset of services are publicly routed, here it is all 8,
+# including p2p-mailbox-service (`/mailbox` context path).
+#
+# Pod selector for the vaam-store/platform services: every one of the 8
+# services is deployed by the SAME generic "vaam-service" Helm chart
+# (vaam-store/platform deploy/charts/vaam-service, published per-service to
+# oci://ghcr.io/vaam-store/charts/<service>), whose
+# templates/_helpers.tpl sets:
+#   app.kubernetes.io/name: vaam-service        <- identical on all 8 pods
+#   app.kubernetes.io/instance: <service-name>  <- unique per Argo Application
+#     (helm.releaseName in serverless/k/vaam-store-platform/argocd-application.yaml,
+#     confirmed for all 8: auth-service, vendor-service, catalog-service,
+#     order-service, payment-service, delivery-gateway, upload-service,
+#     p2p-mailbox-service)
+# `app.kubernetes.io/name` alone would match every service at once, so
+# every selector in this chart keys off `app.kubernetes.io/instance`
+# instead, which is unique per service.
+#
+# Container port: `containerPort: 8080` is the chart default
+# (deploy/charts/vaam-service/values.yaml) and no production values file
+# overrides it.
+#
+# Traefik pod selector: rendered locally from the real chart
+# (traefik/traefik, matching charts/cd-networking/values.yaml's
+# `destination: server: https://kubernetes.default.svc` block --
+# deployment.kind=DaemonSet, releaseName "traefik", namespace kube-system --
+# `helm template traefik traefik/traefik --namespace kube-system` produces:
+#   app.kubernetes.io/name: traefik
+#   app.kubernetes.io/instance: traefik-kube-system
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-allow-ingress-from-gateway
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: >-
+    Allow the shared Traefik gateway (kube-system) to reach every
+    vaam-store/platform service on its app port.
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: vaam-service
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: traefik
+            app.kubernetes.io/instance: traefik-kube-system
+            k8s:io.kubernetes.pod.namespace: kube-system
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+{{- end }}

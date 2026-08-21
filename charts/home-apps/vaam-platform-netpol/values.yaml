@@ -1,0 +1,19 @@
+# vaam-platform has ZERO NetworkPolicy of any kind today (verified via
+# `kubectl get networkpolicy,cnp -A` by the requester, not by this chart --
+# see the introducing PR for what could/couldn't be confirmed offline). Any
+# pod anywhere in the cluster can currently reach all 8 services, the shared
+# CNPG Postgres cluster, and the shared Redis.
+#
+# SAFETY GATE -- read before flipping this to `true`.
+#
+# A default-deny policy applied to a namespace that has never had one can
+# take the whole fleet offline in one shot if the allow-list below is
+# missing an edge. This chart's default-deny CiliumNetworkPolicy only takes
+# effect once `enabled: true`, so merging the PR that introduces this chart
+# does NOT change any live traffic -- Argo will show the Application
+# Synced/Healthy with an empty manifest set. Flip this deliberately, watch
+# the fleet, and keep the rollback command (see the PR's runbook / this
+# chart's README-equivalent in the PR body) within reach while you do.
+enabled: false
+
+namespace: vaam-platform

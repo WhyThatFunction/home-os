@@ -25,3 +25,7 @@ resources:
   # (without it, app-only changes never promote a digest -- only chart
   # republishes deploy).
   - imageupdater.yaml
+  # CiliumNetworkPolicies for vaam-platform (sync-wave 1, after the 8
+  # service Applications). Shipped with the chart's `enabled` value
+  # defaulting to false -- see that file's own header comment.
+  - vaam-platform-netpol.application.yaml

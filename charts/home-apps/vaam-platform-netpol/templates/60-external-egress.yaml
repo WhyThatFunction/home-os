@@ -1,0 +1,84 @@
+{{- if .Values.enabled }}
+# External (internet) egress for the two services that genuinely need it.
+#
+# WHY toEntities: world INSTEAD OF toFQDNs -- this cluster's Cilium install
+# (cluster/controlplane.yaml, `cilium install --set ...`) does NOT pass
+# `enable-envoy-config=true`. Without it, Cilium's Envoy DNS proxy cannot
+# learn the resolved IPs behind a toFQDNs rule, and egress silently hangs.
+# This exact failure mode already happened once in this repo: see
+# charts/cd-comms/values.yaml:198-206, where a standard Kubernetes
+# NetworkPolicy was combined with a broken CiliumNetworkPolicy toFQDNs rule
+# and ended up blocking ALL external HTTPS egress for the apprise
+# notification gateway -- the NetworkPolicy is still commented out there for
+# exactly this reason. Repeating a toFQDNs rule here would hit the identical
+# hazard. `toEntities: world` restricted to port 443/TCP is the safe
+# fallback: coarser (any HTTPS destination, not just the specific provider)
+# but it actually works on this cluster's current Cilium config, and it is
+# still a meaningful narrowing -- these two services could previously reach
+# ANY port on ANY destination (in-cluster or internet), including each
+# other's non-app ports and every other namespace's Postgres/Redis/etc.
+#
+# Revisit once `enable-envoy-config=true` is added to the cilium-install
+# command (same prerequisite the cd-comms TODO is waiting on) -- at that
+# point these two rules can be tightened to toFQDNs matching the specific
+# provider hostnames below instead of all of `world`.
+#
+#   payment-service -> proxy.momoapi.mtn.com (MTN MoMo,
+#     services/payment-service/src/rails/mtn_momo.rs:128) and
+#     api.orange.com / api.sandbox.orange.com (Orange Money,
+#     services/payment-service/src/rails/orange_money.rs:200-204).
+#
+#   upload-service -> s3.ssegning.me (self-hosted MinIO). Note this
+#     hostname is actually served by THIS SAME cluster's own MinIO chart
+#     (charts/s3/values.yaml, hostname: s3.ssegning.me) -- but
+#     vaam-store/platform's object-storage config
+#     (services/upload-service/.env: VAAM_OBJECT_STORAGE_ENDPOINT) and CNPG's
+#     own barman-cloud backup target
+#     (charts/home-apps/vaam-store-prod-pg/values.yaml backup.endpoint) both
+#     point at the PUBLIC hostname, not an in-cluster Service DNS name, so
+#     from Cilium's perspective this is a real internet egress (DNS resolve
+#     -> public IP -> back in through the ingress path), not a same-cluster
+#     pod-to-pod hop -- toEndpoints against the minio chart's own pods would
+#     NOT match this traffic. upload-kit's Cargo.toml depends on aws-sdk-s3,
+#     confirming this is a real outbound S3-protocol client, not just a
+#     display-URL string.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-payment-service-external-egress
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: payment-service's egress to MTN MoMo and Orange Money.
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: payment-service
+  egress:
+    - toEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-upload-service-external-egress
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: upload-service's egress to s3.ssegning.me object storage.
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: upload-service
+  egress:
+    - toEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+{{- end }}

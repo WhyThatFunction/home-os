@@ -1,0 +1,32 @@
+{{- if .Values.enabled }}
+# Defense-in-depth: explicitly allow kubelet liveness/readiness/startup
+# probes (the `reserved:host` identity) to reach every pod in the
+# namespace. Cilium's documented default is to already allow
+# host-originated traffic to local pods without this rule, but that default
+# was NOT verified against this specific cluster's config (kube-proxy
+# replacement + no host-firewall policy in place today -- see
+# cluster/controlplane.yaml's cilium-install args, checked offline; no
+# CiliumClusterwideNetworkPolicy targeting `reserved:host` was found in this
+# repo either, which is the only other thing that could change this
+# default). Making it explicit here costs nothing and removes one class of
+# "which default am I relying on" risk for a default-deny rollout on a
+# namespace that has never had one. Every vaam-service chart Deployment
+# defines readiness/liveness probes against /healthz and /healthz/ready
+# (vaam-store/platform deploy/charts/vaam-service) -- if this rule were
+# wrong or insufficient, pods would flip NotReady and get killed almost
+# immediately after enabling, which is one of the first symptoms called out
+# in the enablement runbook.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-allow-kubelet-probes
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: Allow kubelet health probes to reach every pod in vaam-platform.
+  endpointSelector: {}
+  ingress:
+    - fromEntities:
+        - host
+{{- end }}

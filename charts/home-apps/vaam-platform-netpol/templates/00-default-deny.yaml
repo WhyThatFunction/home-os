@@ -1,0 +1,30 @@
+{{- if .Values.enabled }}
+# Baseline default-deny for every pod in vaam-platform, both directions.
+#
+# Cilium policy semantics: once ANY CiliumNetworkPolicy in the cluster
+# selects a given pod for a given direction (ingress/egress), that pod
+# drops all traffic in that direction except what is explicitly allowed --
+# by THIS policy or by ANY OTHER CiliumNetworkPolicy that also selects it
+# (Cilium unions/ORs the rule sets of every CNP matching an endpoint, it
+# does not require one policy to hold every rule). This policy's own
+# ingress/egress lists are deliberately empty: it exists only to flip every
+# pod in the namespace into "default-deny" mode. The actual allow rules
+# live in the numbered templates that follow (10-*, 20-*, ...).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-default-deny
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: >-
+    Default-deny ingress and egress for every pod in vaam-platform. Allow
+    rules are layered on top by the other CiliumNetworkPolicy objects in
+    this chart -- see 10-dns-egress.yaml, 20-ingress-gateway.yaml,
+    30-east-west.yaml, 40-postgres.yaml, 50-redis.yaml and
+    60-external-egress.yaml.
+  endpointSelector: {}
+  ingress: []
+  egress: []
+{{- end }}

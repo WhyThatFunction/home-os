@@ -1,0 +1,324 @@
+{{- if .Values.enabled }}
+# East-west (service-to-service) allow-list, re-derived from the vaam-store/platform
+# env/config layer across ALL 8 services (VAAM_*_URL entries in each
+# service's .env, README.adoc, docs/*.adoc, and the matching DEFAULT_*_URL
+# constant in src/lib.rs) -- not from grepping for client-construction
+# symbol names, which is exactly the method that missed the
+# vendor-service -> upload-service edge in an earlier pass of this policy
+# (that edge's client is built via `upload_client_schema::...::client::Client`,
+# not a literal `CratestackClient`/`reqwest::Client` token, so a
+# symbol-name grep silently skipped it). The sweep below was run against
+# every one of the 8 services; catalog-service, delivery-gateway,
+# payment-service and p2p-mailbox-service have ZERO outbound
+# VAAM_*_SERVICE_URL / VAAM_*_GATEWAY_URL entries anywhere in their .env,
+# README.adoc, docs/*.adoc or src/*.rs -- confirmed, not assumed.
+#
+#   order-service -> catalog-service, vendor-service, payment-service,
+#   delivery-gateway
+#     services/order-service/.env:15-18 (VAAM_CATALOG_SERVICE_URL /
+#     VAAM_VENDOR_SERVICE_URL / VAAM_PAYMENT_SERVICE_URL /
+#     VAAM_DELIVERY_GATEWAY_URL), services/order-service/src/lib.rs:70-73
+#     (matching DEFAULT_*_URL constants) and :343-361
+#     (catalog_client/vendor_client/payment_client/delivery_client, each
+#     opening a CratestackClient against that service's base URL).
+#     vendor_client (:348-350) is unsigned; the other three are signed via
+#     ServiceRequestAuthorizer -- irrelevant at the network-policy layer,
+#     which only cares about the L3/L4 edge existing.
+#
+#   vendor-service -> payment-service, upload-service
+#     services/vendor-service/.env:14-15 (VAAM_PAYMENT_SERVICE_URL,
+#     VAAM_UPLOAD_SERVICE_URL), services/vendor-service/src/lib.rs:65,74
+#     (DEFAULT_PAYMENT_SERVICE_URL, DEFAULT_UPLOAD_SERVICE_URL),
+#     :1473-1497 (payment_service_client()/upload_service_client(), both
+#     CratestackClient + ServiceRequestAuthorizer -- signed), and :1091
+#     (find_asset_by_id call via the upload client, part of
+#     validate_kyc_documents for submitVendorKyc -- documented at
+#     services/vendor-service/docs/vendor-lifecycle.adoc:79 and
+#     services/vendor-service/README.adoc:33 /
+#     services/vendor-service/docs/operations.adoc:79,83). Landed in
+#     platform PR #118 (vendor-KYC ownerType: vendor routing fix).
+#     CORRECTION: an earlier pass of this policy grepped only for
+#     `reqwest::Client`/`CratestackClient`/`generated_client` as literal
+#     tokens and concluded vendor-service had no upload-service edge --
+#     wrong, because this client is built via the differently-named
+#     `upload_client_schema::cratestack_schema::client::Client` type. The
+#     env/config-layer sweep above is the reliable signal, not client
+#     symbol names.
+#
+#   auth-service -> upload-service
+#     services/auth-service/.env:24 (VAAM_UPLOAD_SERVICE_URL),
+#     services/auth-service/src/upload_client.rs:18-21
+#     (UPLOAD_SERVICE_URL_ENV, DEFAULT_UPLOAD_SERVICE_URL) and :100-124
+#     (UploadClientFactory, signed via ServiceRequestAuthorizer). Matches
+#     tools/dev-keys/src/main.rs's S2S_CALLERS/doc comment ("auth-service ->
+#     upload").
+#
+#   upload-service -> vendor-service, catalog-service, order-service
+#     (JWKS pull for ADR-023 upload tickets)
+#     services/upload-service/.env:42 sets VAAM_UPLOAD_TICKET_ISSUERS to a
+#     real JSON map of all three issuers' /jwks.json URLs -- wired and live
+#     in local dev, confirmed by direct read of that line, not "unset
+#     everywhere" as an earlier pass of this policy claimed (that pass was
+#     reading a stale checkout of this repo predating the wiring). NOT
+#     independently confirmed in vaam-store/deploy's production values
+#     (envs/production/upload-service.values.yaml on origin/main has no
+#     VAAM_UPLOAD_TICKET_ISSUERS entry as of this writing) -- production
+#     status is genuinely unverified during the in-flight shared-CNPG/Redis
+#     migration, unlike the other four edges above which are confirmed via
+#     both local .env AND the source-level DEFAULT_*_URL fallback (so they
+#     hold regardless of whether a given environment's env var is set).
+#     Regardless of today's production wiring status, this edge is already
+#     an explicit ALLOW rule below -- flipping VAAM_UPLOAD_TICKET_ISSUERS on
+#     in production later needs NO further network-policy change, only the
+#     application-config change itself.
+#     services/upload-service/src/lib.rs:30-33 (VAAM_UPLOAD_TICKET_ISSUERS,
+#     "JSON {issuer: jwks_url}") and :168-176 (parses it into a
+#     MultiIssuerJwksVerifier) drive the outbound GETs. tools/dev-keys's
+#     TICKET_SIGNERS list (vendor-service, catalog-service, order-service --
+#     each publishing its ADR-023 upload-ticket signing key at its own
+#     /jwks.json) is exactly the trusted-issuer set upload-service fetches
+#     from.
+#
+# All app ports are 8080/TCP (see 20-ingress-gateway.yaml for the container
+# port evidence).
+#
+# ---- egress (grouped by caller) ----
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-order-service-egress
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: order-service's checkout fan-out to catalog/vendor/payment/delivery.
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: order-service
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: catalog-service
+        - matchLabels:
+            app.kubernetes.io/instance: vendor-service
+        - matchLabels:
+            app.kubernetes.io/instance: payment-service
+        - matchLabels:
+            app.kubernetes.io/instance: delivery-gateway
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-vendor-service-egress
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: >-
+    vendor-service's outbound calls to payment-service and to
+    upload-service (validate_kyc_documents's find_asset_by_id, part of
+    submitVendorKyc -- services/vendor-service/src/lib.rs:1091, PR #118).
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: vendor-service
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: payment-service
+        - matchLabels:
+            app.kubernetes.io/instance: upload-service
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-auth-service-egress
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: auth-service's signed s2s call to upload-service.
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: auth-service
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: upload-service
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-upload-service-egress
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: >-
+    upload-service fetching upload-ticket JWKS from the three services that
+    mint tickets (see the file header for why this replaces the assumed
+    vendor->upload edge).
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: upload-service
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: vendor-service
+        - matchLabels:
+            app.kubernetes.io/instance: catalog-service
+        - matchLabels:
+            app.kubernetes.io/instance: order-service
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+---
+# ---- ingress (grouped by callee) ----
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-catalog-service-ingress
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: catalog-service accepts order-service (checkout) and upload-service (JWKS).
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: catalog-service
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: order-service
+        - matchLabels:
+            app.kubernetes.io/instance: upload-service
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-vendor-service-ingress
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: vendor-service accepts order-service (checkout) and upload-service (JWKS).
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: vendor-service
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: order-service
+        - matchLabels:
+            app.kubernetes.io/instance: upload-service
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-payment-service-ingress
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: payment-service accepts order-service and vendor-service.
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: payment-service
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: order-service
+        - matchLabels:
+            app.kubernetes.io/instance: vendor-service
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-delivery-gateway-ingress
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: delivery-gateway accepts order-service.
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: delivery-gateway
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: order-service
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-upload-service-ingress
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: >-
+    upload-service accepts auth-service's and vendor-service's signed s2s
+    calls (vendor-service's find_asset_by_id for submitVendorKyc).
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: upload-service
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: auth-service
+        - matchLabels:
+            app.kubernetes.io/instance: vendor-service
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-order-service-ingress
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: order-service accepts upload-service's JWKS fetch.
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: order-service
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: upload-service
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+{{- end }}

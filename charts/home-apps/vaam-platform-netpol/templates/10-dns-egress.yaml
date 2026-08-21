@@ -1,0 +1,39 @@
+{{- if .Values.enabled }}
+# DNS egress for every pod in vaam-platform, to CoreDNS (`k8s-app: kube-dns`)
+# in kube-system. This MUST exist before default-deny egress goes live, or
+# every pod loses name resolution the moment this chart is enabled -- which
+# looks exactly like a generic application outage, not a network-policy
+# problem (see charts/cd-comms/values.yaml:198-206 in this repo for a prior
+# incident of the same shape, on a standard NetworkPolicy).
+#
+# `k8s-app: kube-dns` is CoreDNS's standard label regardless of provider;
+# this cluster is kubeProxyReplacement=true Cilium (cluster/controlplane.yaml)
+# but does not run Cilium's own DNS proxy (enable-envoy-config is not set --
+# see 60-external-egress.yaml for why that also rules out toFQDNs egress
+# rules), so DNS resolution still goes through the ordinary CoreDNS
+# Service/pods, not Cilium's DNS proxy.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-allow-dns
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: Allow every vaam-platform pod to reach CoreDNS in kube-system.
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s-app: kube-dns
+            k8s:io.kubernetes.pod.namespace: kube-system
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"
+{{- end }}
