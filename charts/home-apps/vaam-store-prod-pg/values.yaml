@@ -41,42 +41,75 @@ cluster:
   # are TWO DIFFERENT repos with DIFFERENT tag conventions -- don't copy a
   # tag suffix from one to the other. `postgresql` publishes an OS-flavour
   # suffix (`18.1-system-trixie`, as ../keycloak-ha/values.yaml pins it in
-  # this same home-os fleet). `postgis` does NOT: as of 2026-08-21 its
-  # tags are plain `<pg-major>-<postgis-minor>[-<patch>]` (e.g.
-  # `16-3.4-86`) with zero `-system-trixie`/`-trixie` variants published,
-  # confirmed against the live GHCR tag list
-  # (`ghcr.io/v2/cloudnative-pg/postgis/tags/list`), not assumed. A prior
-  # pin here (`16-3.4-system-trixie`) carried the `postgresql` repo's
-  # suffix over to `postgis`, where the tag simply does not exist -- 100%
-  # ImagePullBackOff, the first-sync outage this comment now warns
-  # against repeating.
+  # this same home-os fleet). `postgis` does too, but only from the PG 18
+  # line onward, and in the fuller
+  # `<pgMajor.minor>-<postgisVersion>-<buildTimestamp>-<flavour>-<os>`
+  # form (e.g. `18.6-3.6.4-202608171012-standard-trixie`) -- fully
+  # patch-pinnable, contrary to two earlier, wrong conclusions below.
   #
-  # Deliberately patch-PINNED (not the floating `17-3.4`) per this repo's
-  # release-engineering convention: a database operand must not change
-  # under a live cluster on an unrelated pod restart. Bump by re-checking
-  # the tag list above and re-verifying the new tag resolves before
-  # changing this line -- don't just take the newest number on faith.
+  # *** THE PAGINATION TRAP (read this before ever re-deciding this pin) ***
+  # Two earlier passes over this file concluded, in turn, that (a) the
+  # `postgis` repo published no PG 18 images at all, then (b) that PG 18
+  # existed but had "no numeric patch tag to pin to, only floating OS-
+  # flavour tags." BOTH were wrong, and both came from the SAME root
+  # cause: querying `ghcr.io/v2/cloudnative-pg/postgis/tags/list?n=1000`
+  # (or `?n=2000`) and treating the truncated first page as the whole
+  # list. GHCR paginates via a `Link: <...>; rel="next"` response header;
+  # the real list, fully paged, is 4,359 tags across 5 pages (verified
+  # 2026-08-21). Paging all 5 pages surfaces the fully-pinned PG 18 tags
+  # that a single-page query simply never sees. If you are about to
+  # conclude PG 18 (or any future major) "doesn't have a pinnable tag,"
+  # page the ENTIRE list first -- don't trust page 1.
   #
-  # PG major is 17, DELIBERATELY -- bumped from an unexamined 16 on
-  # 2026-08-21 while this cluster was still bootstrapping with zero rows
-  # (status.phase = "Setting up primary", no `-app` secret ever consumed),
-  # so the cost was a free re-bootstrap instead of a future pg_upgrade.
-  # 17 is the newest PG major the `postgis` repo ships on the proven 3.4
-  # PostGIS track (verified against the full live GHCR tag list, all
-  # pages, 2026-08-21): `postgis` publishes `18-3.6-{standard,system}-
-  # {bookworm,trixie}` floating tags for PG 18, but NOT PostGIS 3.4 or 3.5
-  # for PG 18, and NOT a `18-3.6-<patch>` numeric tag to pin to (breaking
-  # this chart's patch-pin convention above) -- so PG 18 is reachable here
-  # only by also jumping PostGIS to the newer, less-proven 3.6 track and
-  # giving up patch-pinning, not just by bumping the major. `postgresql`
-  # (the non-postgis repo, e.g. ../keycloak-ha/values.yaml's `18.1-system-
-  # trixie`) has no bearing here -- CNPG runs ONE image for every database
-  # in this cluster (see MUST-be-postgis-flavored note above), and
-  # catalog_db/delivery_db both `CREATE EXTENSION postgis`. PostGIS itself
-  # stays on 3.4 (not the newer 3.5, available for both 16 and 17) --
-  # 3.4 is the track this cluster has always run; 3.5/3.6 can be a
-  # separate, deliberate decision later if ever wanted.
-  imageName: "ghcr.io/cloudnative-pg/postgis:17-3.4-15"
+  # Deliberately patch-PINNED per this repo's release-engineering
+  # convention: a database operand must not change under a live cluster
+  # on an unrelated pod restart. Bump by re-paging the FULL tag list
+  # above (all pages) and re-verifying the new tag resolves (manifest
+  # GET => 200) before changing this line -- don't just take the newest
+  # number on faith, and don't stop at page 1.
+  #
+  # PG major is 18, PostGIS is 3.6, DELIBERATELY -- final decision,
+  # 2026-08-21, made while this cluster was mid-flight on CNPG's own
+  # declarative 16->17 major upgrade (see PR history) and still holds
+  # zero real rows (no `databases:` CR below has ever been created
+  # inside a running cluster, no `-app` secret ever consumed), so the
+  # cost of this bump is a second free re-bootstrap, not a pg_upgrade.
+  # The `postgis` repo's PG 18 line ONLY EVER shipped on the PostGIS 3.6
+  # track -- there is no `18-3.4-*` or `18-3.5-*` tag at any patch, and
+  # never has been (verified against the full paginated tag list) -- so
+  # taking PG 18 here means taking PostGIS 3.6, not a separate choice.
+  # PostGIS 3.4 -> 3.6 compatibility was checked against this cluster's
+  # actual usage (delivery-gateway's `20260811231900_postgis_geo`
+  # migration: `CREATE EXTENSION IF NOT EXISTS postgis`,
+  # `geography(POINT/POLYGON, 4326)`, `ST_MakePoint`, `ST_SetSRID`, a
+  # `USING GIST` index) against the PostGIS 3.5 and 3.6 release notes:
+  # nothing removed or behaviour-changed in either release touches
+  # `ST_MakePoint`/`ST_SetSRID`/`geography`/GIST indexing or a bare
+  # `CREATE EXTENSION postgis`. 3.6's breaking changes are a
+  # `geometry_columns` constraint-check removal, integer->bigint
+  # topology function deprecations, a TIN/PolyhedralSurface
+  # `ST_NumGeometries` behaviour change, and removal of
+  # `st_approxquantile(raster, ...)` -- none apply here. Since this
+  # cluster has zero rows, `CREATE EXTENSION postgis` installs 3.6.4
+  # fresh; there's no `postgis_extensions_upgrade()` migration step to
+  # run either way.
+  #
+  # Flavour is `standard`, NOT `system` or `minimal` -- CORRECTING the
+  # pattern-match to ../keycloak-ha/values.yaml's `18.1-system-trixie`:
+  # `system` images are DEPRECATED upstream (cloudnative-pg/postgres-
+  # containers README, 2026-08-21) and exist only to carry the in-image
+  # Barman Cloud binary for CNPG's legacy in-core backup path. This
+  # chart (like keycloak-ha) does NOT use that path -- both already
+  # back up via the separate `barman-cloud.cloudnative-pg.io` Cluster
+  # PLUGIN (see `templates/cnpg.yaml`'s `spec.plugins` + the
+  # `barmancloud.cnpg.io/v1` ObjectStore), which upstream's own docs
+  # state is functionally at parity with `system` and is meant to run
+  # against `standard` (or `minimal`) images. So `system-trixie` was
+  # never actually required here (or on keycloak-ha) -- `standard`
+  # is genuinely the closer-to-recommended, non-deprecated choice, and
+  # is what's pinned below. `-trixie` (not `-bookworm`) still matches
+  # ../keycloak-ha/values.yaml's Debian codebase choice for this fleet.
+  imageName: "ghcr.io/cloudnative-pg/postgis:18.6-3.6.4-202608171012-standard-trixie"
   resources:
     requests:
       cpu: 250m
