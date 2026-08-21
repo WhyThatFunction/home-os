@@ -1,0 +1,62 @@
+# Shared CNPG Postgres cluster + Redis for the vaam-store/platform fleet.
+#
+# 2026-08-21 direction change: the fleet no longer bundles one CNPG Cluster
+# PER service (7 of them). Instead ALL 7 Postgres-backed services share ONE
+# CNPG cluster, each owning its own database inside it (CNPG `Database` CRs)
+# -- this is the revived, updated `charts/home-apps/vaam-store-prod-pg`
+# chart (previously authored 2026-06-05 for a different, now-superseded
+# service topology -- `chat_db` instead of `p2p-mailbox-service`, points at
+# the archived `vaam-store/vaam-store-prod` repo -- and never wired into any
+# app-of-apps; revived+corrected in the same change that added this file).
+# See that chart's own values.yaml header for what changed and why
+# (postgis operand image, bootstrap.initdb.secret pre-seeded from AWS SM
+# instead of a CNPG-auto-generated password, corrected `-rw`/`-r`/`-ro`
+# Service dnsNames).
+#
+# Every vaam-store/platform service's own ExternalSecret composes its
+# VAAM_DATABASE_URL against THIS cluster (`database.shared.*` in its
+# production values, vaam-store/deploy) -- see each chart's own README,
+# "Pointing at a shared Postgres cluster". p2p-mailbox-service needs no
+# database at all (ADR-0007, Redis-only) and is not represented here.
+#
+# sync-wave -1: one wave BEFORE the 8 service Applications (wave 0, see
+# argocd-application.yaml) -- Argo waits for this Application to report
+# Healthy (CNPG Cluster ready, Database CRs reconciled) before starting the
+# next wave. This is a courtesy, not a hard dependency: even if a service's
+# Application synced first, its migrate Job would just crash-loop (Argo's
+# own retry/selfHeal, already configured on every service Application, keeps
+# re-attempting) until this cluster is up -- exactly the existing, accepted
+# "expect the migrate Job to crash-loop until dependencies are ready"
+# pattern, now against a cluster instead of a connection string.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vaam-store-prod-pg
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: vaam-store-platform
+spec:
+  project: external
+  ignoreDifferences:
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      jsonPointers:
+        - /status
+  source:
+    repoURL: https://github.com/whythatfunction/home-os
+    targetRevision: HEAD
+    path: charts/home-apps/vaam-store-prod-pg
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vaam-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

@@ -1,0 +1,883 @@
+# ArgoCD Applications for the vaam-store/platform 8-service fleet, deployed to
+# the vaam-platform namespace behind the shared Traefik Gateway (ADR-0006
+# context-path routing) at https://vaam.store.
+#
+# HOSTNAME ASSUMPTION, stated prominently: platform issue #74 tracks a
+# `vaam.store` domain rename that may NOT be settled yet. Every Application
+# below (via its production values file in vaam-store/deploy) routes
+# through `vaam.store` -- if #74 resolves differently, the fix is a values
+# file change on the deploy repo, not here.
+#
+# ONE APPLICATION PER SERVICE (8 total), not vymalo-backend's 3-way
+# wave-split. vymalo's backend chart needed that split because its migrate
+# Job (a PreSync hook) would otherwise race the CNPG Cluster + ExternalSecret
+# (plain Sync-phase resources) within ONE Application -- "a single role:all
+# app would run the PreSync hook before CNPG/ESO and deadlock" (see this
+# repo's own vymalo-shop/argocd-application.yaml header). The 7 CNPG-backed
+# vaam-store/platform charts have the IDENTICAL hazard, but it's fixed
+# UPSTREAM instead, at the chart level: platform PR (see deploy/README.md)
+# gives the CNPG Cluster and both ExternalSecrets their own PreSync hook
+# weights (-20 / -15 / -10) earlier than the migrate Job's ("0"), so Argo/Helm
+# execute them in the correct order INSIDE one PreSync phase, inside one
+# Application. That collapses what would otherwise be a ~21-24 Application
+# fleet (3 per CNPG-backed service x 7, vymalo-style) down to 8 -- one
+# Application per service stays legible at this count without an
+# ApplicationSet's added indirection, and this fleet has two real structural
+# exceptions (delivery-gateway's PostGIS operand, p2p-mailbox-service's
+# no-migrate/Redis-only shape) that would need per-generator special-casing
+# in an ApplicationSet anyway, eroding most of its DRY benefit over 8
+# explicit, individually-readable Applications.
+#
+# No inter-service Argo sync-wave ordering: each service owns its own CNPG
+# Cluster (not a shared cluster like vymalo's), its own ExternalSecrets, and
+# its own migrate Job -- there is no create-time dependency between the 8
+# Applications, only ADR-0006 runtime HTTP calls between them (order ->
+# catalog/vendor/payment/delivery-gateway, etc.), which don't need Argo to
+# enforce ordering; a service just 502s until its callee is reachable and
+# Argo's selfHeal keeps converging.
+#
+# vaam-store/platform is PRIVATE: chart pull uses the repo cred
+# (argocd-charts-oci-repo.externalsecret.yaml here) against
+# ghcr.io/vaam-store/charts, still hosted out of platform's own CI --
+# UNCHANGED by the values-repo split below.
+#
+# Production Helm values moved OUT of vaam-store/platform into a dedicated,
+# also-PRIVATE repo, vaam-store/deploy (bootstrapped platform-side at
+# commit f6108f5; deploy/envs/production/ is removed from platform once
+# this lands, see vaam-store/platform#145, a draft PR gated on this file).
+# $values clone + Image Updater git write-back now BOTH target
+# vaam-store/deploy, using ONE shared credential, github-app-creds--vaam-
+# store, mirroring this fleet's existing github-app-creds--vymalo
+# precedent (see vymalo-shop/argocd-application.yaml's own header:
+# "$values clone + Image Updater git write-back use
+# github-app-creds--vymalo"). That Secret is NOT YET CREATED (see the
+# human deployment checklist) and, like its vymalo counterpart, is not
+# templated anywhere in this GitOps repo -- ArgoCD's own bootstrap
+# (charts/argocd/README.md: "installed manually once") and its git
+# repository credentials are the one class of secret created out-of-band
+# by a human, the same way github-app-creds--vymalo was. IMPORTANT: when
+# that GitHub App is installed/granted, it must cover vaam-store/deploy --
+# NOT vaam-store/platform, which this credential no longer reads or
+# writes at all (chart pull above is a separate OCI credential,
+# unaffected).
+#
+# THIS IS A HARD PRE-SYNC GATE, not merely an image-promotion nicety: every
+# one of the 8 Applications below has a SECOND `sources[]` entry (repoURL
+# https://github.com/vaam-store/deploy.git, ref: values) that ArgoCD must
+# clone to render `valueFiles`. Without github-app-creds--vaam-store
+# registered as an ArgoCD repository credential (labelled
+# argocd.argoproj.io/secret-type: repository) for that git URL, the clone
+# fails with repo-access-denied and NONE of the 8 Applications can render,
+# regardless of the OCI chart-pull credential above being fine
+# (lightbridge-assistant P1, PR #122). Until the Secret exists, image
+# promotion additionally needs a human to bump `image.tag` by hand in each
+# service's envs/production/<service>.values.yaml on the deploy
+# repo -- but that is the SMALLER consequence of it being missing.
+#
+# CNPG Cluster's `.status` is populated by the operator after bootstrap, not
+# by this Application's own desired state -- ignored on all 7 CNPG-backed
+# Applications so a freshly bootstrapping Cluster doesn't flap OutOfSync
+# (mirrors vymalo-backend-cnpg here).
+---
+# ─────────────────────────────────────────────────────────────────────────
+# 1. auth-service -- sole issuer (ADR-0005); RFC 8414 well-known discovery at the host root
+# ─────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: auth-service
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+
+    argocd-image-updater.argoproj.io/image-list: >-
+      app=ghcr.io/vaam-store/platform/auth-service:latest
+    argocd-image-updater.argoproj.io/app.source-index: "0"
+    # PRIVATE GHCR: the controller needs a read credential to list digests,
+    # or it gets `unauthorized`. ESO Secret created in
+    # ghcr-pull.externalsecret.yaml (this dir).
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
+    argocd-image-updater.argoproj.io/app.update-strategy: digest
+    # The workload runs on the bjw-s app-template dependency (controller
+    # `main`, container `app`) -- that path, NOT the top-level `image.*`
+    # (which only feeds the migrate Job), is what actually serves traffic.
+    # See this app's production values file for the matching note: the
+    # chart duplicates the image ref across both paths with no templating
+    # link between them, so a manual tag bump (or this controller's
+    # write-back once it's wired) must set both, or the migrate Job and the
+    # Deployment can drift onto different image tags.
+    argocd-image-updater.argoproj.io/app.helm.image-name: app-template.controllers.main.containers.app.image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: app-template.controllers.main.containers.app.image.tag
+    argocd-image-updater.argoproj.io/app.force-update: "true"
+
+    argocd-image-updater.argoproj.io/app.signature-type: cosign
+    argocd-image-updater.argoproj.io/app.cosign.certificate-oidc-issuer: >-
+      https://token.actions.githubusercontent.com
+    argocd-image-updater.argoproj.io/app.cosign.certificate-identity-regexp: >-
+      ^https://github\.com/vaam-store/platform/\.github/workflows/image\.yml@.*$
+
+    # git write-back: source is an OCI registry (not git), so an explicit
+    # HTTPS git-repository + creds are required. NOT YET FUNCTIONAL -- the
+    # github-app-creds--vaam-store Secret this references does not exist yet
+    # (see this PR's description / human checklist item 2, now a HARD
+    # pre-sync gate, not merely an image-promotion nicety: the SAME missing
+    # Secret is also this Application's `$values` git-clone credential
+    # below (lightbridge-assistant P1, PR #122) -- without it, the first
+    # sync of all 8 Applications fails on repo-access-denied, full stop.
+    # The pull-secret/cosign-verification annotations above are unaffected
+    # (separate GHCR-read credential, already provisioned).
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/git-repository: >-
+      https://github.com/vaam-store/deploy.git
+    argocd-image-updater.argoproj.io/write-back-target: >-
+      helmvalues:envs/production/auth-service.values.yaml
+    argocd-image-updater.argoproj.io/git-credentials: >-
+      secret:argocd/github-app-creds--vaam-store
+
+    notifications.argoproj.io/subscribe.on-deployed.vaam-platform: ""
+    notifications.argoproj.io/subscribe.on-deploy-failed.vaam-platform: ""
+    notifications.ssegning.me/github-repo-url: https://github.com/vaam-store/platform
+    notifications.ssegning.me/github-revision: main
+    notifications.ssegning.me/environment-url: https://vaam.store/auth
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: vaam-store-platform
+spec:
+  project: external
+  ignoreDifferences:
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      jsonPointers:
+        - /status
+  sources:
+    - repoURL: ghcr.io/vaam-store/charts
+      chart: auth-service
+      targetRevision: 0.1.*
+      helm:
+        releaseName: auth-service
+        valueFiles:
+          - $values/envs/production/auth-service.values.yaml
+        ignoreMissingValueFiles: true
+    - repoURL: https://github.com/vaam-store/deploy.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vaam-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
+---
+# ─────────────────────────────────────────────────────────────────────────
+# 2. vendor-service -- mints ADR-0002 vendor membership tickets
+# ─────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vendor-service
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+
+    argocd-image-updater.argoproj.io/image-list: >-
+      app=ghcr.io/vaam-store/platform/vendor-service:latest
+    argocd-image-updater.argoproj.io/app.source-index: "0"
+    # PRIVATE GHCR: the controller needs a read credential to list digests,
+    # or it gets `unauthorized`. ESO Secret created in
+    # ghcr-pull.externalsecret.yaml (this dir).
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
+    argocd-image-updater.argoproj.io/app.update-strategy: digest
+    # The workload runs on the bjw-s app-template dependency (controller
+    # `main`, container `app`) -- that path, NOT the top-level `image.*`
+    # (which only feeds the migrate Job), is what actually serves traffic.
+    # See this app's production values file for the matching note: the
+    # chart duplicates the image ref across both paths with no templating
+    # link between them, so a manual tag bump (or this controller's
+    # write-back once it's wired) must set both, or the migrate Job and the
+    # Deployment can drift onto different image tags.
+    argocd-image-updater.argoproj.io/app.helm.image-name: app-template.controllers.main.containers.app.image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: app-template.controllers.main.containers.app.image.tag
+    argocd-image-updater.argoproj.io/app.force-update: "true"
+
+    argocd-image-updater.argoproj.io/app.signature-type: cosign
+    argocd-image-updater.argoproj.io/app.cosign.certificate-oidc-issuer: >-
+      https://token.actions.githubusercontent.com
+    argocd-image-updater.argoproj.io/app.cosign.certificate-identity-regexp: >-
+      ^https://github\.com/vaam-store/platform/\.github/workflows/image\.yml@.*$
+
+    # git write-back: source is an OCI registry (not git), so an explicit
+    # HTTPS git-repository + creds are required. NOT YET FUNCTIONAL -- the
+    # github-app-creds--vaam-store Secret this references does not exist yet
+    # (see this PR's description / human checklist item 2, now a HARD
+    # pre-sync gate, not merely an image-promotion nicety: the SAME missing
+    # Secret is also this Application's `$values` git-clone credential
+    # below (lightbridge-assistant P1, PR #122) -- without it, the first
+    # sync of all 8 Applications fails on repo-access-denied, full stop.
+    # The pull-secret/cosign-verification annotations above are unaffected
+    # (separate GHCR-read credential, already provisioned).
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/git-repository: >-
+      https://github.com/vaam-store/deploy.git
+    argocd-image-updater.argoproj.io/write-back-target: >-
+      helmvalues:envs/production/vendor-service.values.yaml
+    argocd-image-updater.argoproj.io/git-credentials: >-
+      secret:argocd/github-app-creds--vaam-store
+
+    notifications.argoproj.io/subscribe.on-deployed.vaam-platform: ""
+    notifications.argoproj.io/subscribe.on-deploy-failed.vaam-platform: ""
+    notifications.ssegning.me/github-repo-url: https://github.com/vaam-store/platform
+    notifications.ssegning.me/github-revision: main
+    notifications.ssegning.me/environment-url: https://vaam.store/vendor
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: vaam-store-platform
+spec:
+  project: external
+  ignoreDifferences:
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      jsonPointers:
+        - /status
+  sources:
+    - repoURL: ghcr.io/vaam-store/charts
+      chart: vendor-service
+      targetRevision: 0.1.*
+      helm:
+        releaseName: vendor-service
+        valueFiles:
+          - $values/envs/production/vendor-service.values.yaml
+        ignoreMissingValueFiles: true
+    - repoURL: https://github.com/vaam-store/deploy.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vaam-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
+---
+# ─────────────────────────────────────────────────────────────────────────
+# 3. catalog-service -- publish gated by a vendor-service ticket
+# ─────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: catalog-service
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+
+    argocd-image-updater.argoproj.io/image-list: >-
+      app=ghcr.io/vaam-store/platform/catalog-service:latest
+    argocd-image-updater.argoproj.io/app.source-index: "0"
+    # PRIVATE GHCR: the controller needs a read credential to list digests,
+    # or it gets `unauthorized`. ESO Secret created in
+    # ghcr-pull.externalsecret.yaml (this dir).
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
+    argocd-image-updater.argoproj.io/app.update-strategy: digest
+    # The workload runs on the bjw-s app-template dependency (controller
+    # `main`, container `app`) -- that path, NOT the top-level `image.*`
+    # (which only feeds the migrate Job), is what actually serves traffic.
+    # See this app's production values file for the matching note: the
+    # chart duplicates the image ref across both paths with no templating
+    # link between them, so a manual tag bump (or this controller's
+    # write-back once it's wired) must set both, or the migrate Job and the
+    # Deployment can drift onto different image tags.
+    argocd-image-updater.argoproj.io/app.helm.image-name: app-template.controllers.main.containers.app.image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: app-template.controllers.main.containers.app.image.tag
+    argocd-image-updater.argoproj.io/app.force-update: "true"
+
+    argocd-image-updater.argoproj.io/app.signature-type: cosign
+    argocd-image-updater.argoproj.io/app.cosign.certificate-oidc-issuer: >-
+      https://token.actions.githubusercontent.com
+    argocd-image-updater.argoproj.io/app.cosign.certificate-identity-regexp: >-
+      ^https://github\.com/vaam-store/platform/\.github/workflows/image\.yml@.*$
+
+    # git write-back: source is an OCI registry (not git), so an explicit
+    # HTTPS git-repository + creds are required. NOT YET FUNCTIONAL -- the
+    # github-app-creds--vaam-store Secret this references does not exist yet
+    # (see this PR's description / human checklist item 2, now a HARD
+    # pre-sync gate, not merely an image-promotion nicety: the SAME missing
+    # Secret is also this Application's `$values` git-clone credential
+    # below (lightbridge-assistant P1, PR #122) -- without it, the first
+    # sync of all 8 Applications fails on repo-access-denied, full stop.
+    # The pull-secret/cosign-verification annotations above are unaffected
+    # (separate GHCR-read credential, already provisioned).
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/git-repository: >-
+      https://github.com/vaam-store/deploy.git
+    argocd-image-updater.argoproj.io/write-back-target: >-
+      helmvalues:envs/production/catalog-service.values.yaml
+    argocd-image-updater.argoproj.io/git-credentials: >-
+      secret:argocd/github-app-creds--vaam-store
+
+    notifications.argoproj.io/subscribe.on-deployed.vaam-platform: ""
+    notifications.argoproj.io/subscribe.on-deploy-failed.vaam-platform: ""
+    notifications.ssegning.me/github-repo-url: https://github.com/vaam-store/platform
+    notifications.ssegning.me/github-revision: main
+    notifications.ssegning.me/environment-url: https://vaam.store/catalog
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: vaam-store-platform
+spec:
+  project: external
+  ignoreDifferences:
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      jsonPointers:
+        - /status
+  sources:
+    - repoURL: ghcr.io/vaam-store/charts
+      chart: catalog-service
+      targetRevision: 0.1.*
+      helm:
+        releaseName: catalog-service
+        valueFiles:
+          - $values/envs/production/catalog-service.values.yaml
+        ignoreMissingValueFiles: true
+    - repoURL: https://github.com/vaam-store/deploy.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vaam-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
+---
+# ─────────────────────────────────────────────────────────────────────────
+# 4. order-service -- calls catalog/vendor/payment/delivery-gateway per order
+# ─────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: order-service
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+
+    argocd-image-updater.argoproj.io/image-list: >-
+      app=ghcr.io/vaam-store/platform/order-service:latest
+    argocd-image-updater.argoproj.io/app.source-index: "0"
+    # PRIVATE GHCR: the controller needs a read credential to list digests,
+    # or it gets `unauthorized`. ESO Secret created in
+    # ghcr-pull.externalsecret.yaml (this dir).
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
+    argocd-image-updater.argoproj.io/app.update-strategy: digest
+    # The workload runs on the bjw-s app-template dependency (controller
+    # `main`, container `app`) -- that path, NOT the top-level `image.*`
+    # (which only feeds the migrate Job), is what actually serves traffic.
+    # See this app's production values file for the matching note: the
+    # chart duplicates the image ref across both paths with no templating
+    # link between them, so a manual tag bump (or this controller's
+    # write-back once it's wired) must set both, or the migrate Job and the
+    # Deployment can drift onto different image tags.
+    argocd-image-updater.argoproj.io/app.helm.image-name: app-template.controllers.main.containers.app.image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: app-template.controllers.main.containers.app.image.tag
+    argocd-image-updater.argoproj.io/app.force-update: "true"
+
+    argocd-image-updater.argoproj.io/app.signature-type: cosign
+    argocd-image-updater.argoproj.io/app.cosign.certificate-oidc-issuer: >-
+      https://token.actions.githubusercontent.com
+    argocd-image-updater.argoproj.io/app.cosign.certificate-identity-regexp: >-
+      ^https://github\.com/vaam-store/platform/\.github/workflows/image\.yml@.*$
+
+    # git write-back: source is an OCI registry (not git), so an explicit
+    # HTTPS git-repository + creds are required. NOT YET FUNCTIONAL -- the
+    # github-app-creds--vaam-store Secret this references does not exist yet
+    # (see this PR's description / human checklist item 2, now a HARD
+    # pre-sync gate, not merely an image-promotion nicety: the SAME missing
+    # Secret is also this Application's `$values` git-clone credential
+    # below (lightbridge-assistant P1, PR #122) -- without it, the first
+    # sync of all 8 Applications fails on repo-access-denied, full stop.
+    # The pull-secret/cosign-verification annotations above are unaffected
+    # (separate GHCR-read credential, already provisioned).
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/git-repository: >-
+      https://github.com/vaam-store/deploy.git
+    argocd-image-updater.argoproj.io/write-back-target: >-
+      helmvalues:envs/production/order-service.values.yaml
+    argocd-image-updater.argoproj.io/git-credentials: >-
+      secret:argocd/github-app-creds--vaam-store
+
+    notifications.argoproj.io/subscribe.on-deployed.vaam-platform: ""
+    notifications.argoproj.io/subscribe.on-deploy-failed.vaam-platform: ""
+    notifications.ssegning.me/github-repo-url: https://github.com/vaam-store/platform
+    notifications.ssegning.me/github-revision: main
+    notifications.ssegning.me/environment-url: https://vaam.store/order
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: vaam-store-platform
+spec:
+  project: external
+  ignoreDifferences:
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      jsonPointers:
+        - /status
+  sources:
+    - repoURL: ghcr.io/vaam-store/charts
+      chart: order-service
+      targetRevision: 0.1.*
+      helm:
+        releaseName: order-service
+        valueFiles:
+          - $values/envs/production/order-service.values.yaml
+        ignoreMissingValueFiles: true
+    - repoURL: https://github.com/vaam-store/deploy.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vaam-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
+---
+# ─────────────────────────────────────────────────────────────────────────
+# 5. payment-service -- provider webhook at /payment/webhooks/vaam-payment -- see the platform values file's own note on re-registering it
+# ─────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payment-service
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+
+    argocd-image-updater.argoproj.io/image-list: >-
+      app=ghcr.io/vaam-store/platform/payment-service:latest
+    argocd-image-updater.argoproj.io/app.source-index: "0"
+    # PRIVATE GHCR: the controller needs a read credential to list digests,
+    # or it gets `unauthorized`. ESO Secret created in
+    # ghcr-pull.externalsecret.yaml (this dir).
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
+    argocd-image-updater.argoproj.io/app.update-strategy: digest
+    # The workload runs on the bjw-s app-template dependency (controller
+    # `main`, container `app`) -- that path, NOT the top-level `image.*`
+    # (which only feeds the migrate Job), is what actually serves traffic.
+    # See this app's production values file for the matching note: the
+    # chart duplicates the image ref across both paths with no templating
+    # link between them, so a manual tag bump (or this controller's
+    # write-back once it's wired) must set both, or the migrate Job and the
+    # Deployment can drift onto different image tags.
+    argocd-image-updater.argoproj.io/app.helm.image-name: app-template.controllers.main.containers.app.image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: app-template.controllers.main.containers.app.image.tag
+    argocd-image-updater.argoproj.io/app.force-update: "true"
+
+    argocd-image-updater.argoproj.io/app.signature-type: cosign
+    argocd-image-updater.argoproj.io/app.cosign.certificate-oidc-issuer: >-
+      https://token.actions.githubusercontent.com
+    argocd-image-updater.argoproj.io/app.cosign.certificate-identity-regexp: >-
+      ^https://github\.com/vaam-store/platform/\.github/workflows/image\.yml@.*$
+
+    # git write-back: source is an OCI registry (not git), so an explicit
+    # HTTPS git-repository + creds are required. NOT YET FUNCTIONAL -- the
+    # github-app-creds--vaam-store Secret this references does not exist yet
+    # (see this PR's description / human checklist item 2, now a HARD
+    # pre-sync gate, not merely an image-promotion nicety: the SAME missing
+    # Secret is also this Application's `$values` git-clone credential
+    # below (lightbridge-assistant P1, PR #122) -- without it, the first
+    # sync of all 8 Applications fails on repo-access-denied, full stop.
+    # The pull-secret/cosign-verification annotations above are unaffected
+    # (separate GHCR-read credential, already provisioned).
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/git-repository: >-
+      https://github.com/vaam-store/deploy.git
+    argocd-image-updater.argoproj.io/write-back-target: >-
+      helmvalues:envs/production/payment-service.values.yaml
+    argocd-image-updater.argoproj.io/git-credentials: >-
+      secret:argocd/github-app-creds--vaam-store
+
+    notifications.argoproj.io/subscribe.on-deployed.vaam-platform: ""
+    notifications.argoproj.io/subscribe.on-deploy-failed.vaam-platform: ""
+    notifications.ssegning.me/github-repo-url: https://github.com/vaam-store/platform
+    notifications.ssegning.me/github-revision: main
+    notifications.ssegning.me/environment-url: https://vaam.store/payment
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: vaam-store-platform
+spec:
+  project: external
+  ignoreDifferences:
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      jsonPointers:
+        - /status
+  sources:
+    - repoURL: ghcr.io/vaam-store/charts
+      chart: payment-service
+      targetRevision: 0.1.*
+      helm:
+        releaseName: payment-service
+        valueFiles:
+          - $values/envs/production/payment-service.values.yaml
+        ignoreMissingValueFiles: true
+    - repoURL: https://github.com/vaam-store/deploy.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vaam-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
+---
+# ─────────────────────────────────────────────────────────────────────────
+# 6. delivery-gateway -- PostGIS-backed CNPG (bundled operand image, not plain Postgres)
+# ─────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: delivery-gateway
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+
+    argocd-image-updater.argoproj.io/image-list: >-
+      app=ghcr.io/vaam-store/platform/delivery-gateway:latest
+    argocd-image-updater.argoproj.io/app.source-index: "0"
+    # PRIVATE GHCR: the controller needs a read credential to list digests,
+    # or it gets `unauthorized`. ESO Secret created in
+    # ghcr-pull.externalsecret.yaml (this dir).
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
+    argocd-image-updater.argoproj.io/app.update-strategy: digest
+    # The workload runs on the bjw-s app-template dependency (controller
+    # `main`, container `app`) -- that path, NOT the top-level `image.*`
+    # (which only feeds the migrate Job), is what actually serves traffic.
+    # See this app's production values file for the matching note: the
+    # chart duplicates the image ref across both paths with no templating
+    # link between them, so a manual tag bump (or this controller's
+    # write-back once it's wired) must set both, or the migrate Job and the
+    # Deployment can drift onto different image tags.
+    argocd-image-updater.argoproj.io/app.helm.image-name: app-template.controllers.main.containers.app.image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: app-template.controllers.main.containers.app.image.tag
+    argocd-image-updater.argoproj.io/app.force-update: "true"
+
+    argocd-image-updater.argoproj.io/app.signature-type: cosign
+    argocd-image-updater.argoproj.io/app.cosign.certificate-oidc-issuer: >-
+      https://token.actions.githubusercontent.com
+    argocd-image-updater.argoproj.io/app.cosign.certificate-identity-regexp: >-
+      ^https://github\.com/vaam-store/platform/\.github/workflows/image\.yml@.*$
+
+    # git write-back: source is an OCI registry (not git), so an explicit
+    # HTTPS git-repository + creds are required. NOT YET FUNCTIONAL -- the
+    # github-app-creds--vaam-store Secret this references does not exist yet
+    # (see this PR's description / human checklist item 2, now a HARD
+    # pre-sync gate, not merely an image-promotion nicety: the SAME missing
+    # Secret is also this Application's `$values` git-clone credential
+    # below (lightbridge-assistant P1, PR #122) -- without it, the first
+    # sync of all 8 Applications fails on repo-access-denied, full stop.
+    # The pull-secret/cosign-verification annotations above are unaffected
+    # (separate GHCR-read credential, already provisioned).
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/git-repository: >-
+      https://github.com/vaam-store/deploy.git
+    argocd-image-updater.argoproj.io/write-back-target: >-
+      helmvalues:envs/production/delivery-gateway.values.yaml
+    argocd-image-updater.argoproj.io/git-credentials: >-
+      secret:argocd/github-app-creds--vaam-store
+
+    notifications.argoproj.io/subscribe.on-deployed.vaam-platform: ""
+    notifications.argoproj.io/subscribe.on-deploy-failed.vaam-platform: ""
+    notifications.ssegning.me/github-repo-url: https://github.com/vaam-store/platform
+    notifications.ssegning.me/github-revision: main
+    notifications.ssegning.me/environment-url: https://vaam.store/delivery
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: vaam-store-platform
+spec:
+  project: external
+  ignoreDifferences:
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      jsonPointers:
+        - /status
+  sources:
+    - repoURL: ghcr.io/vaam-store/charts
+      chart: delivery-gateway
+      targetRevision: 0.1.*
+      helm:
+        releaseName: delivery-gateway
+        valueFiles:
+          - $values/envs/production/delivery-gateway.values.yaml
+        ignoreMissingValueFiles: true
+    - repoURL: https://github.com/vaam-store/deploy.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vaam-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
+---
+# ─────────────────────────────────────────────────────────────────────────
+# 7. upload-service -- also needs VAAM_OBJECT_STORAGE_* (reuses the existing vaam-store-user MinIO creds)
+# ─────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: upload-service
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+
+    argocd-image-updater.argoproj.io/image-list: >-
+      app=ghcr.io/vaam-store/platform/upload-service:latest
+    argocd-image-updater.argoproj.io/app.source-index: "0"
+    # PRIVATE GHCR: the controller needs a read credential to list digests,
+    # or it gets `unauthorized`. ESO Secret created in
+    # ghcr-pull.externalsecret.yaml (this dir).
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
+    argocd-image-updater.argoproj.io/app.update-strategy: digest
+    # The workload runs on the bjw-s app-template dependency (controller
+    # `main`, container `app`) -- that path, NOT the top-level `image.*`
+    # (which only feeds the migrate Job), is what actually serves traffic.
+    # See this app's production values file for the matching note: the
+    # chart duplicates the image ref across both paths with no templating
+    # link between them, so a manual tag bump (or this controller's
+    # write-back once it's wired) must set both, or the migrate Job and the
+    # Deployment can drift onto different image tags.
+    argocd-image-updater.argoproj.io/app.helm.image-name: app-template.controllers.main.containers.app.image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: app-template.controllers.main.containers.app.image.tag
+    argocd-image-updater.argoproj.io/app.force-update: "true"
+
+    argocd-image-updater.argoproj.io/app.signature-type: cosign
+    argocd-image-updater.argoproj.io/app.cosign.certificate-oidc-issuer: >-
+      https://token.actions.githubusercontent.com
+    argocd-image-updater.argoproj.io/app.cosign.certificate-identity-regexp: >-
+      ^https://github\.com/vaam-store/platform/\.github/workflows/image\.yml@.*$
+
+    # git write-back: source is an OCI registry (not git), so an explicit
+    # HTTPS git-repository + creds are required. NOT YET FUNCTIONAL -- the
+    # github-app-creds--vaam-store Secret this references does not exist yet
+    # (see this PR's description / human checklist item 2, now a HARD
+    # pre-sync gate, not merely an image-promotion nicety: the SAME missing
+    # Secret is also this Application's `$values` git-clone credential
+    # below (lightbridge-assistant P1, PR #122) -- without it, the first
+    # sync of all 8 Applications fails on repo-access-denied, full stop.
+    # The pull-secret/cosign-verification annotations above are unaffected
+    # (separate GHCR-read credential, already provisioned).
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/git-repository: >-
+      https://github.com/vaam-store/deploy.git
+    argocd-image-updater.argoproj.io/write-back-target: >-
+      helmvalues:envs/production/upload-service.values.yaml
+    argocd-image-updater.argoproj.io/git-credentials: >-
+      secret:argocd/github-app-creds--vaam-store
+
+    notifications.argoproj.io/subscribe.on-deployed.vaam-platform: ""
+    notifications.argoproj.io/subscribe.on-deploy-failed.vaam-platform: ""
+    notifications.ssegning.me/github-repo-url: https://github.com/vaam-store/platform
+    notifications.ssegning.me/github-revision: main
+    notifications.ssegning.me/environment-url: https://vaam.store/upload
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: vaam-store-platform
+spec:
+  project: external
+  ignoreDifferences:
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      jsonPointers:
+        - /status
+  sources:
+    - repoURL: ghcr.io/vaam-store/charts
+      chart: upload-service
+      targetRevision: 0.1.*
+      helm:
+        releaseName: upload-service
+        valueFiles:
+          - $values/envs/production/upload-service.values.yaml
+        ignoreMissingValueFiles: true
+    - repoURL: https://github.com/vaam-store/deploy.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vaam-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
+---
+# ─────────────────────────────────────────────────────────────────────────
+# 8. p2p-mailbox-service -- Redis-only, cratestack-api facade, NO migrate Job, NO CNPG (ADR-0007)
+# ─────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: p2p-mailbox-service
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+
+    argocd-image-updater.argoproj.io/image-list: >-
+      app=ghcr.io/vaam-store/platform/p2p-mailbox-service:latest
+    argocd-image-updater.argoproj.io/app.source-index: "0"
+    # PRIVATE GHCR: the controller needs a read credential to list digests,
+    # or it gets `unauthorized`. ESO Secret created in
+    # ghcr-pull.externalsecret.yaml (this dir).
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
+    argocd-image-updater.argoproj.io/app.update-strategy: digest
+    # The workload runs on the bjw-s app-template dependency (controller
+    # `main`, container `app`) -- that path, NOT the top-level `image.*`
+    # (which only feeds the migrate Job), is what actually serves traffic.
+    # See this app's production values file for the matching note: the
+    # chart duplicates the image ref across both paths with no templating
+    # link between them, so a manual tag bump (or this controller's
+    # write-back once it's wired) must set both, or the migrate Job and the
+    # Deployment can drift onto different image tags.
+    argocd-image-updater.argoproj.io/app.helm.image-name: app-template.controllers.main.containers.app.image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: app-template.controllers.main.containers.app.image.tag
+    argocd-image-updater.argoproj.io/app.force-update: "true"
+
+    argocd-image-updater.argoproj.io/app.signature-type: cosign
+    argocd-image-updater.argoproj.io/app.cosign.certificate-oidc-issuer: >-
+      https://token.actions.githubusercontent.com
+    argocd-image-updater.argoproj.io/app.cosign.certificate-identity-regexp: >-
+      ^https://github\.com/vaam-store/platform/\.github/workflows/image\.yml@.*$
+
+    # git write-back: source is an OCI registry (not git), so an explicit
+    # HTTPS git-repository + creds are required. NOT YET FUNCTIONAL -- the
+    # github-app-creds--vaam-store Secret this references does not exist yet
+    # (see this PR's description / human checklist item 2, now a HARD
+    # pre-sync gate, not merely an image-promotion nicety: the SAME missing
+    # Secret is also this Application's `$values` git-clone credential
+    # below (lightbridge-assistant P1, PR #122) -- without it, the first
+    # sync of all 8 Applications fails on repo-access-denied, full stop.
+    # The pull-secret/cosign-verification annotations above are unaffected
+    # (separate GHCR-read credential, already provisioned).
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/git-repository: >-
+      https://github.com/vaam-store/deploy.git
+    argocd-image-updater.argoproj.io/write-back-target: >-
+      helmvalues:envs/production/p2p-mailbox-service.values.yaml
+    argocd-image-updater.argoproj.io/git-credentials: >-
+      secret:argocd/github-app-creds--vaam-store
+
+    notifications.argoproj.io/subscribe.on-deployed.vaam-platform: ""
+    notifications.argoproj.io/subscribe.on-deploy-failed.vaam-platform: ""
+    notifications.ssegning.me/github-repo-url: https://github.com/vaam-store/platform
+    notifications.ssegning.me/github-revision: main
+    notifications.ssegning.me/environment-url: https://vaam.store/mailbox
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: vaam-store-platform
+spec:
+  project: external
+  sources:
+    - repoURL: ghcr.io/vaam-store/charts
+      chart: p2p-mailbox-service
+      targetRevision: 0.1.*
+      helm:
+        releaseName: p2p-mailbox-service
+        valueFiles:
+          - $values/envs/production/p2p-mailbox-service.values.yaml
+        ignoreMissingValueFiles: true
+    - repoURL: https://github.com/vaam-store/deploy.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vaam-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
