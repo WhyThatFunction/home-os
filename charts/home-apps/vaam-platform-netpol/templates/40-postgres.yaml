@@ -1,0 +1,138 @@
+{{- if .Values.enabled }}
+# Shared CNPG Postgres cluster (`vaam-prod-pg`,
+# charts/home-apps/vaam-store-prod-pg in this repo). 7 of the 8 services are
+# Postgres-backed (one Database CR each: auth_db, catalog_db, delivery_db,
+# order_db, payment_db, upload_db, vendor_db --
+# charts/home-apps/vaam-store-prod-pg/values.yaml `databases:`).
+# p2p-mailbox-service is Redis-only (ADR-0007, ADR-0007 doc comment in
+# tools/dev-keys/src/main.rs) and has NO Database CR -- deliberately absent
+# from the ingress allow-list below.
+#
+# CloudNativePG's own standard pod label is `cnpg.io/cluster: <name>`
+# (documented CNPG convention, not rendered locally -- the operator, not a
+# vendored chart, stamps it onto the Cluster's instance pods at runtime).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-postgres-ingress
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: >-
+    Postgres accepts the 7 DB-backed services, its own instances
+    (streaming replication across the 3-instance cluster), and the CNPG
+    operator's instance-manager status/webhook checks from cnpg-system.
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: vaam-prod-pg
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: auth-service
+        - matchLabels:
+            app.kubernetes.io/instance: catalog-service
+        - matchLabels:
+            app.kubernetes.io/instance: delivery-gateway
+        - matchLabels:
+            app.kubernetes.io/instance: order-service
+        - matchLabels:
+            app.kubernetes.io/instance: payment-service
+        - matchLabels:
+            app.kubernetes.io/instance: upload-service
+        - matchLabels:
+            app.kubernetes.io/instance: vendor-service
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+    # Inter-instance streaming replication (3 instances -- cluster.instances
+    # in charts/home-apps/vaam-store-prod-pg/values.yaml). Without this,
+    # default-deny ingress would sever replica->primary replication the
+    # moment this chart is enabled: the cluster would still accept app
+    # traffic but silently stop being highly available.
+    - fromEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: vaam-prod-pg
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+    # CNPG operator (cnpg-system, see charts/cd-database/values.yaml) health
+    # checks / instance-manager API. Port 8000 is CNPG's documented
+    # instance-manager status port. NOT independently verified against a
+    # live cluster -- if the operator's probe/coordination traffic actually
+    # needs a different or additional port on this CNPG version, this is the
+    # first place to widen.
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cnpg-system
+      toPorts:
+        - ports:
+            - port: "8000"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-postgres-egress
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: >-
+    Postgres instances talking to each other (replication) and to
+    s3.ssegning.me for barman-cloud WAL archival / backups.
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: vaam-prod-pg
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: vaam-prod-pg
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+    # See 60-external-egress.yaml for why this is toEntities: world rather
+    # than a toFQDNs rule against s3.ssegning.me.
+    - toEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+---
+# Egress side of the app-service -> Postgres edge (the ingress side is on
+# vaam-platform-postgres-ingress above; Cilium enforces default-deny
+# independently per direction per pod, so both sides are required).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-postgres-clients-egress
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: The 7 DB-backed services' egress to Postgres.
+  endpointSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/instance
+        operator: In
+        values:
+          - auth-service
+          - catalog-service
+          - delivery-gateway
+          - order-service
+          - payment-service
+          - upload-service
+          - vendor-service
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: vaam-prod-pg
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+{{- end }}

@@ -1,0 +1,14 @@
+apiVersion: v2
+name: vaam-platform-netpol
+description: >-
+  CiliumNetworkPolicies for the vaam-platform namespace (default-deny ingress
+  + explicit east-west/ingress/egress allows for the vaam-store/platform
+  8-service fleet, the shared vaam-prod-pg CNPG cluster, and the shared
+  vaam-prod-redis). Ships with `enabled: false` -- see values.yaml and the
+  introducing PR for the enablement runbook. Zero CiliumNetworkPolicy objects
+  exist cluster-wide today; vaam-platform currently has no NetworkPolicy of
+  any kind, so any pod anywhere in the cluster can reach all 8 services plus
+  Postgres and Redis.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

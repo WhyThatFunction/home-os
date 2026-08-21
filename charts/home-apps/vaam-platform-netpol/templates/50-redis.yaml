@@ -1,0 +1,75 @@
+{{- if .Values.enabled }}
+# Shared Redis (`vaam-prod-redis`, charts/home-apps/vaam-store-prod-pg
+# templates/redis.yaml -- a plain StatefulSet, AUTH-less, labelled
+# `app.kubernetes.io/name: vaam-prod-redis`, port 6379).
+#
+# Allow-list is deliberately ALL 8 services, wider than what today's
+# committed .env / production-values wiring shows:
+#   - p2p-mailbox-service: Redis is its entire data plane (ADR-0007) --
+#     definitely needed.
+#   - order-service, catalog-service, delivery-gateway, payment-service:
+#     VAAM_REDIS_URL present in their local .env files.
+#   - auth-service, vendor-service, upload-service: VAAM_REDIS_URL is NOT in
+#     their local .env, but redis_url IS read in source
+#     (services/auth-service/src/lib.rs:439,462 -- build_idempotency_layer /
+#     build_rate_limit_layer, both cratestack-framework optional layers that
+#     silently no-op when unset). auth-service's own comment
+#     (services/auth-service/src/lib.rs:56-61) further notes that
+#     `nonce_store_from_redis_url` falls back to a non-shared in-memory nonce
+#     store "in ANY Redis-less environment ... including any real minimal
+#     deployment that hasn't wired Redis" -- i.e. running auth-service
+#     without Redis in production is called out in the source itself as an
+#     existing gap, not an intentional design.
+#   - the fleet is also mid-migration (2026-08-21, see
+#     charts/home-apps/vaam-store-prod-pg/values.yaml's header) from
+#     one-CNPG/Redis-per-service to this single shared cluster+cache, and
+#     vaam-store/deploy's production values haven't all been repointed at
+#     vaam-prod-redis yet.
+# Narrowing this to only the services with today's confirmed wiring risks
+# re-breaking the moment ops flips a service's VAAM_REDIS_URL on mid-rollout
+# -- Redis access within the same namespace is cheap to grant broadly and
+# easy to narrow later once the shared-Redis migration settles.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-redis-ingress
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: Redis accepts all 8 vaam-store/platform services.
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: vaam-prod-redis
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: vaam-service
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
+---
+# Egress side of the app-service -> Redis edge (the ingress side is above;
+# Cilium enforces default-deny independently per direction per pod).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaam-platform-redis-clients-egress
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: vaam-platform-netpol
+spec:
+  description: All 8 services' egress to Redis.
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: vaam-service
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: vaam-prod-redis
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
+{{- end }}

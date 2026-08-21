@@ -1,0 +1,49 @@
+# CiliumNetworkPolicies for vaam-platform (default-deny + explicit
+# ingress/east-west/egress allow-list for the 8-service fleet, the shared
+# vaam-prod-pg CNPG cluster, and the shared vaam-prod-redis). See
+# charts/home-apps/vaam-platform-netpol for the policy set itself and its
+# introducing PR for the call-graph evidence, the enablement runbook, and
+# what could/couldn't be verified offline.
+#
+# SHIPPED DISABLED. The chart's `enabled` value defaults to `false`
+# (charts/home-apps/vaam-platform-netpol/values.yaml), so this Application
+# reconciles to Synced/Healthy with an EMPTY manifest set -- merging it
+# changes no live traffic. It exists as its own Application (rather than
+# being left out of app-of-apps entirely) specifically so it is visible and
+# diffable in Argo CD before anyone flips it on: `helm template` against
+# this chart with `--set enabled=true` shows exactly what would go live.
+#
+# sync-wave "1": one wave AFTER the 8 service Applications (wave 0) and the
+# shared CNPG/Redis Application (wave -1, vaam-store-prod-pg.application.yaml)
+# -- CiliumNetworkPolicy objects only need to exist after the workloads
+# they select do (Cilium enforces policy against endpoints regardless of
+# apply order in practice, but ordering it last keeps the dependency graph
+# legible and avoids a policy racing a still-unscheduled deny-everything
+# state during a from-scratch bootstrap).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vaam-platform-netpol
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: vaam-store-platform
+spec:
+  project: external
+  source:
+    repoURL: https://github.com/whythatfunction/home-os
+    targetRevision: HEAD
+    path: charts/home-apps/vaam-platform-netpol
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vaam-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
