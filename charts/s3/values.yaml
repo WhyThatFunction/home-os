@@ -95,16 +95,6 @@ minio:
             resources:
               - "arn:aws:s3:::ai-ops-backups/*"
               - "arn:aws:s3:::ai-ops-backups"
-      - name: vaam-s3-policy
-        statements:
-          - actions:
-              - "s3:*"
-            effect: "Allow"
-            resources:
-              - "arn:aws:s3:::vaam-gitops/*"
-              - "arn:aws:s3:::vaam-gitops"
-              - "arn:aws:s3:::vaam-cdn/*"
-              - "arn:aws:s3:::vaam-cdn"
       - name: vymalo-cnpg-backups-policy
         statements:
           # Least privilege: only what barman-cloud / CNPG needs to read,
@@ -183,8 +173,6 @@ minio:
       - name: vaam-insights
         withLock: false
       - name: vaam-gitops
-        withLock: false
-      - name: vaam-cdn
         withLock: false
       - name: turbo-cache
         withLock: false

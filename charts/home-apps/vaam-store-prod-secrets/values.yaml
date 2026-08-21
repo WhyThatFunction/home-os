@@ -41,12 +41,12 @@ rawResources:
         data:
           - secretKey: accessKeyId
             remoteRef:
-              key: prod/vaam/env
-              property: object_storage_access_key
+              key: vaam/prod/env
+              property: upload_service_object_storage_access_key
           - secretKey: secretKey
             remoteRef:
-              key: prod/vaam/env
-              property: object_storage_secret_key
+              key: vaam/prod/env
+              property: upload_service_object_storage_secret_key
 
   # dockerconfigjson the kubelet uses to pull the private
   # ghcr.io/vaam-store/<service> images. Referenced by every prod service
@@ -73,9 +73,9 @@ rawResources:
         data:
           - secretKey: github_username
             remoteRef:
-              key: prod/vaam/env
+              key: "prod/meta/test-app"
               property: github_username
           - secretKey: github_token
             remoteRef:
-              key: prod/vaam/env
+              key: "prod/meta/test-app"
               property: github_token
