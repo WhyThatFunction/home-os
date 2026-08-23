@@ -1,0 +1,29 @@
+{{ with .Values.solvers.vaamCA }}
+{{ if .enabled }}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: vaam-ca
+  namespace: {{ include "common.names.namespace" $ }}
+  labels:
+    {{ include "common.labels.standard" $ | nindent 4 }}
+  annotations:
+    {{- with .commonAnnotations }}
+    {{ include "common.tplvalues.render" ( dict "value" . "context" $ ) | nindent 4 }}
+    {{- end }}
+    {{- with $.Values.commonAnnotations }}
+    {{ include "common.tplvalues.render" ( dict "value" . "context" $ ) | nindent 4 }}
+    {{- end }}
+spec:
+  # Dedicated trust anchor for vaam-store/platform's service-to-service mTLS
+  # (ADR-0016 amendment). Deliberately NOT the home-lab `self-signed-ca`
+  # ClusterIssuer — a separate CA means a compromise of one trust domain's
+  # signing key cannot mint identities in the other. Services in the
+  # `vaam-platform` namespace request leaf Certificates with issuerRef
+  # {name: vaam-ca, kind: ClusterIssuer}; their SAN carries the short
+  # service name (e.g. `vendor-service`) that peers check against their
+  # own SAN allowlist.
+  ca:
+    secretName: vaam-root-ca
+{{ end }}
+{{ end }}

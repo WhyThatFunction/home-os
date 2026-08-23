@@ -19,6 +19,55 @@ solvers:
     enabled: true
     enabledStaging: true
     commonAnnotations: ~
+  # Dedicated CA trust anchor for vaam-store/platform's service-to-service
+  # mTLS (ADR-0016 amendment, replacing the bespoke Ed25519 signed-request
+  # scheme). Kept separate from `self-signed-ca` (the home-lab CA) so a
+  # compromise of one trust domain cannot mint identities in the other.
+  #
+  # Defaults to DISABLED here. `charts/cert` is deployed by three Argo
+  # Applications (charts/cd-certs/values.yaml: `cert`, `cert-remote`,
+  # `cert-netcup`), only one of which (`cert`, the home cluster) actually
+  # runs vaam-store/platform. ArgoCD's multi-source `valuesObject` deep-MERGES
+  # on top of this chart's defaults rather than replacing them, so a
+  # default of `enabled: true` here would silently also stand up a
+  # `vaam-ca` ClusterIssuer — each with its OWN independently self-signed
+  # root key, despite sharing a name — on `cert-remote` and `cert-netcup`
+  # too: unnecessary CA private-key material on clusters that don't need it,
+  # and a genuine footgun for anyone who later assumes `vaam-ca` names one
+  # trust domain. CA key material should only exist where a human opted a
+  # cluster in explicitly; see the `cert` application's `valuesObject` in
+  # `charts/cd-certs/values.yaml` for that opt-in.
+  #
+  # Root lifetime (this chart owns the root only):
+  #   duration: 2 years — long enough that root rotation (which means
+  #     redistributing a new CA bundle to all 8 vaam-platform services) stays
+  #     a rare, planned operation, but short enough to bound the exposure
+  #     window of an undetected CA-key compromise. ADR-0016 explicitly leaves
+  #     CA-key compromise as an unaddressed risk and rejects building
+  #     revocation infrastructure (OCSP is being retired industry-wide, and a
+  #     private internal CA has even less reason to grow one) — a
+  #     non-infinite root lifetime is the one blast-radius bound that comes
+  #     for free, not a fix for that risk.
+  #   renewBefore: 30 days — operational lead time for a single-operator
+  #     cluster to notice the renewal (cert-manager re-issues automatically)
+  #     and, on an actual root ROTATION (new key, not just a renewed cert),
+  #     to plan redeploying the new CA bundle to all consuming services.
+  #
+  # Leaf lifetime (for the per-service Certificates that consuming charts in
+  # `vaam-platform` create against the `vaam-ca` ClusterIssuer below — NOT
+  # created by this chart):
+  #   duration: 24h, renewBefore: 8h — short-lived leaves are the actual
+  #   revocation strategy here (ADR-0016): a stolen leaf key is only useful
+  #   for at most ~24h without any CRL/OCSP infrastructure. 24h matches
+  #   common short-lived-mTLS practice (e.g. Istio's default) and is well
+  #   within cert-manager's automated-renewal loop; renewBefore at 1/3 of
+  #   duration matches cert-manager's own default renewal ratio.
+  vaamCA:
+    enabled: false
+    commonName: "Vaam Platform Root CA"
+    duration: "17520h" # 2 years
+    renewBefore: "720h" # 30 days
+    commonAnnotations: ~
 
 commonAnnotations: {}
   #"helm.sh/hook": "post-install,post-upgrade,pre-delete"
