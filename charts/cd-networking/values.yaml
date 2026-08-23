@@ -384,9 +384,23 @@ applications:
               load-balancer.hetzner.cloud/name: "traefik-ingress"
               load-balancer.hetzner.cloud/location: "nbg1"
               load-balancer.hetzner.cloud/use-private-ip: "true"
+              # A Hetzner Cloud LB is a real proxy: it terminates the client TCP
+              # connection and opens a new one to the node, so the backend always
+              # sees the LB's own (private) IP as the source. `externalTrafficPolicy:
+              # Local` cannot recover the client IP here — it only removes kube-proxy's
+              # *second* SNAT hop. The only way to carry the client IP across a TCP-mode
+              # hcloud LB is the PROXY protocol, which must be enabled on BOTH sides:
+              # here on the LB, and below via `ports.*.proxyProtocol.trustedIPs`.
+              load-balancer.hetzner.cloud/uses-proxyprotocol: "true"
               load-balancer.hetzner.cloud/health-check-interval: "10s"
               load-balancer.hetzner.cloud/health-check-timeout: "5s"
               load-balancer.hetzner.cloud/health-check-retries: "3"
+            spec:
+              # Drops kube-proxy's SNAT so the PROXY header's peer address stays the
+              # LB's private IP (the address the trustedIPs below are matched against)
+              # instead of a random node IP. Safe with `deployment.kind: DaemonSet`:
+              # every node runs a Traefik pod, so no node is a black hole.
+              externalTrafficPolicy: Local
 
           ports:
             web:
@@ -396,10 +410,28 @@ applications:
                     to: websecure
                     scheme: https
                     permanent: true
+              # Traefik only honours a PROXY header from a peer in this list; from
+              # anyone else the connection is rejected. Must cover the hcloud LB's
+              # private IP — i.e. the subnet of the Hetzner private network this
+              # cluster is attached to (`hcloud network describe <net>`).
+              proxyProtocol:
+                trustedIPs:
+                  - 10.0.0.0/16
+              # With PROXY protocol in front, X-Forwarded-* arriving on the wire is
+              # only trustworthy from the same LB.
+              forwardedHeaders:
+                trustedIPs:
+                  - 10.0.0.0/16
             websecure:
               http:
                 tls:
                   enabled: true
+              proxyProtocol:
+                trustedIPs:
+                  - 10.0.0.0/16
+              forwardedHeaders:
+                trustedIPs:
+                  - 10.0.0.0/16
 
           ingressRoute:
             dashboard:
