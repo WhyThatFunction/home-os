@@ -63,6 +63,43 @@ applications:
         prune: true
         selfHeal: true
 
+  - name: netcup-metrics-server
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: infrastructure
+    source:
+      repoURL: https://kubernetes-sigs.github.io/metrics-server/
+      targetRevision: "3.*"
+      chart: metrics-server
+      helm:
+        releaseName: metrics-server
+        valuesObject:
+          # `args` is ADDITIVE here -- the chart keeps its own `defaultArgs`
+          # list separately, so this appends rather than replacing them.
+          args:
+            # Talos does not enable kubelet server-certificate rotation on this
+            # cluster (no `rotate-server-certificates`, and `kubectl get csr` is
+            # empty), so kubelet serves a self-signed cert that metrics-server
+            # cannot verify. Same setting the other Talos cluster already runs.
+            - --kubelet-insecure-tls
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+    destination:
+      name: netcup-k8s
+      namespace: kube-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: otel-operator
     finalizers:
       - resources-finalizer.argocd.argoproj.io
