@@ -5,8 +5,23 @@ applications:
     project: infrastructure
     source:
       repoURL: https://prometheus-community.github.io/helm-charts
-      targetRevision: "*"
+      # Pinned to the 8.x line. Unpinned "*" rolled this Deployment 10 times in
+      # 26 days -- 8 of them functionally no-ops, because the chart stamps
+      # helm.sh/chart into the POD TEMPLATE labels, so every upstream patch
+      # release restarts the pod with an identical image and config. It also
+      # carried an unreviewed v2.19.1 -> v2.20.0 image bump straight past the
+      # PR gate.
+      targetRevision: "8.*"
       chart: kube-state-metrics
+      helm:
+        valuesObject:
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 192Mi
     destination:
       server: https://kubernetes.default.svc
       namespace: observability
@@ -24,10 +39,19 @@ applications:
     project: infrastructure
     source:
       repoURL: https://prometheus-community.github.io/helm-charts
-      targetRevision: "*"
+      # See the note on local-kube-state-metrics above.
+      targetRevision: "8.*"
       chart: kube-state-metrics
       helm:
         releaseName: kube-state-metrics
+        valuesObject:
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 192Mi
     destination:
       name: netcup-k8s
       namespace: observability
