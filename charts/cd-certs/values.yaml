@@ -7,6 +7,17 @@ applications:
       repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD
       path: charts/cert
+      # Home cluster only: this is where vaam-store/platform actually runs.
+      # `vaamCA.enabled` defaults to false in charts/cert/values.yaml
+      # precisely so that the other two Applications sharing this chart
+      # (cert-remote, cert-netcup, below) do NOT also stand up their own
+      # independently self-signed `vaam-ca` root on clusters that don't
+      # need it.
+      helm:
+        valuesObject:
+          solvers:
+            vaamCA:
+              enabled: true
     destination:
       server: https://kubernetes.default.svc
       namespace: kube-system
