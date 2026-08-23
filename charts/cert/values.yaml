@@ -9,6 +9,61 @@ solvers:
     enabledStaging: false
     email: "{{ .Values.global.issuer.email }}"
     commonAnnotations: ~
+
+  # A SECOND DNS-01 solver on the SAME `cert-cloudflare` ClusterIssuer, not a
+  # separate issuer — scoped by `selector.dnsZones` to the zones Cloudflare is
+  # NOT authoritative for.
+  #
+  # `camer.digital` is a Cloudflare zone, but `ai.camer.digital` is delegated
+  # away by NS records to Route 53:
+  #
+  #   $ dig +short NS ai.camer.digital
+  #   ns-1502.awsdns-59.org.  ns-409.awsdns-51.com.
+  #   ns-1914.awsdns-47.co.uk. ns-556.awsdns-05.net.
+  #
+  # The Cloudflare solver writes `_acme-challenge.<name>` into the
+  # `camer.digital` zone and the API returns 200, so the Challenge reports
+  # `presented: true` and looks healthy — but the record sits BELOW a
+  # delegation point, so Cloudflare's own nameservers answer with a referral
+  # instead of the TXT and no resolver ever sees it. cert-manager's self-check
+  # then loops on "DNS record not yet propagated" forever; `traefik/ai-certificate`
+  # sat in that state for 32 days. Wildcards cannot fall back to the HTTP-01
+  # issuer (`cert-home-cert-http`) the way the other `*.ai.camer.digital` certs
+  # on that cluster do — ACME only issues wildcards via DNS-01.
+  #
+  # cert-manager picks the MOST SPECIFIC matching solver (labels > dnsNames >
+  # dnsZones > no selector), so this entry captures everything at or under the
+  # listed zones while the unselected Cloudflare solver above keeps serving
+  # every other name — including `*.coder-ws.camer.digital`, which is inside
+  # the Cloudflare-authoritative part of the zone and issues fine today.
+  # Nothing needs to change `issuerRef`, and any FUTURE certificate under a
+  # delegated zone is routed correctly without anyone having to remember this.
+  #
+  # Defaults to DISABLED for the same reason as `vaamCA` below: `charts/cert`
+  # is deployed by three Applications (charts/cd-certs/values.yaml) and only
+  # `cert-remote` (home-remote) serves names under `ai.camer.digital`. The
+  # credential Secret is created there too, so enabling this on a cluster that
+  # lacks it would only add a solver that cannot authenticate.
+  route53:
+    enabled: false
+    enabledStaging: false
+    # Route 53 is a global service, but the AWS SDK still needs a region for
+    # signing. Matches the region of the account's other resources.
+    region: "eu-central-1"
+    # Optional. Leave empty to let cert-manager discover the zone by name,
+    # which additionally requires `route53:ListHostedZonesByName` in the IAM
+    # policy. Pin the ID here to drop that permission.
+    hostedZoneID: ""
+    # Zones this solver owns — i.e. the ones delegated away from Cloudflare.
+    dnsZones:
+      - "ai.camer.digital"
+    # Secret in cert-manager's cluster-resource namespace (kube-system here).
+    # Created by the `cert-remote` Application from AWS Secrets Manager via
+    # external-secrets, mirroring how `cloudflare-secret` is provisioned.
+    secretName: "route53-secret"
+    accessKeyIDKey: "access-key-id"
+    secretAccessKeyKey: "secret-access-key"
+    commonAnnotations: ~
   http:
     enabled: true
     enabledStaging: true
