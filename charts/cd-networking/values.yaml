@@ -537,10 +537,22 @@ applications:
                   kind: ClusterIssuer
                   name: cert-cloudflare
                   group: cert-manager.io
-                commonName: serverless.mlops.camer.digital
+                # ONE wildcard SAN, no `commonName`, and deliberately NOT the
+                # bare `serverless.mlops.camer.digital` alongside it. Let's
+                # Encrypt rejects the order outright if a name is also covered
+                # by a wildcard in the same request:
+                #
+                #   400 urn:ietf:params:acme:error:malformed: Domain name
+                #   "serverless.mlops.camer.digital" is redundant with a
+                #   wildcard domain in the same request.
+                #
+                # `*.mlops.camer.digital` already covers that name — it is a
+                # single label under `mlops.camer.digital` — so nothing is lost.
+                # Same shape as `wildcard-sls-ssegning-com-certificate` above
+                # (whose `commonName` and bare name are commented out for this
+                # reason) and as the working `coder/coder-wildcard-tls`.
                 dnsNames:
                   - "*.mlops.camer.digital"
-                  - serverless.mlops.camer.digital
 
     destination:
       name: home-remote
