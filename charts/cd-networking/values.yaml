@@ -199,6 +199,13 @@ applications:
             # - "--entrypoints.websecure.http.tls.domains[0].main=*.netcup.ssegning"
           deployment:
             kind: DaemonSet
+          # The chart default (maxSurge 1 / maxUnavailable 0) can never roll a
+          # DaemonSet that binds hostPort 80/443: the surge pod cannot bind the
+          # port a running pod already holds, so it stays Pending forever.
+          updateStrategy:
+            rollingUpdate:
+              maxSurge: 0
+              maxUnavailable: 1
           service:
             spec:
               type: ClusterIP
@@ -216,29 +223,14 @@ applications:
           providers:
             kubernetesCRD:
               allowCrossNamespace: true
+            # Off on netcup: the chart publishes the Gateway status address from
+            # its own Service, which is ClusterIP here (no LB on netcup, we use
+            # hostPort), so it never gets a loadBalancer ingress. The Gateway
+            # status never converges and every replica rewrites it in a hot loop
+            # (~120 status PUTs/sec), which starved etcd and crashlooped the
+            # control plane. No Gateway API routes exist on this cluster.
             kubernetesGateway:
-              enabled: true
-              experimentalChannel: false
-
-          gateway:
-            namespacePolicy: All
-            listeners:
-              web:
-                namespacePolicy:
-                  from: All
-              websecure:
-                port: 8443
-                protocol: HTTPS
-                namespacePolicy:
-                  from: All
-                certificateRefs:
-                  - name: 'wildcard-netcup-tls'
-                    kind: Secret
-                    group: ''
-                  - name: 'wildcard-sls-server-tls'
-                    kind: Secret
-                    group: ''
-                mode: Terminate
+              enabled: false
 
           ingressRoute:
             dashboard:
