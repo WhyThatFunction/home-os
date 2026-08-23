@@ -499,38 +499,48 @@ applications:
                 protocol: HTTPS
                 namespacePolicy:
                   from: All
+                # Must match what knative actually serves through this Gateway.
+                # knative-serving on home-remote binds traefik/traefik-gateway
+                # (charts/cd-serverless/values.yaml, config-gateway
+                # external-gateways) with domain `serverless.mlops.camer.digital`
+                # and domain-template `{Name}-{Namespace}--{Domain}`, so a
+                # KService renders as
+                #   <name>-<ns>--serverless.mlops.camer.digital
+                # whose parent is `mlops.camer.digital` -> `*.mlops.camer.digital`.
                 certificateRefs:
-                  - name: 'wildcard-ai-server-tls'
+                  - name: 'wildcard-mlops-camer-digital-tls'
                     kind: Secret
                     group: ''
                 mode: Terminate
 
           extraObjects:
+            # Replaces the former `ai-certificate`. That one covered
+            # `*.ai.camer.digital` and friends — names this Gateway never
+            # serves. The only consumer of traefik/traefik-gateway is
+            # knative-serving, whose hostnames sit under `mlops.camer.digital`
+            # (NOT `mlops.ai.camer.digital`), so the old certificate could never
+            # have matched a single request that arrived here.
+            #
+            # `cert-cloudflare`, not `cert-route53`: `mlops.camer.digital` has
+            # no NS delegation — Cloudflare is authoritative for it, unlike
+            # `ai.camer.digital`. Verified with `dig +short NS mlops.camer.digital`
+            # (empty) and the SOA at `camer.digital` -> lennox.ns.cloudflare.com.
+            # This is a wildcard, so it needs DNS-01 regardless.
             - |
               apiVersion: cert-manager.io/v1
               kind: Certificate
               metadata:
-                name: ai-certificate
+                name: serverless-gateway-certificate
               spec:
-                secretName: wildcard-ai-server-tls
-                # `cert-route53`, NOT `cert-cloudflare`: every name below is
-                # under `ai.camer.digital`, which is delegated by NS records
-                # from the Cloudflare zone to Route 53. The Cloudflare solver
-                # writes the ACME TXT on the wrong side of that delegation, so
-                # it can never validate these — this Certificate sat pending
-                # for 32 days proving it. See `charts/cert/values.yaml`
-                # `solvers.route53`.
+                secretName: wildcard-mlops-camer-digital-tls
                 issuerRef:
                   kind: ClusterIssuer
-                  name: cert-route53
+                  name: cert-cloudflare
                   group: cert-manager.io
-                commonName: ai.camer.digital
-                dnsNames: 
-                  - ai.camer.digital
-                  - "*.ai.camer.digital"
-                  - "*.coder-ai.ai.camer.digital"
-                  - "*.mlops.ai.camer.digital"
-                  - "*.serverless.mlops.ai.camer.digital"
+                commonName: serverless.mlops.camer.digital
+                dnsNames:
+                  - "*.mlops.camer.digital"
+                  - serverless.mlops.camer.digital
 
     destination:
       name: home-remote
