@@ -1,9 +1,9 @@
 {{ with .Values.solvers.route53 }}
-{{ if .enabled }}
+{{ if and .enabled .enabledStaging }}
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
-  name: cert-route53
+  name: cert-route53-staging
   namespace: {{ include "common.names.namespace" $ }}
   labels:
     {{ include "common.labels.standard" $ | nindent 4 }}
@@ -16,13 +16,10 @@ metadata:
     {{- end }}
 spec:
   acme:
-    # The ACME server URL
-    server: https://acme-v02.api.letsencrypt.org/directory
-    # Email address used for ACME registration
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
     email: {{ include "common.tplvalues.render" ( dict "value" .email "context" $ ) }}
-    # Name of a secret used to store the ACME account private key
     privateKeySecretRef:
-      name: cert-route53
+      name: cert-route53-staging
     solvers:
       - dns01:
           route53:
@@ -36,11 +33,6 @@ spec:
             secretAccessKeySecretRef:
               name: {{ .secretName }}
               key: {{ .secretAccessKeyKey }}
-        # Kept even though this issuer has exactly one solver. Without it a
-        # Certificate pointed here by mistake would silently try to solve a
-        # Cloudflare-authoritative name against Route 53; with it, cert-manager
-        # fails loudly ("no configured challenge solvers can be used for this
-        # challenge") instead.
         selector:
           dnsZones:
             {{- range .dnsZones }}
