@@ -10,12 +10,9 @@ solvers:
     email: "{{ .Values.global.issuer.email }}"
     commonAnnotations: ~
 
-  # A SECOND DNS-01 solver on the SAME `cert-cloudflare` ClusterIssuer, not a
-  # separate issuer — scoped by `selector.dnsZones` to the zones Cloudflare is
-  # NOT authoritative for.
-  #
-  # `camer.digital` is a Cloudflare zone, but `ai.camer.digital` is delegated
-  # away by NS records to Route 53:
+  # A DEDICATED ClusterIssuer (`cert-route53`) for zones Cloudflare is NOT
+  # authoritative for. It exists because `camer.digital` is a Cloudflare zone
+  # but `ai.camer.digital` is delegated away by NS records to Route 53:
   #
   #   $ dig +short NS ai.camer.digital
   #   ns-1502.awsdns-59.org.  ns-409.awsdns-51.com.
@@ -25,28 +22,49 @@ solvers:
   # `camer.digital` zone and the API returns 200, so the Challenge reports
   # `presented: true` and looks healthy — but the record sits BELOW a
   # delegation point, so Cloudflare's own nameservers answer with a referral
-  # instead of the TXT and no resolver ever sees it. cert-manager's self-check
-  # then loops on "DNS record not yet propagated" forever; `traefik/ai-certificate`
-  # sat in that state for 32 days. Wildcards cannot fall back to the HTTP-01
-  # issuer (`cert-home-cert-http`) the way the other `*.ai.camer.digital` certs
-  # on that cluster do — ACME only issues wildcards via DNS-01.
+  # instead of the TXT and no resolver ever reads it. cert-manager's
+  # self-check then loops on "DNS record not yet propagated" forever;
+  # `traefik/ai-certificate` sat in that state for 32 days. Wildcards cannot
+  # fall back to the HTTP-01 issuer (`cert-home-cert-http`) the way the other
+  # `*.ai.camer.digital` certs do — ACME only issues wildcards via DNS-01.
   #
-  # cert-manager picks the MOST SPECIFIC matching solver (labels > dnsNames >
-  # dnsZones > no selector), so this entry captures everything at or under the
-  # listed zones while the unselected Cloudflare solver above keeps serving
-  # every other name — including `*.coder-ws.camer.digital`, which is inside
-  # the Cloudflare-authoritative part of the zone and issues fine today.
-  # Nothing needs to change `issuerRef`, and any FUTURE certificate under a
-  # delegated zone is routed correctly without anyone having to remember this.
+  # WHY A SEPARATE ISSUER, not a second solver on `cert-cloudflare`.
+  # This was first shipped (#138) as an extra `dns01` entry on the existing
+  # `cert-cloudflare` issuer, scoped by `selector.dnsZones`, on the assumption
+  # that a broken solver could only affect the names its selector matched.
+  # That assumption is WRONG and it caused an incident on 2026-08-23:
+  # cert-manager validates EVERY solver's secretRefs when it reconciles the
+  # ISSUER, not per-challenge, so the credential Secret merely being absent
+  # for a moment took the whole issuer down —
+  #
+  #   reason:  InvalidSolver
+  #   status:  "False"
+  #   message: failed to get secret "route53-secret": secrets
+  #            "route53-secret" not found
+  #
+  # — and with it the Cloudflare solver serving ~20 unrelated certificates.
+  # An issuer is a single failure domain shared by all of its solvers. Keeping
+  # the AWS-credentialled solver on its own issuer means a missing, rotated or
+  # revoked Route 53 key can only ever stop `ai.camer.digital` from renewing.
+  #
+  # Note the residual sharp edge this does NOT fix: cert-manager does not
+  # re-reconcile an Issuer when a previously-missing solver Secret later
+  # appears. If `route53-secret` is not present when this issuer is first
+  # applied, `cert-route53` stays `InvalidSolver` until the cert-manager
+  # controller is restarted. ArgoCD does surface that (the Application goes
+  # Degraded — confirmed: the `cert-remote` app's health transitioned back to
+  # Healthy at the exact second the controller restart fixed the issuer), so
+  # it is visible rather than silent, but it is not self-healing.
   #
   # Defaults to DISABLED for the same reason as `vaamCA` below: `charts/cert`
   # is deployed by three Applications (charts/cd-certs/values.yaml) and only
   # `cert-remote` (home-remote) serves names under `ai.camer.digital`. The
   # credential Secret is created there too, so enabling this on a cluster that
-  # lacks it would only add a solver that cannot authenticate.
+  # lacks it would only add an issuer that cannot authenticate.
   route53:
     enabled: false
     enabledStaging: false
+    email: "{{ .Values.global.issuer.email }}"
     # Route 53 is a global service, but the AWS SDK still needs a region for
     # signing. Matches the region of the account's other resources.
     region: "eu-central-1"
@@ -54,9 +72,17 @@ solvers:
     # which additionally requires `route53:ListHostedZonesByName` in the IAM
     # policy. Pin the ID here to drop that permission.
     hostedZoneID: ""
-    # Zones this solver owns — i.e. the ones delegated away from Cloudflare.
+    # Zones this issuer owns — i.e. the ones delegated away from Cloudflare.
+    # Found by checking every zone this platform serves, not just the one that
+    # broke: `ai.kivoyo.com` is delegated to Route 53 as well. Nothing points
+    # at this issuer for kivoyo today (its two certs, `converse/ai.kivoyo.com-tls`
+    # and `converse-gateway/core-gateway-redirect-kivoyo-api-tls`, are HTTP-01
+    # and issue fine), but listing it here means the next wildcard or DNS-01
+    # cert under it does not repeat the 32-day silent stall. Re-check with:
+    #   for z in <zone>; do dig +short NS "$z"; done
     dnsZones:
       - "ai.camer.digital"
+      - "ai.kivoyo.com"
     # Secret in cert-manager's cluster-resource namespace (kube-system here).
     # Created by the `cert-remote` Application from AWS Secrets Manager via
     # external-secrets, mirroring how `cloudflare-secret` is provisioned.

@@ -513,9 +513,16 @@ applications:
                 name: ai-certificate
               spec:
                 secretName: wildcard-ai-server-tls
+                # `cert-route53`, NOT `cert-cloudflare`: every name below is
+                # under `ai.camer.digital`, which is delegated by NS records
+                # from the Cloudflare zone to Route 53. The Cloudflare solver
+                # writes the ACME TXT on the wrong side of that delegation, so
+                # it can never validate these — this Certificate sat pending
+                # for 32 days proving it. See `charts/cert/values.yaml`
+                # `solvers.route53`.
                 issuerRef:
                   kind: ClusterIssuer
-                  name: cert-cloudflare
+                  name: cert-route53
                   group: cert-manager.io
                 commonName: ai.camer.digital
                 dnsNames: 
