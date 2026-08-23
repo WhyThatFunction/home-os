@@ -36,6 +36,17 @@ applications:
         path: charts/cert
         helm:
           releaseName: cert
+          valuesObject:
+            solvers:
+              # home-remote is the only cluster serving names under
+              # `ai.camer.digital`, which is delegated by NS records from the
+              # Cloudflare `camer.digital` zone to Route 53. Without this the
+              # Cloudflare solver writes the ACME TXT record on the wrong side
+              # of the delegation and every DNS-01 challenge for those names
+              # hangs on "not yet propagated" indefinitely. See
+              # `charts/cert/values.yaml` `solvers.route53`.
+              route53:
+                enabled: true
 
       - repoURL: https://bjw-s-labs.github.io/helm-charts
         targetRevision: "4.*"
@@ -43,8 +54,18 @@ applications:
         helm:
           valuesObject:
             rawResources:
+              # `forceRename` is load-bearing, not cosmetic. bjw-s only appends
+              # the resource identifier to the name when MORE THAN ONE
+              # rawResource is enabled, so this object was silently named after
+              # the release (`cert-remote`) while it was the only one. Adding
+              # the Route 53 credential below would have renamed it to
+              # `cert-remote-cloudflare-api-secret`, and ArgoCD would prune the
+              # old ExternalSecret — deleting the `cloudflare-secret` it owns
+              # (`creationPolicy: Owner`) before the replacement re-created it.
+              # Pinning the name keeps that from happening.
               cloudflare-api-secret:
                 enabled: true
+                forceRename: "{{ .Release.Name }}"
                 apiVersion: external-secrets.io/v1
                 kind: ExternalSecret
                 spec:
@@ -61,6 +82,38 @@ applications:
                         remoteRef:
                           key: "prod/meta/test-app"
                           property: cloudflare_token
+
+              # Credentials for the Route 53 DNS-01 solver above. Same AWS
+              # Secrets Manager entry the Cloudflare token already comes from,
+              # so there is one place to look for issuer credentials.
+              # The IAM principal these keys belong to needs, on the
+              # `ai.camer.digital` hosted zone only:
+              #   route53:GetChange, route53:ChangeResourceRecordSets,
+              #   route53:ListResourceRecordSets, route53:ListHostedZonesByName
+              # (the last one is droppable by pinning `solvers.route53.hostedZoneID`).
+              route53-credentials:
+                enabled: true
+                forceRename: "{{ .Release.Name }}-route53"
+                apiVersion: external-secrets.io/v1
+                kind: ExternalSecret
+                spec:
+                  spec:
+                    refreshInterval: 0h10m0s
+                    secretStoreRef:
+                      name: ssegning-aws
+                      kind: ClusterSecretStore
+                    target:
+                      name: route53-secret
+                      creationPolicy: Owner
+                    data:
+                      - secretKey: access-key-id
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: route53_access_key_id
+                      - secretKey: secret-access-key
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: route53_secret_access_key
     destination:
       name: home-remote
       namespace: kube-system
