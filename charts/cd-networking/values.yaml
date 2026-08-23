@@ -101,6 +101,90 @@ applications:
             kubernetesGateway:
               enabled: true
               experimentalChannel: false
+              # Gateway API `BackendTLSPolicy` (v1, GA, part of the STANDARD
+              # channel per this cluster's installed CRD:
+              # `backendtlspolicies.gateway.networking.k8s.io` carries both
+              # `v1`/`v1alpha3` and the `gateway.networking.k8s.io/channel:
+              # standard` label, bundle-version v1.6.1) needs no
+              # `experimentalChannel` flag — only `TCPRoute` does.
+              #
+              # This is the confirmed backend-TLS mechanism for
+              # vaam-store/platform's mTLS S2S cutover (ADR-0016 amendment;
+              # platform PR #191 / issue #190) once it flips its 8 services'
+              # business ports to TLS-only: Traefik's own hop from this
+              # Gateway to each pod must stop being plaintext.
+              #
+              # Verified by reading this cluster's actual deployed Traefik
+              # (v3.7.4) provider source
+              # (`pkg/provider/kubernetes/gateway/httproute.go` at the
+              # `v3.7.4` tag), not just the docs:
+              #   - `loadHTTPServers` looks up `BackendTLSPolicy` objects
+              #     targeting the backendRef Service via
+              #     `ListBackendTLSPoliciesForService`, in the SAME namespace
+              #     as the HTTPRoute/Service (no cross-namespace policy
+              #     attachment exists in the Gateway API spec, so no
+              #     `ReferenceGrant` is needed for this).
+              #   - A match forces the backend protocol to HTTPS and builds
+              #     an internal `dynamic.ServersTransport` from the policy:
+              #     `RootCAs` from `validation.caCertificateRefs` (both
+              #     `ConfigMap` AND `Secret` kinds are supported as of
+              #     v3.7 — the `Secret` case was still missing as of
+              #     traefik/traefik#12970, closed Apr 2026), each requiring
+              #     a `ca.crt` data key; `ServerName` from
+              #     `validation.hostname`, used for real hostname
+              #     verification (this resolves traefik/traefik#12127's
+              #     "cannot validate certificate for <pod IP>" failure mode
+              #     — that was an empty/unthreaded hostname on the older
+              #     v3.5.3 the report was filed against, not a structural
+              #     gap; this cluster's v3.7.4 threads it correctly).
+              #   - The Traefik-specific `ServersTransport` CRD
+              #     (`serverstransports.traefik.io`, also installed) is NOT
+              #     an alternative here: Traefik's own docs and this same
+              #     provider file confirm it's only reachable via the
+              #     IngressRoute/`kubernetesCRD` provider or a Service
+              #     annotation for the plain Ingress provider — never via a
+              #     Gateway API HTTPRoute backendRef. `BackendTLSPolicy` is
+              #     the only lever for this cluster's HTTPRoute-based vaam
+              #     routing.
+              #
+              # RBAC is ALREADY sufficient — `traefik-kube-system`
+              # ClusterRole (chart-managed, unchanged by us) already grants
+              # get/list/watch on `backendtlspolicies` + `referencegrants`
+              # and update on `backendtlspolicies/status`, plus
+              # cluster-wide get/list/watch on `secrets`/`configmaps`
+              # (verified live via `kubectl get clusterrole
+              # traefik-kube-system -o yaml`).
+              #
+              # Net result: THIS repo needs no further change for the
+              # Traefik hop. The vaam-scoped `vaam-ca` ClusterIssuer
+              # (`../cert/templates/cluster-issuer.vaam-ca.yaml`, PR #130)
+              # is the only cluster-side prerequisite, and it already
+              # exists (home cluster only, matching where
+              # vaam-store/platform deploys — `destination.server:
+              # https://kubernetes.default.svc` in
+              # `serverless/k/vaam-store-platform/argocd-application.yaml`).
+              # Everything else is a platform-chart-side job: per service,
+              # attach one `BackendTLSPolicy` (apiVersion
+              # `gateway.networking.k8s.io/v1`, matching what this Traefik
+              # version actually deserializes) to the Service, with
+              # `validation.hostname` set to the SAME short name as the
+              # cert-manager `Certificate`'s SAN (ADR-0016 amendment D9),
+              # and `validation.caCertificateRefs` pointing at that SAME
+              # per-service leaf-cert Secret the mTLS cutover already
+              # creates (`<service>-mtls-cert`) — a `ca`-type
+              # `ClusterIssuer` (which `vaam-ca` is) makes cert-manager
+              # populate that Secret's `ca.crt` automatically, so no
+              # separate CA-bundle propagation step exists anywhere. Traefik
+              # itself needs no client certificate of its own — confirmed
+              # against platform PR #191's `crates/auth-kit/src/mtls.rs`
+              # (`WebPkiClientVerifier::builder(...).allow_unauthenticated()`,
+              # proven by
+              # `no_client_certificate_still_completes_the_handshake_and_falls_through`)
+              # — the client-cert-optional design exists specifically so
+              # Traefik-forwarded and kubelet-probe traffic (neither
+              # presents one) still complete the handshake; Traefik is a
+              # plain, anonymous TLS client here, verifying the pod's
+              # server cert only.
             #knative:
             #  enabled: true
 
