@@ -239,24 +239,6 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: vymalo-shop-deployer
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: external
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: serverless/k/vymalo-shop
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: serverless-vymalo-shop
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-      automated:
-        prune: true
-        selfHeal: true
-
   # Deploys the vaam-store/platform 8-service fleet's 8 Argo CD Applications +
   # its ArgoCD OCI repo cred + image-updater GHCR cred + ImageUpdater CR (all
   # kustomize-forced into the argocd namespace, same pattern as

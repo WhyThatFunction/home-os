@@ -315,7 +315,7 @@ applications:
         # 4 runner Applications while ownership moves from this Helm-rendered
         # list to an ApplicationSet. Revert to true once the cutover is
         # confirmed stable (cd no longer tracks those 4 in its resource tree).
-        prune: false
+        prune: true
         selfHeal: true
 
   - name: home-secrets
