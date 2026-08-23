@@ -1,0 +1,37 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# The Application objects themselves live in the argocd namespace.
+namespace: argocd
+
+resources:
+  - argocd-application.yaml
+  # CRD-based image-updater activation for the 3 frontends apps. Without it,
+  # app-only changes never promote a digest -- only chart republishes deploy.
+  # Same pattern as ../vaam-store-platform/imageupdater.yaml.
+  - imageupdater.yaml
+
+# DELIBERATELY NOT HERE, both provisioned by ../vaam-store-platform and
+# reused as-is -- duplicating either would collide on the Secret name:
+#
+#   argocd-charts-oci-repo.externalsecret.yaml
+#     Creates the ArgoCD repository credential `vaam-store-platform-charts`
+#     for url `ghcr.io/vaam-store/charts` with enableOCI. The frontends charts
+#     (charts/admin, charts/landing, charts/storybook) live under that SAME
+#     registry path, published by vaam-store/frontends' own chart-publish.yml
+#     rather than platform's -- but ArgoCD credentials match on URL prefix,
+#     not on who pushed, so the existing cred already covers them.
+#
+#   ghcr-pull.externalsecret.yaml
+#     Creates `vaam-store-platform-ghcr-pull`, a plain ghcr.io dockerconfigjson
+#     built from prod/meta/test-app's github_username/github_token. It is
+#     registry-wide, not path-scoped, so it authenticates digest lookups
+#     against ghcr.io/vaam-store/frontends/* exactly as well as
+#     ghcr.io/vaam-store/platform/*. The image-updater annotations below
+#     reference it by name.
+#
+# Consequence worth stating: this directory has a hard dependency on the
+# vaam-store-platform deployer being present. That is already true in
+# practice (the frontends talk to those services over in-cluster DNS), but if
+# the platform deployer is ever removed, these three Applications lose both
+# their chart credential and their digest-lookup credential.

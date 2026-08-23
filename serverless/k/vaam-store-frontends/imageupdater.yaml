@@ -1,0 +1,23 @@
+# CRD-based image-updater activation for the 3 vaam-store/frontends apps.
+# Without it, the per-Application annotations are inert -- app-only changes
+# never promote a digest and only a chart republish deploys anything.
+#
+# A SEPARATE CR from ../vaam-store-platform/imageupdater.yaml (which names its
+# own 8 apps explicitly) rather than adding three entries there: the two fleets
+# have separate deployers, and a CR listing apps from both would make either
+# deployer's removal silently disable promotion for the other's apps.
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: vaam-store-frontends
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: vaam-store-frontends
+spec:
+  applicationRefs:
+    - namePattern: admin
+      useAnnotations: true
+    - namePattern: landing
+      useAnnotations: true
+    - namePattern: storybook
+      useAnnotations: true

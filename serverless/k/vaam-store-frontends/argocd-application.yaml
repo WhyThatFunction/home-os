@@ -1,0 +1,247 @@
+# ArgoCD Applications for the vaam-store/frontends web apps, deployed to the
+# vaam-platform namespace behind the same shared Traefik Gateway the 8 platform
+# services use.
+#
+# Charts: ghcr.io/vaam-store/charts/{admin,landing,storybook}, published by
+# vaam-store/frontends' own .github/workflows/chart-publish.yml.
+# Values: vaam-store/deploy, envs/production/<app>.values.yaml -- the SAME
+# values repo and the SAME $values-source pattern as ../vaam-store-platform.
+#
+# ## Why a separate deployer from vaam-store-platform
+#
+# Different source repo, different image namespace
+# (ghcr.io/vaam-store/frontends/* vs .../platform/*), different cosign signing
+# identities, and no shared sync ordering with the 8 services -- these are web
+# frontends that call the platform over in-cluster DNS at RUNTIME, so nothing
+# has to be created before or after anything else. Keeping them in their own
+# kustomize directory means a change to one fleet cannot break the other's
+# deployer sync.
+#
+# ## WHOLE HOSTNAMES, not ADR-0006 context paths
+#
+# The 8 platform services share one host and split it by context path. These
+# three each take a whole hostname, and each for a concrete reason rather than
+# preference (see each chart's README in vaam-store/frontends):
+#
+#   admin.vaam.store      A path prefix would need Next `basePath`, which moves
+#                         the app's same-origin proxy mount to
+#                         /<prefix>/api/cratestack/...; stripBasePath then stops
+#                         matching, falls through to signing the path as-given,
+#                         and EVERY ADR-0007-signed request fails verification.
+#                         QR device pairing fails with it.
+#   vaam.store            Android and iOS only honour /.well-known/assetlinks.json
+#                         and apple-app-site-association at a domain ROOT. Under
+#                         a prefix the files still serve; the OS never looks.
+#   storybook.vaam.store  Static bundle with absolute asset paths, no base-path
+#                         support -- a prefix 404s every asset.
+#
+# `landing` taking the apex does NOT collide with auth-service: that service's
+# `auth-service-issuer` HTTPRoute claims vaam.store for exactly three longer
+# prefixes (/.well-known/oauth-authorization-server, /jwks.json,
+# /jwks.raw.json), which win over landing's "/". Verified against the live
+# cluster, not assumed.
+#
+# ## Image promotion
+#
+# Same shape as the platform apps: cosign-verified digest updates, git
+# write-back into vaam-store/deploy, via the shared
+# github-app-creds--vaam-store credential. One difference worth reading: each
+# frontends image is built by its OWN workflow file, so the
+# certificate-identity-regexp differs PER APP (image.yml / image-landing.yml /
+# image-storybook.yml) rather than being one shared pattern. A wrong regexp
+# here fails CLOSED -- the digest simply never promotes -- so the symptom is a
+# stale image, not a bad deploy.
+#
+# Storybook is deliberately NOT fronted by any auth gate. It is a design-system
+# component catalogue: no customer data, no credentials. Note this differs from
+# vaam-store/mobile's widgetbook, which fronts itself with a dedicated
+# oauth2-proxy. If that judgement is wrong for this cluster, gate it at the
+# Gateway rather than changing the chart.
+#
+# Tracked as vaam-store/frontends#24.
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: admin
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+    argocd-image-updater.argoproj.io/image-list: app=ghcr.io/vaam-store/frontends/admin:latest
+    argocd-image-updater.argoproj.io/app.source-index: '0'
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
+    argocd-image-updater.argoproj.io/app.update-strategy: digest
+    argocd-image-updater.argoproj.io/app.helm.image-name: app-template.controllers.main.containers.app.image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: app-template.controllers.main.containers.app.image.tag
+    argocd-image-updater.argoproj.io/app.force-update: 'true'
+    argocd-image-updater.argoproj.io/app.signature-type: cosign
+    argocd-image-updater.argoproj.io/app.cosign.certificate-oidc-issuer: https://token.actions.githubusercontent.com
+    argocd-image-updater.argoproj.io/app.cosign.certificate-identity-regexp: ^https://github\.com/vaam-store/frontends/\.github/workflows/image\.yml@.*$
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/git-repository: https://github.com/vaam-store/deploy.git
+    argocd-image-updater.argoproj.io/write-back-target: helmvalues:envs/production/admin.values.yaml
+    argocd-image-updater.argoproj.io/git-credentials: secret:argocd/github-app-creds--vaam-store
+    notifications.argoproj.io/subscribe.on-deployed.vaam-platform: ''
+    notifications.argoproj.io/subscribe.on-deploy-failed.vaam-platform: ''
+    notifications.ssegning.me/github-repo-url: https://github.com/vaam-store/frontends
+    notifications.ssegning.me/github-revision: main
+    notifications.ssegning.me/environment-url: https://admin.vaam.store
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: vaam-store-frontends
+spec:
+  project: external
+  sources:
+    - repoURL: ghcr.io/vaam-store/charts
+      chart: admin
+      targetRevision: 0.1.*
+      helm:
+        releaseName: admin
+        valueFiles:
+          - $values/envs/production/admin.values.yaml
+        ignoreMissingValueFiles: true
+    - repoURL: https://github.com/vaam-store/deploy.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vaam-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: landing
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+    argocd-image-updater.argoproj.io/image-list: app=ghcr.io/vaam-store/frontends/landing:latest
+    argocd-image-updater.argoproj.io/app.source-index: '0'
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
+    argocd-image-updater.argoproj.io/app.update-strategy: digest
+    argocd-image-updater.argoproj.io/app.helm.image-name: app-template.controllers.main.containers.app.image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: app-template.controllers.main.containers.app.image.tag
+    argocd-image-updater.argoproj.io/app.force-update: 'true'
+    argocd-image-updater.argoproj.io/app.signature-type: cosign
+    argocd-image-updater.argoproj.io/app.cosign.certificate-oidc-issuer: https://token.actions.githubusercontent.com
+    argocd-image-updater.argoproj.io/app.cosign.certificate-identity-regexp: ^https://github\.com/vaam-store/frontends/\.github/workflows/image-landing\.yml@.*$
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/git-repository: https://github.com/vaam-store/deploy.git
+    argocd-image-updater.argoproj.io/write-back-target: helmvalues:envs/production/landing.values.yaml
+    argocd-image-updater.argoproj.io/git-credentials: secret:argocd/github-app-creds--vaam-store
+    notifications.argoproj.io/subscribe.on-deployed.vaam-platform: ''
+    notifications.argoproj.io/subscribe.on-deploy-failed.vaam-platform: ''
+    notifications.ssegning.me/github-repo-url: https://github.com/vaam-store/frontends
+    notifications.ssegning.me/github-revision: main
+    notifications.ssegning.me/environment-url: https://vaam.store
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: vaam-store-frontends
+spec:
+  project: external
+  sources:
+    - repoURL: ghcr.io/vaam-store/charts
+      chart: landing
+      targetRevision: 0.1.*
+      helm:
+        releaseName: landing
+        valueFiles:
+          - $values/envs/production/landing.values.yaml
+        ignoreMissingValueFiles: true
+    - repoURL: https://github.com/vaam-store/deploy.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vaam-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: storybook
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+    argocd-image-updater.argoproj.io/image-list: app=ghcr.io/vaam-store/frontends/storybook:latest
+    argocd-image-updater.argoproj.io/app.source-index: '0'
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
+    argocd-image-updater.argoproj.io/app.update-strategy: digest
+    argocd-image-updater.argoproj.io/app.helm.image-name: app-template.controllers.main.containers.app.image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: app-template.controllers.main.containers.app.image.tag
+    argocd-image-updater.argoproj.io/app.force-update: 'true'
+    argocd-image-updater.argoproj.io/app.signature-type: cosign
+    argocd-image-updater.argoproj.io/app.cosign.certificate-oidc-issuer: https://token.actions.githubusercontent.com
+    argocd-image-updater.argoproj.io/app.cosign.certificate-identity-regexp: ^https://github\.com/vaam-store/frontends/\.github/workflows/image-storybook\.yml@.*$
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/git-repository: https://github.com/vaam-store/deploy.git
+    argocd-image-updater.argoproj.io/write-back-target: helmvalues:envs/production/storybook.values.yaml
+    argocd-image-updater.argoproj.io/git-credentials: secret:argocd/github-app-creds--vaam-store
+    notifications.argoproj.io/subscribe.on-deployed.vaam-platform: ''
+    notifications.argoproj.io/subscribe.on-deploy-failed.vaam-platform: ''
+    notifications.ssegning.me/github-repo-url: https://github.com/vaam-store/frontends
+    notifications.ssegning.me/github-revision: main
+    notifications.ssegning.me/environment-url: https://storybook.vaam.store
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: vaam-store-frontends
+spec:
+  project: external
+  sources:
+    - repoURL: ghcr.io/vaam-store/charts
+      chart: storybook
+      targetRevision: 0.1.*
+      helm:
+        releaseName: storybook
+        valueFiles:
+          - $values/envs/production/storybook.values.yaml
+        ignoreMissingValueFiles: true
+    - repoURL: https://github.com/vaam-store/deploy.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vaam-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
