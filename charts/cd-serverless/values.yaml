@@ -72,14 +72,21 @@ applications:
                     domain:
                       "serverless.mlops.camer.digital": ""
                     gateway:
+                      # traefik/, NOT kube-system/. This Application targets
+                      # home-remote, where the `traefik-remote` Application
+                      # deploys into the `traefik` namespace. kube-system is
+                      # correct only for the in-cluster `traefik` Application
+                      # (see charts/cd-networking/values.yaml) -- this block was
+                      # copied from there and the namespace never updated, so it
+                      # named a Gateway that has never existed on this cluster.
                       external-gateways: |
                         - class: traefik
-                          gateway: kube-system/traefik-gateway
-                          service: kube-system/traefik
+                          gateway: traefik/traefik-gateway
+                          service: traefik/traefik
                       local-gateways: |
                         - class: traefik
-                          gateway: kube-system/traefik-gateway
-                          service: kube-system/traefik
+                          gateway: traefik/traefik-gateway
+                          service: traefik/traefik
                     network:
                       ingress-class: gateway-api.ingress.networking.knative.dev
                       domain-template: "{{ `{{ .Name }}` }}-{{ `{{ .Namespace }}` }}--{{ `{{ .Domain }}` }}"
