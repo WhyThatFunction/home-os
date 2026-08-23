@@ -32,28 +32,5 @@ spec:
             apiKeySecretRef:
               name: cloudflare-secret
               key: api-token
-{{- with $.Values.solvers.route53 }}
-{{- if .enabled }}
-      # Scoped DNS-01 solver for zones delegated away from Cloudflare.
-      # See charts/cert/values.yaml `solvers.route53` for why this exists.
-      - dns01:
-          route53:
-            region: {{ .region | quote }}
-            {{- with .hostedZoneID }}
-            hostedZoneID: {{ . | quote }}
-            {{- end }}
-            accessKeyIDSecretRef:
-              name: {{ .secretName }}
-              key: {{ .accessKeyIDKey }}
-            secretAccessKeySecretRef:
-              name: {{ .secretName }}
-              key: {{ .secretAccessKeyKey }}
-        selector:
-          dnsZones:
-            {{- range .dnsZones }}
-            - {{ . | quote }}
-            {{- end }}
-{{- end }}
-{{- end }}
 {{ end }}
 {{ end }}
