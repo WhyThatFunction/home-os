@@ -264,7 +264,9 @@ applications:
     project: infrastructure
     source:
       repoURL: https://traefik.github.io/charts
-      targetRevision: "*"
+      # Pinned to the 41.x line. Unpinned "*" floats to whatever is newest, which
+      # is how the live pods sat on 41.0.2 while ArgoCD reported 41.3.0 synced.
+      targetRevision: "41.*"
       chart: traefik
       helm:
         releaseName: traefik
@@ -304,6 +306,14 @@ applications:
                 websecure: true
           nodeSelector:
             node-role.kubernetes.io/worker: worker
+          # Mirrors traefik-remote, which has run these for months.
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
           providers:
             kubernetesCRD:
               allowCrossNamespace: true
@@ -362,7 +372,8 @@ applications:
     project: infrastructure
     source:
       repoURL: https://traefik.github.io/charts
-      targetRevision: "*"
+      # See the note on traefik-netcup above.
+      targetRevision: "41.*"
       chart: traefik
       helm:
         releaseName: traefik
