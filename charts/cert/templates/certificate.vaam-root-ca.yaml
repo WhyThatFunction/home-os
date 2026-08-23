@@ -1,0 +1,40 @@
+{{ with .Values.solvers.vaamCA }}
+{{ if .enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: vaam-root-ca
+  namespace: {{ include "common.names.namespace" $ }}
+  labels:
+    {{ include "common.labels.standard" $ | nindent 4 }}
+  annotations:
+    {{- with .commonAnnotations }}
+    {{ include "common.tplvalues.render" ( dict "value" . "context" $ ) | nindent 4 }}
+    {{- end }}
+    {{- with $.Values.commonAnnotations }}
+    {{ include "common.tplvalues.render" ( dict "value" . "context" $ ) | nindent 4 }}
+    {{- end }}
+spec:
+  isCA: true
+  commonName: {{ .commonName | quote }}
+  secretName: vaam-root-ca
+  # Root lifetime: see values.yaml `solvers.vaamCA.duration` for the reasoning
+  # (bounded blast radius vs. rotation cost — this is NOT a substitute for
+  # protecting the CA key itself; see ADR-0016 amendment).
+  duration: {{ .duration | quote }}
+  renewBefore: {{ .renewBefore | quote }}
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+
+  # Bootstrapped by the existing generic self-signed ClusterIssuer. This is safe
+  # to share across trust domains: cert-manager's `selfSigned` issuer type holds
+  # no key material of its own — each Certificate generates its own keypair and
+  # signs itself. What must stay dedicated (and does, via the `vaam-ca`
+  # ClusterIssuer below) is the CA keypair used to sign *leaf* certificates.
+  issuerRef:
+    name: {{ include "common.names.fullname" $ }}-self-signed-basic
+    kind: ClusterIssuer
+    group: cert-manager.io
+{{ end }}
+{{ end }}
