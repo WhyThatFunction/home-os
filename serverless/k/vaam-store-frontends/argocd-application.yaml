@@ -245,3 +245,117 @@ spec:
         duration: 15s
         factor: 2
         maxDuration: 5m
+---
+# widgetbook — the Widgetbook catalog for vymalo_ui, from vaam-store/mobile.
+#
+# ## Why a MOBILE app lives in the FRONTENDS deployer
+#
+# Owner direction, and it is the right home despite the repo name: this is a
+# browser-served static design-system catalogue on its own hostname — the same
+# thing storybook is, for the same audience, behind the same Gateway. The
+# alternative (a fourth kustomize directory + a fourth deployer for one
+# Application) buys separation nothing here actually needs. What it does mean
+# is that the "different source repo / different image namespace / different
+# cosign identity" rationale in this file's header no longer separates the two
+# fleets cleanly — every one of those three differs for THIS app too, and they
+# are handled per-Application in the annotations below rather than per-deployer.
+#
+# ## Three things differ from admin/landing/storybook — all load-bearing
+#
+# 1. CHART PATH. vaam-store/mobile publishes at `<owner>/charts/<repo>/<chart>`,
+#    one segment deeper than the other three. Hence `repoURL` carries the full
+#    chart path and `chart: "."` (the shape ~30 adorsys-gis Applications on this
+#    cluster already use), plus its own repo-creds secret —
+#    see argocd-mobile-charts-oci-creds.externalsecret.yaml for why the
+#    platform's exact-match `repository` secret cannot cover it.
+#
+# 2. CHART VERSION `1.0.*`, not `0.1.*`. The widgetbook chart was rebased onto
+#    bjw-s app-template v5 and majored to 1.0.0.
+#
+# 3. HELM VALUE PATHS are nested under a `widgetbook:` key, because that chart
+#    aliases its app-template dependency to `widgetbook` rather than leaving it
+#    as `app-template`. The image-updater helm.image-name/image-tag annotations
+#    below reflect that — copying the other three's paths verbatim would point
+#    at values that do not exist, and image promotion would silently never fire.
+#
+# ## This app is behind an auth gate; the other three are not
+#
+# The chart deploys a dedicated oauth2-proxy as a second controller and its
+# HTTPRoute points at THAT Service, not at widgetbook's. It will not render at
+# all without `oauth2Proxy.existingSecret` (the chart's templates/checks.yaml
+# hard-fails), which vaam-store/deploy points at an ExternalSecret reading two
+# NEW properties from `vaam/prod/env`. Both must exist before the first sync,
+# along with a `widgetbook` OIDC client in the vymalo realm at auth.verif.fyi
+# whose valid redirect URIs include https://widgetbook.vaam.store/oauth2/callback.
+# See envs/production/widgetbook.values.yaml in vaam-store/deploy.
+#
+# DNS already resolves (widgetbook.vaam.store -> the same Cloudflare pair as
+# storybook/admin), so nothing is needed there.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: widgetbook
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+    argocd-image-updater.argoproj.io/image-list: app=ghcr.io/vaam-store/mobile/widgetbook:latest
+    argocd-image-updater.argoproj.io/app.source-index: '0'
+    argocd-image-updater.argoproj.io/app.pull-secret: pullsecret:argocd/vaam-store-platform-ghcr-pull
+    argocd-image-updater.argoproj.io/app.update-strategy: digest
+    # Nested under `widgetbook.` — see note 3 in this Application's header.
+    argocd-image-updater.argoproj.io/app.helm.image-name: widgetbook.controllers.widgetbook.containers.main.image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: widgetbook.controllers.widgetbook.containers.main.image.tag
+    argocd-image-updater.argoproj.io/app.force-update: 'true'
+    argocd-image-updater.argoproj.io/app.signature-type: cosign
+    argocd-image-updater.argoproj.io/app.cosign.certificate-oidc-issuer: https://token.actions.githubusercontent.com
+    # VERIFIED against the live signature, not assumed: the Fulcio cert on
+    # ghcr.io/vaam-store/mobile/widgetbook@sha256:fc85b455… carries SAN URI
+    # https://github.com/vaam-store/mobile/.github/workflows/widgetbook-image.yml@refs/heads/main
+    # (`cosign download signature … | jq .Cert.URIs`). Worth checking by hand
+    # because a wrong regexp here fails CLOSED — the symptom is a permanently
+    # stale image, not a visible error.
+    argocd-image-updater.argoproj.io/app.cosign.certificate-identity-regexp: ^https://github\.com/vaam-store/mobile/\.github/workflows/widgetbook-image\.yml@.*$
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/git-repository: https://github.com/vaam-store/deploy.git
+    argocd-image-updater.argoproj.io/write-back-target: helmvalues:envs/production/widgetbook.values.yaml
+    argocd-image-updater.argoproj.io/git-credentials: secret:argocd/github-app-creds--vaam-store
+    notifications.argoproj.io/subscribe.on-deployed.vaam-platform: ''
+    notifications.argoproj.io/subscribe.on-deploy-failed.vaam-platform: ''
+    notifications.ssegning.me/github-repo-url: https://github.com/vaam-store/mobile
+    notifications.ssegning.me/github-revision: main
+    notifications.ssegning.me/environment-url: https://widgetbook.vaam.store
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: vaam-store-frontends
+spec:
+  project: external
+  sources:
+    - repoURL: oci://ghcr.io/vaam-store/charts/mobile/widgetbook
+      chart: "."
+      targetRevision: 1.0.*
+      helm:
+        releaseName: widgetbook
+        valueFiles:
+          - $values/envs/production/widgetbook.values.yaml
+        ignoreMissingValueFiles: true
+    - repoURL: https://github.com/vaam-store/deploy.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vaam-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
