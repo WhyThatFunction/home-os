@@ -1,4 +1,5 @@
-# CRD-based image-updater activation for the 3 vaam-store/frontends apps.
+# CRD-based image-updater activation for the 4 apps this deployer owns --
+# the 3 from vaam-store/frontends plus widgetbook from vaam-store/mobile.
 # Without it, the per-Application annotations are inert -- app-only changes
 # never promote a digest and only a chart republish deploys anything.
 #
@@ -20,4 +21,10 @@ spec:
     - namePattern: landing
       useAnnotations: true
     - namePattern: storybook
+      useAnnotations: true
+    # From vaam-store/mobile, not frontends -- its image lives under
+    # ghcr.io/vaam-store/mobile/* and its helm value paths are nested one level
+    # deeper. Both are per-Application annotation concerns, so nothing special
+    # is needed here; `useAnnotations: true` is the same contract.
+    - namePattern: widgetbook
       useAnnotations: true

@@ -6,7 +6,12 @@ namespace: argocd
 
 resources:
   - argocd-application.yaml
-  # CRD-based image-updater activation for the 3 frontends apps. Without it,
+  # ArgoCD OCI Helm credential for ghcr.io/vaam-store/charts/mobile/widgetbook.
+  # NOT covered by the platform deployer's credential below -- that one is an
+  # exact-url `repository` secret for `ghcr.io/vaam-store/charts`, and the
+  # mobile chart sits one path segment deeper. See the file's own header.
+  - argocd-mobile-charts-oci-creds.externalsecret.yaml
+  # CRD-based image-updater activation for this deployer's 4 apps. Without it,
   # app-only changes never promote a digest -- only chart republishes deploy.
   # Same pattern as ../vaam-store-platform/imageupdater.yaml.
   - imageupdater.yaml
@@ -19,8 +24,13 @@ resources:
 #     for url `ghcr.io/vaam-store/charts` with enableOCI. The frontends charts
 #     (charts/admin, charts/landing, charts/storybook) live under that SAME
 #     registry path, published by vaam-store/frontends' own chart-publish.yml
-#     rather than platform's -- but ArgoCD credentials match on URL prefix,
-#     not on who pushed, so the existing cred already covers them.
+#     rather than platform's -- and a `repository`-type secret is matched on
+#     its url, not on who pushed, so the existing cred already covers them.
+#
+#     It does NOT cover widgetbook: `repository` secrets match by EXACT url,
+#     and vaam-store/mobile publishes at `.../charts/mobile/widgetbook`, one
+#     segment deeper. Hence the repo-creds secret added above -- a prefix
+#     match, so it also covers any future `charts/<repo>/<chart>` publisher.
 #
 #   ghcr-pull.externalsecret.yaml
 #     Creates `vaam-store-platform-ghcr-pull`, a plain ghcr.io dockerconfigjson
@@ -33,5 +43,6 @@ resources:
 # Consequence worth stating: this directory has a hard dependency on the
 # vaam-store-platform deployer being present. That is already true in
 # practice (the frontends talk to those services over in-cluster DNS), but if
-# the platform deployer is ever removed, these three Applications lose both
-# their chart credential and their digest-lookup credential.
+# the platform deployer is ever removed, admin/landing/storybook lose both
+# their chart credential and their digest-lookup credential, and widgetbook
+# loses its digest-lookup credential (it brings its own chart credential).
