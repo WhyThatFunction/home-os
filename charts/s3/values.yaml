@@ -134,6 +134,15 @@ minio:
             resources:
               - "arn:aws:s3:::ssegning-uploads/*"
               - "arn:aws:s3:::ssegning-uploads"
+              # CNPG barman-cloud base backups + WAL archive for ssegning-pg.
+              # A SEPARATE bucket from the media one on purpose:
+              # `ssegning-uploads` carries an anonymous s3:GetObject policy
+              # (below) because the website serves its images straight from
+              # it. Database backups must never be world-readable, so they
+              # get their own bucket that is deliberately absent from the
+              # anonymous-policy list.
+              - "arn:aws:s3:::ssegning-cnpg-backups/*"
+              - "arn:aws:s3:::ssegning-cnpg-backups"
       - name: artifact-cache-policy
         statements:
           - actions:
@@ -187,6 +196,8 @@ minio:
       - name: sc-cache
         withLock: false
       - name: ssegning-uploads
+        withLock: false
+      - name: ssegning-cnpg-backups
         withLock: false
 
 provision_minio_buckets_policies:
