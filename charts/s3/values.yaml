@@ -124,6 +124,16 @@ minio:
               - "arn:aws:s3:::vaam-insights"
               - "arn:aws:s3:::vaam-cnpg-backups/*"
               - "arn:aws:s3:::vaam-cnpg-backups"
+      # Strapi media uploads for ssegning.com. Scoped to the one bucket -- the
+      # website has no reason to touch any other tenant's data.
+      - name: ssegning-policy
+        statements:
+          - actions:
+              - "s3:*"
+            effect: "Allow"
+            resources:
+              - "arn:aws:s3:::ssegning-uploads/*"
+              - "arn:aws:s3:::ssegning-uploads"
       - name: artifact-cache-policy
         statements:
           - actions:
@@ -141,6 +151,7 @@ minio:
       - minio-users
       - vaam-minio-users
       - artifact-cache-users
+      - ssegning-minio-users
 
     buckets:
       - name: monitoring
@@ -175,6 +186,8 @@ minio:
         withLock: false
       - name: sc-cache
         withLock: false
+      - name: ssegning-uploads
+        withLock: false
 
 provision_minio_buckets_policies:
   enabled: true
@@ -206,6 +219,26 @@ provision_minio_buckets_policies:
               "Action": [ "s3:GetObject" ],
               "Resource": [
                 "arn:aws:s3:::ai-ops-backups/public/*"
+              ]
+            }
+          ]
+        }
+    # The whole bucket is world-readable on purpose: it holds nothing but the
+    # public website's images, which Next.js <Image> and the browser fetch
+    # anonymously straight from https://s3.ssegning.me/ssegning-uploads/...
+    # (that URL is Strapi's configured `baseUrl`). WRITE stays restricted to
+    # the `ssegning-site` user via `ssegning-policy` above.
+    - name: ssegning-uploads
+      policy:
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "AWS": [ "*" ] },
+              "Action": [ "s3:GetObject" ],
+              "Resource": [
+                "arn:aws:s3:::ssegning-uploads/*"
               ]
             }
           ]
