@@ -14,6 +14,52 @@ argoCdConfigs:
         type: helm
 
 applications:
+  # ssegning.com — the one-person-enterprise website (Strapi 5 CMS + Next.js 16).
+  #
+  # The chart and its values live in the APP repo
+  # (github.com/WhyThatFunction/ssegning-com, path `deploy/chart`), not here.
+  # That is deliberate and is the only shape that makes image promotion work:
+  # `main` in home-os is PR-only behind the governance check, so nothing — not
+  # CI, not argocd-image-updater — can write a new image digest back into this
+  # repo. The app repo's own CI can push straight to its `main`, so its
+  # `deploy/chart/values.yaml` carries `web.image.tag` / `cms.image.tag` and CI
+  # bumps them to `sha-<short>` on every green build. ArgoCD tracks HEAD there
+  # and rolls the new image out. Same external-repo shape as the `serverless/k`
+  # deployers, minus the OCI-chart indirection.
+  #
+  # The repo is PUBLIC, so ArgoCD needs no repository credential and the GHCR
+  # packages inherit public visibility — no imagePullSecret either.
+  #
+  # Hostnames (all already resolving: `ssegning.com` and `*.ssegning.com` are
+  # Cloudflare-proxied CNAMEs to `ssegning.no-ip.org`, i.e. THIS cluster's
+  # Traefik):
+  #   ssegning.com / www.ssegning.com  -> web    (www 301s to the apex)
+  #   cms.ssegning.com                 -> Strapi admin + REST
+  #   god.ssegning.com                 -> 301 https://ssegning.com
+  #   apps.ssegning.com                -> 301 https://ssegning.com
+  #
+  # Secrets come from AWS Secrets Manager `ssegning/prod/env` via the
+  # `ssegning-aws` ClusterSecretStore; the Strapi upload bucket is
+  # `ssegning-uploads` on the in-cluster MinIO (see charts/s3/values.yaml).
+  - name: ssegning-com
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: external
+    source:
+      repoURL: https://github.com/WhyThatFunction/ssegning-com
+      targetRevision: HEAD
+      path: deploy/chart
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: ssegning
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: jellyfin
     finalizers:
       - resources-finalizer.argocd.argoproj.io
