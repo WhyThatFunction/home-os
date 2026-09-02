@@ -15,20 +15,41 @@ The OS layer is **Talos Linux** (immutable). Storage is Longhorn; databases
 are CloudNativePG; ingress is Traefik; certs are cert-manager; secrets are
 external-secrets (AWS backend).
 
-## Two clusters — know which you are targeting
+## Three clusters — know which you are targeting
 
-ArgoCD `destination`s point at one of two clusters. This distinction drives
+ArgoCD `destination`s point at one of three clusters. This distinction drives
 most config decisions:
 
 - **`name: home-remote`** — a registered external cluster = the **Hetzner**
-  box (x86 AMD). Most "real" production apps live here. It has the full
-  platform: external-secrets/AWS, cert-manager issuers, Keycloak.
+  box (x86 AMD). Much of the "real" production workload lives here. Full
+  platform: external-secrets/AWS, cert-manager issuers, Keycloak. `kubectl`
+  context: `hetzner-prod`.
+- **`name: netcup-k8s`** — a registered external cluster, added after the
+  original two-cluster design. Carries ARC runner pools and ml-ops/experiment
+  workloads. `kubectl` context: `admin@netcup` — **`admin@homeos` does not
+  reach it**, so an Application with this destination deploys pods you cannot
+  see from the in-cluster context.
 - **`server: https://kubernetes.default.svc`** — the **in-cluster** /
-  **local** cluster (where ArgoCD itself runs). "Local deployment" means
-  this destination; it generally lacks the AWS/Keycloak/cert-manager deps.
+  **local** cluster (where ArgoCD itself runs). "Local deployment" means this
+  destination. `kubectl` context: `admin@homeos`.
 
-A change that works on `home-remote` may not work in-cluster if it depends on
-those shared services — strip TLS/external-secrets/oauth for local variants.
+  Historically this one "generally lacked the AWS/Keycloak/cert-manager
+  deps." **That is no longer true** and has not been for some time: it runs
+  cert-manager (`cert-cloudflare`, `self-signed-ca`, `vaam-ca`, …),
+  external-secrets with the `ssegning-aws` ClusterSecretStore, CloudNativePG
+  + the barman-cloud plugin, Longhorn, MinIO and Traefik — the vaam-store and
+  ssegning.com production stacks both live here. Check what the cluster
+  actually has before assuming a dependency is missing.
+
+A change that works on one cluster may not work on another if it depends on a
+service only that cluster runs. Verify with `kubectl --context <ctx> get ...`
+rather than assuming; the split is no longer a clean "prod vs local" one.
+
+**`controller.replicas` in `charts/argocd/values.yaml` must equal the live
+cluster count** — the app-controller shards by cluster (`sharding.algorithm:
+round-robin`), not by app count, so N clusters with fewer than N replicas
+silently leaves one replica carrying two clusters' load. This has already
+drifted stale once. Re-check it whenever a cluster is added or removed.
 
 ## Bootstrap chain (read top-down to understand the whole system)
 
