@@ -133,6 +133,34 @@ externalSecret:
   passwordRemoteProperty: platform_postgres_password
   username: vaam
 
+  # S3 credentials the barman-cloud ObjectStore uses to write base backups and
+  # the WAL archive to s3.ssegning.me (see `backup:` above and
+  # templates/cnpg.yaml). The ObjectStore hardcodes the Secret NAME and its two
+  # KEYS (`accessKeyId` / `secretKey`) -- do not rename either without changing
+  # templates/cnpg.yaml to match.
+  #
+  # WHY THIS LIVES HERE and not in charts/home-apps/vaam-store-prod-secrets,
+  # which also declares an `ext-secret-cnpg-s3-creds` for the same Secret:
+  # that chart is ORPHANED. It is only referenced by
+  # charts/home-apps/vaam-store-prod-deployer, which is not deployed on any
+  # cluster -- production instead uses the standalone Application at
+  # serverless/k/vaam-store-platform/vaam-store-prod-pg.application.yaml, which
+  # deploys THIS chart alone. So `vaam-prod-cnpg-s3-creds` was never created
+  # anywhere, and every nightly backup failed with
+  # `secrets "vaam-prod-cnpg-s3-creds" not found` -- 11 consecutive failures
+  # from 2026-08-22 to 2026-09-01, i.e. the cluster had NO usable backup at all.
+  #
+  # Deploying the orphaned secrets chart to fix this would be worse: it also
+  # declares `ghcr-pull` in vaam-platform, and that Secret is already owned by
+  # the `auth-service` Application (verified via its argocd tracking-id), so
+  # two Applications would fight over it. Co-locating the credential with its
+  # only consumer avoids that entirely and makes this chart self-contained.
+  s3:
+    enabled: true
+    secretName: vaam-prod-cnpg-s3-creds
+    accessKeyRemoteProperty: upload_service_object_storage_access_key
+    secretKeyRemoteProperty: upload_service_object_storage_secret_key
+
 databases:
   # One CNPG Database CR per vaam-store/platform Postgres-backed service.
   # Owner is the bootstrap user (`vaam`, seeded above); each
@@ -158,7 +186,20 @@ backup:
   #   mc mb ssegning/vaam-cnpg-backups
   endpoint: https://s3.ssegning.me
   bucket: vaam-cnpg-backups
-  path: /vaam-store-prod
+  # `-v2`, NOT the original `/vaam-store-prod`. That prefix still holds WALs
+  # and base backups from June 2026, written by a PREVIOUS incarnation of this
+  # cluster (it has been re-bootstrapped since). barman-cloud refuses to start
+  # archiving into a destination whose contents belong to a different server
+  # incarnation --
+  #     WAL archive check failed for server vaam-prod-pg: Expected empty archive
+  # -- so continuous archiving could never start again on the old path, no
+  # matter how the credentials were fixed.
+  #
+  # A NEW PREFIX rather than deleting the June data: those objects are the only
+  # remaining artifact of the old cluster, and throwing away someone's backups
+  # to unblock a config change is not a trade worth making. They cost 68 MiB.
+  # Delete them deliberately, later, if they are confirmed worthless.
+  path: /vaam-store-prod-v2
   retention: 30d
   schedule: "0 0 3 * * *"   # daily at 03:00
 
