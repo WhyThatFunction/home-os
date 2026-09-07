@@ -740,7 +740,8 @@ arcRunnerPools:
     turboApi: https://turbo-cache-api.ai.camer.digital
     turboTeam: vaam-apps
     destinationCluster: netcup-k8s
-    namespace: gh-runners-vaam-apps
+    namespace: gh-runners-vaam-apps-medium
+    managedNamespacePrivileged: true
     enableRunner: true
 
   - name: vaam-apps-high-runners
@@ -754,6 +755,7 @@ arcRunnerPools:
     turboApi: https://turbo-cache-api.ai.camer.digital
     turboTeam: vaam-apps
     destinationCluster: netcup-k8s
-    namespace: gh-runners-vaam-apps
+    namespace: gh-runners-vaam-apps-high
+    managedNamespacePrivileged: true
     enableRunner: true
     #priorityClass: 1000
