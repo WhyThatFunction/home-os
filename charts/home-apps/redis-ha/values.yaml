@@ -22,6 +22,21 @@ controllers:
       enabled: true
       minAvailable: 1
 
+    # cert-manager renews redis-ha-redis-tls in place, but redis-server never
+    # rereads its cert files after startup — without this, the pod keeps
+    # serving the certificate it booted with until something else restarts it,
+    # so a renewal-but-no-restart window ends with clients TLS-rejecting an
+    # expired peer cert (rate-limit/accounts RPCs failing "unavailable: rate
+    # limit store timed out" against authz-api, 2026-09-06/07). Reloader (see
+    # the `reloader` namespace) watches this secret and rolls the StatefulSet
+    # whenever cert-manager rotates it, closing that window.
+    pod:
+      annotations:
+        # Not templated: pod.annotations values aren't run through `tpl`, so
+        # this must be the literal Secret name (matches the release name this
+        # chart is always installed as: redis-ha).
+        secret.reloader.stakater.com/reload: "redis-ha-redis-tls"
+
     statefulset:
       serviceName: "{{ $.Release.Name }}-redis-headless"
       podManagementPolicy: Parallel
@@ -131,6 +146,15 @@ controllers:
     podDisruptionBudget:
       enabled: true
       minAvailable: 1
+
+    # Same rotation-doesn't-restart gap as controllers.redis, for the sentinel
+    # TLS leg — see the comment there.
+    pod:
+      annotations:
+        # Not templated: pod.annotations values aren't run through `tpl`, so
+        # this must be the literal Secret name (matches the release name this
+        # chart is always installed as: redis-ha).
+        secret.reloader.stakater.com/reload: "redis-ha-sentinel-tls"
 
     statefulset:
       serviceName: "{{ $.Release.Name }}-sentinel-headless"
@@ -363,6 +387,17 @@ controllers:
   haproxy:
     type: deployment
     replicas: 2
+
+    # Same rotation-doesn't-restart gap as controllers.redis, for the haproxy
+    # TLS leg (the combined PEM haproxy loads at startup) — see the comment
+    # there.
+    pod:
+      annotations:
+        # Not templated: pod.annotations values aren't run through `tpl`, so
+        # this must be the literal Secret name (matches the release name this
+        # chart is always installed as: redis-ha).
+        secret.reloader.stakater.com/reload: "redis-ha-haproxy-tls"
+
     containers:
       app:
         image:
