@@ -86,6 +86,13 @@ openobserve:
 collector:
   image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.160.0@sha256:799dc6cf12c96192af37b5bdba804da8c10b3bc563b43cb90c3f3c58d9572ad6
   replicas: 1
+  batchSize: 1024
+  batchTimeout: 5s
+  rustfs:
+    endpoint: http://rustfs-svc.s3.svc.cluster.local:9000
+    region: us-east-1
+    bucket: monitoring
+    basePrefix: vaam
   resources:
     requests:
       cpu: 100m
