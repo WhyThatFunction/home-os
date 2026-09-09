@@ -92,7 +92,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: verify-cutover-preconditions
-          image: "registry.k8s.io/kubectl:v1.35.0@sha256:0bb95b2a450875fc8ceaea2f9987a99fe27c228846e2e00b93b65ebb0d59034e"
+          # The upstream kubectl image is distroless; this hook also needs a POSIX shell.
+          image: "docker.io/alpine/kubectl:1.35.0@sha256:862d86046bbcad03c252bbc10ab8bf893e7aa50aa7a20de8bfc46727dd645883"
           imagePullPolicy: IfNotPresent
           command: ["/bin/sh", "-ceu"]
           args:
