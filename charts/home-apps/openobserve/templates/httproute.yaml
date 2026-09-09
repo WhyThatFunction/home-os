@@ -3,8 +3,7 @@ kind: HTTPRoute
 metadata:
   name: otel-vaam-store
   labels:
-    app: otel-lgtm
-    team: ssegning-home
+    {{- toYaml .Values.global.labels | nindent 4 }}
 spec:
   parentRefs:
     - name: traefik-gateway
@@ -17,5 +16,5 @@ spec:
         - path: { type: PathPrefix, value: /v1/metrics }
         - path: { type: PathPrefix, value: /v1/logs }
       backendRefs:
-        - name: otel-lgtm
+        - name: openobserve-collector
           port: 4318

@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openobserve-collector
+  labels:
+    {{- toYaml .Values.global.labels | nindent 4 }}
+    app.kubernetes.io/name: openobserve-collector
+data:
+  config.yaml: |
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 384
+        spike_limit_mib: 96
+      batch:
+        send_batch_size: 1024
+        timeout: 5s
+    exporters:
+      otlphttp/openobserve:
+        endpoint: http://openobserve:5080/api/default
+        headers:
+          Authorization: ${env:OPENOBSERVE_BASIC_AUTH}
+    service:
+      extensions:
+        - health_check
+      pipelines:
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlphttp/openobserve]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlphttp/openobserve]
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlphttp/openobserve]

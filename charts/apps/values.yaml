@@ -246,20 +246,19 @@ applications:
         prune: true
         selfHeal: true
 
-  # Self-hosted observability backend (grafana/otel-lgtm all-in-one).
-  # Public OTLP ingest for the vymalo mobile app at otel.vymalo.com (HTTPRoute
-  # in the leaf chart); Grafana UI on grafana.home.ssegning (home network only).
-  - name: otel-lgtm
+  # Self-hosted OpenObserve backend. Public OTLP ingest remains at
+  # otel.vaam.store; the OpenObserve UI stays on the home network.
+  - name: openobserve
     finalizers:
       - resources-finalizer.argocd.argoproj.io
     project: external
     source:
       repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD
-      path: charts/home-apps/otel-lgtm
+      path: charts/home-apps/openobserve
     destination:
       server: https://kubernetes.default.svc
-      namespace: otel-lgtm
+      namespace: openobserve
     syncPolicy:
       syncOptions:
         - CreateNamespace=true

@@ -1,4 +1,0 @@
-# Generator-local Python artefacts — never commit.
-.venv/
-__pycache__/
-*.pyc

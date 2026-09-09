@@ -1,0 +1,12 @@
+apiVersion: v2
+name: openobserve
+description: Persistent OpenObserve with a compatibility OTLP gateway for Vaam clients.
+type: application
+version: 1.0.0
+appVersion: "0.92.2"
+
+dependencies:
+  - name: openobserve-standalone
+    alias: openobserve
+    version: 0.92.2
+    repository: https://charts.openobserve.ai

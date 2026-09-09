@@ -1,0 +1,40 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  name: openobserve-root-password
+  labels:
+    {{- toYaml .Values.global.labels | nindent 4 }}
+spec:
+  length: 40
+  digits: 8
+  symbols: 8
+  symbolCharacters: "-_@#%"
+  noUpper: false
+  allowRepeat: true
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: openobserve-root
+  labels:
+    {{- toYaml .Values.global.labels | nindent 4 }}
+spec:
+  refreshPolicy: CreatedOnce
+  target:
+    name: openobserve-root
+    creationPolicy: Orphan
+    deletionPolicy: Retain
+    immutable: true
+    template:
+      engineVersion: v2
+      type: Opaque
+      data:
+        ZO_ROOT_USER_EMAIL: admin@home.ssegning
+        ZO_ROOT_USER_PASSWORD: '{{ `{{ .password }}` }}'
+        OPENOBSERVE_BASIC_AUTH: '{{ `{{ printf "Basic %s" (printf "%s:%s" "admin@home.ssegning" .password | b64enc) }}` }}'
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: Password
+          name: openobserve-root-password

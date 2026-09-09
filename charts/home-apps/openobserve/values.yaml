@@ -1,0 +1,94 @@
+global:
+  labels:
+    app.kubernetes.io/part-of: openobserve
+    team: ssegning-home
+
+openobserve:
+  fullnameOverride: openobserve
+
+  image:
+    oss:
+      repository: o2cr.ai/openobserve/openobserve
+      # v1.0.0-rc3 is newer but is explicitly a release candidate. This is the
+      # latest stable release and is pinned to its multi-architecture digest.
+      tag: "v0.92.2@sha256:88fb692ac791d3eaff69653a4a4686f1c7eceb9e105491d58d29ac2739560b3b"
+    pullPolicy: IfNotPresent
+
+  enterprise:
+    enabled: false
+
+  auth:
+    ZO_ROOT_USER_EMAIL: ""
+    ZO_ROOT_USER_PASSWORD: ""
+    existingRootUserSecret:
+      name: openobserve-root
+      emailKey: ZO_ROOT_USER_EMAIL
+      passwordKey: ZO_ROOT_USER_PASSWORD
+
+  config:
+    ZO_APP_NAME: openobserve
+    ZO_CLUSTER_NAME: home
+    ZO_LOCAL_MODE: "true"
+    ZO_LOCAL_MODE_STORAGE: disk
+    ZO_META_STORE: sqlite
+    ZO_DATA_DIR: /data
+    ZO_HTTP_PORT: "5080"
+    ZO_GRPC_PORT: "5081"
+    ZO_WEB_URL: https://openobserve.home.ssegning
+    ZO_COOKIE_SECURE_ONLY: "true"
+    ZO_TELEMETRY: "false"
+    ZO_COMPACT_DATA_RETENTION_DAYS: "30"
+    RUST_LOG: info
+
+  persistence:
+    enabled: true
+    storageClass: longhorn
+    size: 50Gi
+    accessModes:
+      - ReadWriteOnce
+    volumePermissions:
+      enabled: false
+
+  podSecurityContext:
+    fsGroup: 2000
+    runAsUser: 10000
+    runAsGroup: 3000
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      memory: 6Gi
+
+  probes:
+    enabled: true
+    initialDelaySeconds: 10
+    failureThreshold: 6
+    path: /healthz
+
+  ingress:
+    enabled: false
+
+  minio:
+    enabled: false
+
+collector:
+  image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.160.0@sha256:799dc6cf12c96192af37b5bdba804da8c10b3bc563b43cb90c3f3c58d9572ad6
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

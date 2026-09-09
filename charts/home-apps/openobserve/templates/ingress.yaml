@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: openobserve
+  labels:
+    {{- toYaml .Values.global.labels | nindent 4 }}
+  annotations:
+    cert-manager.io/cluster-issuer: self-signed-ca
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: openobserve.home.ssegning
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: openobserve
+                port:
+                  number: 5080
+  tls:
+    - secretName: openobserve-home-ssegning-tls
+      hosts:
+        - openobserve.home.ssegning
