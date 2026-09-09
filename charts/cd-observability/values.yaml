@@ -130,27 +130,3 @@ applications:
       automated:
         prune: true
         selfHeal: true
-
-  # Retained for the OpenObserve cutover so it can remove finalizers from the
-  # legacy Grafana CRs. Delete this Application after otel-lgtm is fully pruned.
-  - name: grafana-operator-local
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: infrastructure
-    source:
-      repoURL: oci://ghcr.io/grafana/helm-charts/grafana-operator
-      targetRevision: "5.*"
-      chart: grafana-operator
-      helm:
-        releaseName: grafana-operator
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: observability
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-        - ServerSideApply=true
-        - SkipDryRunOnMissingResource=true
-      automated:
-        prune: true
-        selfHeal: true
