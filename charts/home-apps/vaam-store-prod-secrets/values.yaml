@@ -2,9 +2,9 @@
 # home-os ssegning-aws ClusterSecretStore.
 #
 #   vaam-prod-cnpg-s3-creds   — access + secret key the CNPG ObjectStore
-#                               uses for barman-cloud uploads to MinIO
+#                               uses for barman-cloud uploads to RustFS
 #                               (s3.ssegning.me). Reuses the same vaam-store
-#                               MinIO user the applications themselves use.
+#                               RustFS user the applications themselves use.
 #
 # Notes:
 #   - PostgreSQL credentials are NOT synced from SM. CNPG auto-generates

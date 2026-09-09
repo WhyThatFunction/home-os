@@ -1,256 +1,286 @@
-global:
-  security:
-    allowInsecureImages: true
-
-
-minio:
-  defaultInitContainers:
-    volumePermissions:
-      image:
-        repository: bitnamilegacy/os-shell
+rustfs:
+  fullnameOverride: rustfs
+  replicaCount: 1
 
   image:
-    repository: bitnamilegacy/minio
-  enabled: true
-  mode: standalone
-  auth:
+    rustfs:
+      repository: rustfs/rustfs
+      pullPolicy: IfNotPresent
+      tag: "1.0.0-rc.5@sha256:c36b3efea3d1e503f1a2581abd0e7611e0e5820dd30e1850a52384b3fc52bda4"
+    initImage:
+      repository: busybox
+      pullPolicy: IfNotPresent
+      tag: "1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0"
+
+  mode:
+    standalone:
+      enabled: true
+      strategy:
+        # Never mount the reused RWO claim from two object-storage processes.
+        type: Recreate
+      existingClaim:
+        dataClaim: s3-minio
+        logsClaim: ""
+    distributed:
+      enabled: false
+
+  # `minio-root` is owned by the separate home-secrets repository. Explicit
+  # mappings let RustFS reuse it without changing its legacy key names.
+  secret:
     existingSecret: minio-root
-  persistence:
-    storageClass: sstorage
-    size: 200Gi
+  extraEnv:
+    - name: RUSTFS_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: minio-root
+          key: root-user
+    - name: RUSTFS_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: minio-root
+          key: root-password
+    - name: RUSTFS_VOLUMES
+      value: /data
+
+  config:
+    rustfs:
+      address: ":9000"
+      console_enable: "true"
+      console_address: ":9001"
+      log_level: info
+      region: us-east-1
+      # Keep logs on stdout; the NAS-backed standalone instance needs no
+      # second persistent log volume.
+      obs_log_directory: ""
+      obs_environment: production
+      # `sstorage` is an NFS mount from the NAS, not a local block device.
+      # Use RustFS's built-in higher-latency drive timeout profile.
+      timeout_profile: high_latency
+
+  # The reused NFS files are owned by Bitnami MinIO's UID/GID. Keeping 1001
+  # avoids a recursive chown that root-squashed NFS may reject.
+  podSecurityContext:
+    fsGroup: 1001
+    runAsUser: 1001
+    runAsGroup: 1001
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    capabilities:
+      drop: [ALL]
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 1001
+    runAsGroup: 1001
+
   service:
     type: ClusterIP
-  clientImage:
-    repository: bitnamilegacy/minio-client
-  console:
-    image:
-      repository: bitnamilegacy/minio-object-browser
-    ingress:
-      enabled: true
-      ingressClassName: traefik
-      hostname: s3-admin.ssegning.me
-      annotations:
-        cert-manager.io/cluster-issuer: cert-cloudflare
-      tls: true
+    endpoint:
+      port: 9000
+    console:
+      port: 9001
+
+  # The upstream ingress targets only the console. Parent-chart ingresses keep
+  # the existing S3 API and admin hostnames stable.
   ingress:
-    enabled: true
-    ingressClassName: traefik
-    hostname: s3.ssegning.me
-    annotations:
-      cert-manager.io/cluster-issuer: cert-cloudflare
-    tls: true
-    extraHosts:
-      - name: s3.camer.digital
-        path: /
-      - name: cdn.vaam.store
-        path: /
+    enabled: false
 
-  provisioning:
-    enabled: true
-    
-    policies:
-      - name: monitoring-policy
-        statements:
-          - actions:
-              - "s3:*"
-            effect: "Allow"
-            resources:
-              - "arn:aws:s3:::monitoring/*"
-              - "arn:aws:s3:::monitoring"
-              - "arn:aws:s3:::monitoring-loki-ruler/*"
-              - "arn:aws:s3:::monitoring-loki-ruler"
-              - "arn:aws:s3:::monitoring-loki-chunks/*"
-              - "arn:aws:s3:::monitoring-loki-chunks"
-              - "arn:aws:s3:::monitoring-tempo/*"
-              - "arn:aws:s3:::monitoring-tempo"
-      - name: lakefs-policy
-        statements:
-          - actions:
-              - "s3:*"
-            effect: "Allow"
-            resources:
-              - "arn:aws:s3:::lakefs/*"
-              - "arn:aws:s3:::lakefs"
-      - name: argo-workflow-policy
-        statements:
-          - actions:
-              - "s3:*"
-            effect: "Allow"
-            resources:
-              - "arn:aws:s3:::argo-artifacts/*"
-              - "arn:aws:s3:::argo-artifacts"
-      - name: mlflow-policy
-        statements:
-          - actions:
-              - "s3:*"
-            effect: "Allow"
-            resources:
-              - "arn:aws:s3:::mlflow/*"
-              - "arn:aws:s3:::mlflow"
-      - name: ai-ops-backups-policy
-        statements:
-          - actions:
-              - "s3:*"
-            effect: "Allow"
-            resources:
-              - "arn:aws:s3:::ai-ops-backups/*"
-              - "arn:aws:s3:::ai-ops-backups"
-      - name: vymalo-cnpg-backups-policy
-        statements:
-          # Least privilege: only what barman-cloud / CNPG needs to read,
-          # write, and prune backups — NOT s3:* (which would allow deleting
-          # the bucket itself if these creds leak).
-          - actions:
-              - "s3:GetBucketLocation"
-              - "s3:ListBucket"
-              - "s3:GetObject"
-              - "s3:PutObject"
-              - "s3:DeleteObject"
-            effect: "Allow"
-            resources:
-              - "arn:aws:s3:::vymalo-cnpg-backups/*"
-              - "arn:aws:s3:::vymalo-cnpg-backups"
-      - name: vaam-store-policy
-        statements:
-          - actions:
-              - "s3:*"
-            effect: "Allow"
-            resources:
-              - "arn:aws:s3:::vaam-catalog/*"
-              - "arn:aws:s3:::vaam-catalog"
-              - "arn:aws:s3:::vaam-uploads/*"
-              - "arn:aws:s3:::vaam-uploads"
-              - "arn:aws:s3:::vaam-insights/*"
-              - "arn:aws:s3:::vaam-insights"
-              - "arn:aws:s3:::vaam-cnpg-backups/*"
-              - "arn:aws:s3:::vaam-cnpg-backups"
-      # Strapi media uploads for ssegning.com. Scoped to the one bucket -- the
-      # website has no reason to touch any other tenant's data.
-      - name: ssegning-policy
-        statements:
-          - actions:
-              - "s3:*"
-            effect: "Allow"
-            resources:
-              - "arn:aws:s3:::ssegning-uploads/*"
-              - "arn:aws:s3:::ssegning-uploads"
-              # CNPG barman-cloud base backups + WAL archive for ssegning-pg.
-              # A SEPARATE bucket from the media one on purpose:
-              # `ssegning-uploads` carries an anonymous s3:GetObject policy
-              # (below) because the website serves its images straight from
-              # it. Database backups must never be world-readable, so they
-              # get their own bucket that is deliberately absent from the
-              # anonymous-policy list.
-              - "arn:aws:s3:::ssegning-cnpg-backups/*"
-              - "arn:aws:s3:::ssegning-cnpg-backups"
-      - name: artifact-cache-policy
-        statements:
-          - actions:
-              - "s3:*"
-            effect: "Allow"
-            resources:
-              - "arn:aws:s3:::turbo-cache/*"
-              - "arn:aws:s3:::turbo-cache"
-              - "arn:aws:s3:::sc-cache/*"
-              - "arn:aws:s3:::sc-cache"
-              - "arn:aws:s3:::mobile-store/*"
-              - "arn:aws:s3:::mobile-store"
+  serviceAccount:
+    create: true
+    automount: false
 
-    usersExistingSecrets:
-      - minio-users
-      - vaam-minio-users
-      - artifact-cache-users
-      - ssegning-minio-users
+  enableServiceLinks: false
 
-    buckets:
-      - name: monitoring
-        withLock: false
-      - name: lakefs
-        withLock: false
-      - name: mlflow
-        withLock: false
-      - name: argo-artifacts
-        withLock: false
-      - name: ai-ops-backups
-        withLock: false
-      - name: vymalo-cnpg-backups
-        withLock: false
-      - name: vymalo-catalog
-        withLock: false
-      - name: vymalo-uploads
-        withLock: false
-      - name: vymalo-insights
-        withLock: false
-      - name: vaam-cnpg-backups
-        withLock: false
-      - name: vaam-catalog
-        withLock: false
-      - name: vaam-uploads
-        withLock: false
-      - name: vaam-insights
-        withLock: false
-      - name: vaam-gitops
-        withLock: false
-      - name: turbo-cache
-        withLock: false
-      - name: sc-cache
-        withLock: false
-      - name: ssegning-uploads
-        withLock: false
-      - name: ssegning-cnpg-backups
-        withLock: false
+  storageclass:
+    name: sstorage
+    dataStorageSize: 200Gi
+    logStorageSize: 1Gi
 
-provision_minio_buckets_policies:
+publicIngress:
   enabled: true
-  secret: minio-root
+  className: traefik
+  clusterIssuer: cert-cloudflare
+  api:
+    hosts:
+      - s3.ssegning.me
+      - s3.camer.digital
+      - cdn.vaam.store
+    # Preserve the existing certificate scope. The two additional hosts were
+    # routed by the old chart but were not SANs on this certificate.
+    tlsHosts:
+      - s3.ssegning.me
+    tlsSecret: s3.ssegning.me-tls
+  console:
+    host: s3-admin.ssegning.me
+    tlsSecret: s3-admin.ssegning.me-tls
+
+rustfsProvisioning:
+  enabled: true
+  image:
+    repository: rustfs/rc
+    tag: "v0.1.34@sha256:fad686174251b22de1e7b11438b3389932c93d2043c4eec981e1168c59edf92f"
+    pullPolicy: IfNotPresent
+  endpoint: http://rustfs-svc:9000
+  rootSecret:
+    name: minio-root
+    accessKeyKey: root-user
+    secretKeyKey: root-password
+  # These Secrets contain Bitnami-style credential records. `minio-users`
+  # remains until its source in the separate home-secrets repo is renamed.
+  userSecrets:
+    - minio-users
+    - vaam-rustfs-users
+    - artifact-cache-users
+    - ssegning-rustfs-users
+
   policies:
-    - name: lakefs
+    - name: monitoring-policy
+      statements:
+        - actions: ["s3:*"]
+          effect: Allow
+          resources:
+            - arn:aws:s3:::monitoring
+            - arn:aws:s3:::monitoring/*
+            - arn:aws:s3:::monitoring-loki-ruler
+            - arn:aws:s3:::monitoring-loki-ruler/*
+            - arn:aws:s3:::monitoring-loki-chunks
+            - arn:aws:s3:::monitoring-loki-chunks/*
+            - arn:aws:s3:::monitoring-tempo
+            - arn:aws:s3:::monitoring-tempo/*
+    - name: lakefs-policy
+      statements:
+        - actions: ["s3:*"]
+          effect: Allow
+          resources: ["arn:aws:s3:::lakefs", "arn:aws:s3:::lakefs/*"]
+    - name: argo-workflow-policy
+      statements:
+        - actions: ["s3:*"]
+          effect: Allow
+          resources: ["arn:aws:s3:::argo-artifacts", "arn:aws:s3:::argo-artifacts/*"]
+    - name: mlflow-policy
+      statements:
+        - actions: ["s3:*"]
+          effect: Allow
+          resources: ["arn:aws:s3:::mlflow", "arn:aws:s3:::mlflow/*"]
+    - name: ai-ops-backups-policy
+      statements:
+        - actions: ["s3:*"]
+          effect: Allow
+          resources: ["arn:aws:s3:::ai-ops-backups", "arn:aws:s3:::ai-ops-backups/*"]
+    - name: azamra-s3-policy
+      statements:
+        - actions: ["s3:*"]
+          effect: Allow
+          resources: ["arn:aws:s3:::azamra-gitops", "arn:aws:s3:::azamra-gitops/*"]
+    - name: vymalo-cnpg-backups-policy
+      statements:
+        - actions:
+            - s3:GetBucketLocation
+            - s3:ListBucket
+            - s3:GetObject
+            - s3:PutObject
+            - s3:DeleteObject
+          effect: Allow
+          resources:
+            - arn:aws:s3:::vymalo-cnpg-backups
+            - arn:aws:s3:::vymalo-cnpg-backups/*
+    - name: vaam-s3-policy
+      statements:
+        - actions: ["s3:*"]
+          effect: Allow
+          resources:
+            - arn:aws:s3:::vaam-catalog
+            - arn:aws:s3:::vaam-catalog/*
+            - arn:aws:s3:::vaam-uploads
+            - arn:aws:s3:::vaam-uploads/*
+            - arn:aws:s3:::vaam-insights
+            - arn:aws:s3:::vaam-insights/*
+            - arn:aws:s3:::vaam-gitops
+            - arn:aws:s3:::vaam-gitops/*
+            - arn:aws:s3:::vaam-cnpg-backups
+            - arn:aws:s3:::vaam-cnpg-backups/*
+    - name: vaam-store-policy
+      statements:
+        - actions: ["s3:*"]
+          effect: Allow
+          resources:
+            - arn:aws:s3:::vaam-catalog
+            - arn:aws:s3:::vaam-catalog/*
+            - arn:aws:s3:::vaam-uploads
+            - arn:aws:s3:::vaam-uploads/*
+            - arn:aws:s3:::vaam-insights
+            - arn:aws:s3:::vaam-insights/*
+            - arn:aws:s3:::vaam-media
+            - arn:aws:s3:::vaam-media/*
+            - arn:aws:s3:::vaam-cnpg-backups
+            - arn:aws:s3:::vaam-cnpg-backups/*
+    - name: ssegning-policy
+      statements:
+        - actions: ["s3:*"]
+          effect: Allow
+          resources:
+            - arn:aws:s3:::ssegning-uploads
+            - arn:aws:s3:::ssegning-uploads/*
+            - arn:aws:s3:::ssegning-cnpg-backups
+            - arn:aws:s3:::ssegning-cnpg-backups/*
+    - name: artifact-cache-policy
+      statements:
+        - actions: ["s3:*"]
+          effect: Allow
+          resources:
+            - arn:aws:s3:::turbo-cache
+            - arn:aws:s3:::turbo-cache/*
+            - arn:aws:s3:::sc-cache
+            - arn:aws:s3:::sc-cache/*
+            - arn:aws:s3:::mobile-store
+            - arn:aws:s3:::mobile-store/*
+
+  buckets:
+    - monitoring
+    - lakefs
+    - mlflow
+    - argo-artifacts
+    - ai-ops-backups
+    - azamra-gitops
+    - vymalo-cnpg-backups
+    - vymalo-catalog
+    - vymalo-uploads
+    - vymalo-insights
+    - vaam-cnpg-backups
+    - vaam-catalog
+    - vaam-uploads
+    - vaam-insights
+    - vaam-media
+    - vaam-gitops
+    - turbo-cache
+    - sc-cache
+    - mobile-store
+    - ssegning-uploads
+    - ssegning-cnpg-backups
+
+  anonymousPolicies:
+    - bucket: lakefs
       policy:
-        {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": { "AWS": [ "*" ] },
-              "Action": [ "s3:GetObject" ],
-              "Resource": [
-                "arn:aws:s3:::lakefs/public/*"
-              ]
-            }
-          ]
-        }
-    - name: ai-ops-backups
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {AWS: ["*"]}
+            Action: [s3:GetObject]
+            Resource: ["arn:aws:s3:::lakefs/public/*"]
+    - bucket: ai-ops-backups
       policy:
-        {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": { "AWS": [ "*" ] },
-              "Action": [ "s3:GetObject" ],
-              "Resource": [
-                "arn:aws:s3:::ai-ops-backups/public/*"
-              ]
-            }
-          ]
-        }
-    # The whole bucket is world-readable on purpose: it holds nothing but the
-    # public website's images, which Next.js <Image> and the browser fetch
-    # anonymously straight from https://s3.ssegning.me/ssegning-uploads/...
-    # (that URL is Strapi's configured `baseUrl`). WRITE stays restricted to
-    # the `ssegning-site` user via `ssegning-policy` above.
-    - name: ssegning-uploads
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {AWS: ["*"]}
+            Action: [s3:GetObject]
+            Resource: ["arn:aws:s3:::ai-ops-backups/public/*"]
+    - bucket: ssegning-uploads
       policy:
-        {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": { "AWS": [ "*" ] },
-              "Action": [ "s3:GetObject" ],
-              "Resource": [
-                "arn:aws:s3:::ssegning-uploads/*"
-              ]
-            }
-          ]
-        }
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {AWS: ["*"]}
+            Action: [s3:GetObject]
+            Resource: ["arn:aws:s3:::ssegning-uploads/*"]

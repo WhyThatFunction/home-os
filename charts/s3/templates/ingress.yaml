@@ -1,0 +1,57 @@
+{{- if .Values.publicIngress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  # Preserve the tracked resource identity so Argo updates the live route in
+  # place instead of briefly creating two Ingresses for the same hosts.
+  name: s3-minio
+  namespace: {{ .Release.Namespace | quote }}
+  annotations:
+    cert-manager.io/cluster-issuer: {{ .Values.publicIngress.clusterIssuer | quote }}
+spec:
+  ingressClassName: {{ .Values.publicIngress.className }}
+  rules:
+    {{- range .Values.publicIngress.api.hosts }}
+    - host: {{ . | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: rustfs-svc
+                port:
+                  name: endpoint
+    {{- end }}
+  tls:
+    - hosts:
+        {{- range .Values.publicIngress.api.tlsHosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .Values.publicIngress.api.tlsSecret | quote }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: s3-minio-console
+  namespace: {{ .Release.Namespace | quote }}
+  annotations:
+    cert-manager.io/cluster-issuer: {{ .Values.publicIngress.clusterIssuer | quote }}
+spec:
+  ingressClassName: {{ .Values.publicIngress.className }}
+  rules:
+    - host: {{ .Values.publicIngress.console.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: rustfs-svc
+                port:
+                  name: console
+  tls:
+    - hosts:
+        - {{ .Values.publicIngress.console.host | quote }}
+      secretName: {{ .Values.publicIngress.console.tlsSecret | quote }}
+{{- end }}

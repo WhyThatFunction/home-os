@@ -37,7 +37,7 @@ most config decisions:
   deps." **That is no longer true** and has not been for some time: it runs
   cert-manager (`cert-cloudflare`, `self-signed-ca`, `vaam-ca`, …),
   external-secrets with the `ssegning-aws` ClusterSecretStore, CloudNativePG
-  + the barman-cloud plugin, Longhorn, MinIO and Traefik — the vaam-store and
+  + the barman-cloud plugin, Longhorn, RustFS and Traefik — the vaam-store and
   ssegning.com production stacks both live here. Check what the cluster
   actually has before assuming a dependency is missing.
 
