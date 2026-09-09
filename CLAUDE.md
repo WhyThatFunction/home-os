@@ -120,6 +120,37 @@ names across clusters.
   `["/bin/sh","-c"]` + `args: [sleep N; exec /home/runner/run.sh]` when it must
   wait for a dind sidecar). Cost a 4-day runaway on `arc-runner-set-sse`.
 
+## OpenObserve, OpenTelemetry, and RustFS — verified 2026-09-09
+
+- `charts/home-apps/openobserve` is the local observability stack. OpenObserve
+  standalone keeps SQLite, WAL, and Parquet on an explicit Longhorn claim;
+  never let it inherit `sstorage`, because that default StorageClass is the
+  NAS/NFS share.
+- `OpenTelemetryCollector/openobserve` is managed by the existing operator and
+  deliberately generates Service `openobserve-collector` for
+  `otel.vaam.store`. Keep the CR at Argo sync wave 1 and its HTTPRoute at wave 2;
+  applying the route first fails because the generated Service does not exist.
+- The operator was chart `0.122.0` / controller `0.158.0` on the date above.
+  Its default operand lacks `awss3`, so the CR explicitly pins contrib `0.160.0`.
+  Verify version compatibility and image components before changing either.
+- Every signal is bounded by the batch processor and fanned out to OpenObserve
+  plus gzip OTLP JSON in RustFS at
+  `monitoring/vaam/{logs,metrics,traces}/year=.../hour=...`. Use the internal
+  RustFS endpoint, path-style addressing, and
+  `AWS_REQUEST_CHECKSUM_CALCULATION=when_required`.
+- The RustFS monitoring credential is mirrored from the composite
+  `s3/minio-users` record through External Secrets with access limited to that
+  Secret. Do not copy credentials into Git or use cross-namespace
+  `secretKeyRef`s.
+- Operator `0.158.0` collector probes accept timing fields only. `awss3`
+  `compression` belongs under `s3uploader`; batch size needs both trigger and
+  maximum. The exporter is alpha, fan-out is non-transactional, and current
+  queues are memory-only.
+- Verification is not complete until synthetic logs, metrics, and traces sent
+  through `otel.vaam.store` are queryable in OpenObserve and found inside all
+  three RustFS gzip objects. The exact validation flow and architecture live in
+  `charts/home-apps/openobserve/README.md`.
+
 ## Commands
 
 There is no test suite, Makefile, or CI. Validation = rendering with Helm.
