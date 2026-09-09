@@ -1,9 +1,6 @@
 dependencies:
-- name: minio
-  repository: https://charts.bitnami.com/bitnami
-  version: 17.0.21
-- name: common
-  repository: https://charts.bitnami.com/bitnami
-  version: 2.40.0
-digest: sha256:7fb837ce5ebfbd0a0e702034e123209c8be85dff54bd2450dd277d934c1cd256
-generated: "2026-05-21T08:53:46.584487+02:00"
+- name: rustfs
+  repository: https://charts.rustfs.com
+  version: 1.0.0-rc.5
+digest: sha256:9fdd89a10291af82c4a7daeeb6919e31ddaf263b2fdf879304d8b02cabeff622
+generated: "2026-09-09T00:51:09.716228+02:00"

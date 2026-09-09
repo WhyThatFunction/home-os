@@ -40,7 +40,7 @@ applications:
   #
   # Secrets come from AWS Secrets Manager `ssegning/prod/env` via the
   # `ssegning-aws` ClusterSecretStore; the Strapi upload bucket is
-  # `ssegning-uploads` on the in-cluster MinIO (see charts/s3/values.yaml).
+  # `ssegning-uploads` on the in-cluster RustFS service (see charts/s3/values.yaml).
   - name: ssegning-com
     finalizers:
       - resources-finalizer.argocd.argoproj.io

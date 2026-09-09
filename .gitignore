@@ -14,4 +14,8 @@ talosconfig
 *.tg*
 
 scripts
+
+# Operational source-of-truth scripts shipped with the S3 chart.
+!charts/s3/scripts/
+!charts/s3/scripts/minio-rustfs-migration.sh
 test.yaml

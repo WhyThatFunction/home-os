@@ -28,8 +28,8 @@
 #     api.orange.com / api.sandbox.orange.com (Orange Money,
 #     services/payment-service/src/rails/orange_money.rs:200-204).
 #
-#   upload-service -> s3.ssegning.me (self-hosted MinIO). Note this
-#     hostname is actually served by THIS SAME cluster's own MinIO chart
+#   upload-service -> s3.ssegning.me (self-hosted RustFS). Note this
+#     hostname is actually served by THIS SAME cluster's own RustFS chart
 #     (charts/s3/values.yaml, hostname: s3.ssegning.me) -- but
 #     vaam-store/platform's object-storage config
 #     (services/upload-service/.env: VAAM_OBJECT_STORAGE_ENDPOINT) and CNPG's
@@ -38,7 +38,7 @@
 #     point at the PUBLIC hostname, not an in-cluster Service DNS name, so
 #     from Cilium's perspective this is a real internet egress (DNS resolve
 #     -> public IP -> back in through the ingress path), not a same-cluster
-#     pod-to-pod hop -- toEndpoints against the minio chart's own pods would
+#     pod-to-pod hop -- toEndpoints against the RustFS chart's own pods would
 #     NOT match this traffic. upload-kit's Cargo.toml depends on aws-sdk-s3,
 #     confirming this is a real outbound S3-protocol client, not just a
 #     display-URL string.

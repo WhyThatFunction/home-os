@@ -1,0 +1,26 @@
+{{- with .Values.rustfsProvisioning }}
+{{- if .enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: s3-rustfs-provisioning
+  namespace: {{ $.Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: rustfs-provisioning
+    app.kubernetes.io/instance: {{ $.Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ $.Release.Service | quote }}
+data:
+  {{- range .policies }}
+  {{- $statements := list }}
+  {{- range .statements }}
+  {{- $statements = append $statements (dict "Action" .actions "Effect" .effect "Resource" .resources) }}
+  {{- end }}
+  policy-{{ .name }}.json: |
+    {{ dict "Version" "2012-10-17" "Statement" $statements | toJson | nindent 4 }}
+  {{- end }}
+  {{- range .anonymousPolicies }}
+  anonymous-{{ .bucket }}.json: |
+    {{ .policy | toJson | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}

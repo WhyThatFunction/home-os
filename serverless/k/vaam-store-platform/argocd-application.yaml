@@ -686,7 +686,7 @@ spec:
         maxDuration: 5m
 ---
 # ─────────────────────────────────────────────────────────────────────────
-# 7. upload-service -- also needs VAAM_OBJECT_STORAGE_* (reuses the existing vaam-store-user MinIO creds)
+# 7. upload-service -- also needs VAAM_OBJECT_STORAGE_* (reuses the existing Vaam RustFS credentials)
 # ─────────────────────────────────────────────────────────────────────────
 apiVersion: argoproj.io/v1alpha1
 kind: Application

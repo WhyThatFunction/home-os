@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: s3-rustfs
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: rustfs
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+spec:
+  # Covers the RustFS server plus the cutover and provisioning Jobs. Jobs open
+  # no ports, so the ingress rule below remains an effective deny for them.
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - ports:
+        - port: 9000
+          protocol: TCP
+        - port: 9001
+          protocol: TCP
+  # RustFS and the Jobs need DNS/API/NAS/S3 egress. This preserves the old
+  # chart's egress posture while still isolating inbound traffic by port.
+  egress:
+    - {}

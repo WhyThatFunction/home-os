@@ -1,0 +1,144 @@
+{{- with .Values.rustfsProvisioning }}
+{{- if .enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: s3-rustfs-provisioning
+  namespace: {{ $.Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: rustfs-provisioning
+    app.kubernetes.io/instance: {{ $.Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ $.Release.Service | quote }}
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    # Keep the last successful Job as cutover evidence; the next sync replaces
+    # it and reruns the idempotent provisioning contract.
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: rustfs-provisioning
+        app.kubernetes.io/instance: {{ $.Release.Name | quote }}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: provision
+          image: {{ printf "%s:%s" .image.repository .image.tag | quote }}
+          imagePullPolicy: {{ .image.pullPolicy }}
+          command: ["/bin/sh", "-ceu"]
+          args:
+            - |
+              endpoint={{ .endpoint | quote }}
+              access_key="$(cat /credentials/access-key)"
+              secret_key="$(cat /credentials/secret-key)"
+
+              attempt=0
+              until rc --quiet alias set rustfs "$endpoint" "$access_key" "$secret_key" --bucket-lookup path && rc --quiet ready rustfs; do
+                attempt=$((attempt + 1))
+                if [ "$attempt" -ge 60 ]; then
+                  echo "RustFS did not become ready within 300 seconds" >&2
+                  exit 1
+                fi
+                sleep 5
+              done
+
+              for policy_file in /config/policy-*.json; do
+                [ -f "$policy_file" ] || continue
+                policy_name="${policy_file##*/policy-}"
+                policy_name="${policy_name%.json}"
+                rc --quiet admin policy create rustfs "$policy_name" "$policy_file"
+              done
+
+              {{- range .buckets }}
+              rc --quiet bucket create --ignore-existing rustfs/{{ . }}
+              {{- end }}
+
+              for user_file in /users/users-*/*; do
+                [ -f "$user_file" ] || continue
+                username="$(sed -n 's/^username=//p' "$user_file")"
+                password="$(sed -n 's/^password=//p' "$user_file")"
+                policies="$(sed -n 's/^policies=//p' "$user_file")"
+                disabled="$(sed -n 's/^disabled=//p' "$user_file")"
+                if [ -z "$username" ] || [ -z "$password" ] || [ -z "$policies" ]; then
+                  echo "Malformed RustFS user record: $user_file" >&2
+                  exit 1
+                fi
+                if rc --quiet admin user info rustfs "$username" >/dev/null 2>&1; then
+                  export RUSTFS_PROVISIONING_USER_PASSWORD="$password"
+                  rc --quiet admin user passwd rustfs "$username" --password-from-env RUSTFS_PROVISIONING_USER_PASSWORD
+                  unset RUSTFS_PROVISIONING_USER_PASSWORD
+                else
+                  rc --quiet admin user add rustfs "$username" "$password"
+                fi
+                rc --quiet admin policy attach rustfs "$policies" --user "$username"
+                if [ "$disabled" = "true" ]; then
+                  rc --quiet admin user disable rustfs "$username"
+                else
+                  rc --quiet admin user enable rustfs "$username"
+                fi
+              done
+
+              {{- range .anonymousPolicies }}
+              rc --quiet bucket anonymous set-json /config/anonymous-{{ .bucket }}.json rustfs/{{ .bucket }}
+              {{- end }}
+          env:
+            - name: HOME
+              value: /work
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: work
+              mountPath: /work
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: root-credentials
+              mountPath: /credentials
+              readOnly: true
+            {{- range $index, $_ := .userSecrets }}
+            - name: users-{{ $index }}
+              mountPath: /users/users-{{ $index }}
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: work
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: s3-rustfs-provisioning
+        - name: root-credentials
+          secret:
+            secretName: {{ .rootSecret.name | quote }}
+            items:
+              - key: {{ .rootSecret.accessKeyKey | quote }}
+                path: access-key
+              - key: {{ .rootSecret.secretKeyKey | quote }}
+                path: secret-key
+        {{- range $index, $secretName := .userSecrets }}
+        - name: users-{{ $index }}
+          secret:
+            secretName: {{ $secretName | quote }}
+        {{- end }}
+{{- end }}
+{{- end }}

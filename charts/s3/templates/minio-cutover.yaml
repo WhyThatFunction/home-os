@@ -1,0 +1,145 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: s3-minio-cutover
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: rustfs
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/component: migration
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-2"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: s3-minio-cutover
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: rustfs
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/component: migration
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-2"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: s3-minio-cutover
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: rustfs
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/component: migration
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: s3-minio-cutover
+subjects:
+  - kind: ServiceAccount
+    name: s3-minio-cutover
+    namespace: {{ .Release.Namespace | quote }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: s3-minio-cutover
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: rustfs
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/component: migration
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 360
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: rustfs
+        app.kubernetes.io/instance: {{ .Release.Name | quote }}
+        app.kubernetes.io/component: migration
+    spec:
+      serviceAccountName: s3-minio-cutover
+      automountServiceAccountToken: true
+      enableServiceLinks: false
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: verify-cutover-preconditions
+          image: "registry.k8s.io/kubectl:v1.35.0@sha256:0bb95b2a450875fc8ceaea2f9987a99fe27c228846e2e00b93b65ebb0d59034e"
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-ceu"]
+          args:
+            - |
+              if ! kubectl get deployment s3-minio >/dev/null 2>&1; then
+                echo "Legacy s3-minio Deployment is absent; cutover is already complete."
+                exit 0
+              fi
+
+              snapshot_id="$(kubectl get deployment s3-minio -o go-template='{{ "{{" }}index .metadata.annotations "home-os.ssegning.me/rustfs-nas-snapshot"{{ "}}" }}')"
+              if [ -z "$snapshot_id" ]; then
+                echo "Cutover blocked: annotate s3-minio with the verified NAS snapshot identifier after MinIO has stopped." >&2
+                exit 1
+              fi
+
+              selector="$(kubectl get deployment s3-minio -o go-template='{{ "{{" }}range $key, $value := .spec.selector.matchLabels{{ "}}" }}{{ "{{" }}printf "%s=%s," $key $value{{ "}}" }}{{ "{{" }}end{{ "}}" }}')"
+              selector="${selector%,}"
+              if [ -z "$selector" ]; then
+                echo "Legacy s3-minio Deployment has no matchLabels selector" >&2
+                exit 1
+              fi
+
+              desired_replicas="$(kubectl get deployment s3-minio -o jsonpath='{.spec.replicas}')"
+              running_pods="$(kubectl get pods --selector "$selector" --output name)"
+              if [ "${desired_replicas:-0}" != 0 ] || [ -n "$running_pods" ]; then
+                echo "Cutover blocked: legacy MinIO must be scaled to zero with no remaining pods before the NAS snapshot is approved." >&2
+                exit 1
+              fi
+              echo "Cutover preconditions passed: MinIO is stopped and NAS snapshot $snapshot_id is recorded."
+          env:
+            - name: HOME
+              value: /tmp
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
