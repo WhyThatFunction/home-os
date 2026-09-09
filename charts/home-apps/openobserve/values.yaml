@@ -37,6 +37,7 @@ openobserve:
     ZO_WEB_URL: https://openobserve.home.ssegning
     ZO_COOKIE_SECURE_ONLY: "true"
     ZO_TELEMETRY: "false"
+    ZO_MMDB_DISABLE_DOWNLOAD: "true"
     ZO_COMPACT_DATA_RETENTION_DAYS: "30"
     RUST_LOG: info
 

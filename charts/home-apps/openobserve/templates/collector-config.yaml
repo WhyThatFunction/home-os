@@ -26,7 +26,7 @@ data:
         send_batch_size: 1024
         timeout: 5s
     exporters:
-      otlphttp/openobserve:
+      otlp_http/openobserve:
         endpoint: http://openobserve:5080/api/default
         headers:
           Authorization: ${env:OPENOBSERVE_BASIC_AUTH}
@@ -37,12 +37,12 @@ data:
         logs:
           receivers: [otlp]
           processors: [memory_limiter, batch]
-          exporters: [otlphttp/openobserve]
+          exporters: [otlp_http/openobserve]
         metrics:
           receivers: [otlp]
           processors: [memory_limiter, batch]
-          exporters: [otlphttp/openobserve]
+          exporters: [otlp_http/openobserve]
         traces:
           receivers: [otlp]
           processors: [memory_limiter, batch]
-          exporters: [otlphttp/openobserve]
+          exporters: [otlp_http/openobserve]
