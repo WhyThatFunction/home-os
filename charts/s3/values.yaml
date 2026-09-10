@@ -227,13 +227,6 @@ rustfsProvisioning:
     - name: vaam-map-publisher-policy
       statements:
         - actions:
-            - s3:GetBucketLocation
-            - s3:ListBucket
-            - s3:ListBucketMultipartUploads
-          effect: Allow
-          resources:
-            - arn:aws:s3:::vaam-media
-        - actions:
             - s3:AbortMultipartUpload
             - s3:GetObject
             - s3:GetObjectAttributes
