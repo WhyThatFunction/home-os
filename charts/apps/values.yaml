@@ -89,7 +89,7 @@ applications:
   - name: vaam
     finalizers:
       - resources-finalizer.argocd.argoproj.io
-    project: external
+    project: vaam-store
     source:
       repoURL: https://github.com/vaam-apps/vaam-apps
       targetRevision: HEAD
@@ -376,7 +376,7 @@ applications:
   - name: vaam-apps-argocd-creds
     finalizers:
       - resources-finalizer.argocd.argoproj.io
-    project: external
+    project: vaam-store
     source:
       repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD

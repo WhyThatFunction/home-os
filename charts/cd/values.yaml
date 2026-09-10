@@ -242,6 +242,32 @@ projects:
     sourceNamespaces:
       - "*"
 
+  - name: vaam-store
+    additionalLabels: { }
+    additionalAnnotations: { }
+    permitOnlyProjectScopedClusters: false
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    description: Vaam Store
+    sourceRepos:
+      - "*"
+    destinations:
+      - namespace: "*"
+        server: https://kubernetes.default.svc
+    clusterResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    clusterResourceBlacklist: [ ]
+    namespaceResourceBlacklist: [ ]
+    namespaceResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    orphanedResources: { }
+    roles: [ ]
+    syncWindows: [ ]
+    sourceNamespaces:
+      - "*"
+
   - name: home-remote-init
     additionalLabels: { }
     additionalAnnotations: { }
@@ -640,6 +666,52 @@ arcRunnerPools:
     namespace: gh-runners-vymalo
     managedNamespacePrivileged: true
     enableRunner: true
+
+  - name: vaam-store-runners
+    releaseName: vaam-store-runner
+    githubConfigUrl: https://github.com/vaam-store
+    runnerScaleSetName: ubuntu-amd-x64
+    runnerGroup: default
+    resourceProfile: standard
+    maxRunners: 10
+    containersSizeLimit: 40Gi
+    turboApi: https://turbo-cache-api.ai.camer.digital
+    turboTeam: vaam-store
+    destinationCluster: netcup-k8s
+    namespace: gh-runners-vaam-store
+    managedNamespacePrivileged: true
+    enableRunner: true
+
+  - name: vaam-store-medium-runners
+    releaseName: vaam-store-runner
+    githubConfigUrl: https://github.com/vaam-store
+    runnerScaleSetName: ubuntu-amd-x64-medium
+    runnerGroup: default
+    resourceProfile: medium
+    maxRunners: 6
+    containersSizeLimit: 60Gi
+    turboApi: https://turbo-cache-api.ai.camer.digital
+    turboTeam: vaam-store
+    destinationCluster: netcup-k8s
+    namespace: gh-runners-vaam-store-medium
+    managedNamespacePrivileged: true
+    enableRunner: true
+
+  - name: vaam-store-high-runners
+    releaseName: vaam-store-runner
+    githubConfigUrl: https://github.com/vaam-store
+    runnerScaleSetName: ubuntu-amd-x64-high
+    runnerGroup: default
+    resourceProfile: high
+    maxRunners: 4
+    containersSizeLimit: 80Gi
+    turboApi: https://turbo-cache-api.ai.camer.digital
+    turboTeam: vaam-store
+    destinationCluster: netcup-k8s
+    namespace: gh-runners-vaam-store-high
+    managedNamespacePrivileged: true
+    enableRunner: true
+    #priorityClass: 1000
 
   ## Org vaam-apps
   - name: vaam-apps-runners
