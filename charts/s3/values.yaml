@@ -131,6 +131,7 @@ rustfsProvisioning:
   userSecrets:
     - minio-users
     - vaam-rustfs-users
+    - vaam-map-publisher-users
     - artifact-cache-users
     - ssegning-rustfs-users
 
@@ -221,6 +222,17 @@ rustfsProvisioning:
             - s3:PutObject
             - s3:PutObjectTagging
           effect: Deny
+          resources:
+            - arn:aws:s3:::vaam-media/maps/*
+    - name: vaam-map-publisher-policy
+      statements:
+        - actions:
+            - s3:AbortMultipartUpload
+            - s3:GetObject
+            - s3:GetObjectAttributes
+            - s3:ListMultipartUploadParts
+            - s3:PutObject
+          effect: Allow
           resources:
             - arn:aws:s3:::vaam-media/maps/*
     - name: ssegning-policy
