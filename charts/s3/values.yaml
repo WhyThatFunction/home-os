@@ -194,6 +194,19 @@ rustfsProvisioning:
             - arn:aws:s3:::vaam-media/*
             - arn:aws:s3:::vaam-cnpg-backups
             - arn:aws:s3:::vaam-cnpg-backups/*
+        # Map releases are published by an operator credential. The runtime
+        # application may read them, but an explicit deny prevents accidental
+        # overwrite or deletion even though it owns the rest of vaam-media.
+        - actions:
+            - s3:AbortMultipartUpload
+            - s3:DeleteObject
+            - s3:DeleteObjectTagging
+            - s3:DeleteObjectVersion
+            - s3:PutObject
+            - s3:PutObjectTagging
+          effect: Deny
+          resources:
+            - arn:aws:s3:::vaam-media/maps/*
     - name: ssegning-policy
       statements:
         - actions: ["s3:*"]
