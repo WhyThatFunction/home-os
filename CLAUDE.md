@@ -35,9 +35,9 @@ most config decisions:
 
   Historically this one "generally lacked the AWS/Keycloak/cert-manager
   deps." **That is no longer true** and has not been for some time: it runs
-  cert-manager (`cert-cloudflare`, `self-signed-ca`, `vaam-ca`, …),
+  cert-manager (`cert-cloudflare`, `self-signed-ca`, …),
   external-secrets with the `ssegning-aws` ClusterSecretStore, CloudNativePG
-  + the barman-cloud plugin, Longhorn, RustFS and Traefik — the vaam-store and
+  + the barman-cloud plugin, Longhorn, RustFS and Traefik — the vaam and
   ssegning.com production stacks both live here. Check what the cluster
   actually has before assuming a dependency is missing.
 
@@ -71,15 +71,20 @@ drifted stale once. Re-check it whenever a cluster is added or removed.
    Its `values.yaml` `applications:` list declares the user-facing apps, each
    pointing at a leaf chart under `charts/home-apps/<app>`.
 5. **`charts/home-apps/<app>`** are the leaf charts (jellyfin, keycloak-ha,
-   redis-ha, music, endpoints, vaam-store-*, …). Most wrap the **bjw-s common
+   redis-ha, music, endpoints, …). Most wrap the **bjw-s common
    library** (`app-template`). `charts/home-apps/common` is that library
    vendored locally and consumed by `apps`/`cd-tools` as `file://../home-apps/common`.
+   The `vaam` Application (production Vaam Store) is the one exception to
+   "chart lives under `charts/home-apps`": its chart lives in the app repo
+   (`vaam-apps/vaam-apps`, path `deploy/chart`) — same shape as `ssegning-com`
+   — because home-os `main` is PR-only and cannot take the image-tag bumps
+   its CI needs to push.
 6. **`serverless/k/*`** — Kustomize deployments (vymalo-shop, opfs-webauthn)
    referenced as ArgoCD Applications from `charts/apps`.
 
-Nesting goes deeper where needed: e.g. `vaam-store-prod-deployer` is itself
-an app-of-apps that fans out child Applications ordered by **sync-waves**
-(secrets → pg + redis → app).
+Nesting goes deeper where needed: e.g. `serverless/k/vymalo-shop`'s
+`argocd-application.yaml` is itself an app-of-apps that fans out child
+Applications ordered by **sync-waves**.
 
 ## The override model (the most important pattern here)
 

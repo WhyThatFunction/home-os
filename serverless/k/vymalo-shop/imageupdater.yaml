@@ -10,8 +10,7 @@
 # digest and writes it back to the per-app prod overlay via github-app-creds--vymalo.
 #
 # namePattern matches every vymalo-* app; those without image annotations
-# (cnpg / externalsecrets / runners) carry none and are simply skipped. (Mirrors
-# charts/home-apps/vaam-store-prod-deployer/templates/imageupdater.yaml.)
+# (cnpg / externalsecrets / runners) carry none and are simply skipped.
 apiVersion: argocd-image-updater.argoproj.io/v1alpha1
 kind: ImageUpdater
 metadata:

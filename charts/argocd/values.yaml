@@ -108,10 +108,6 @@ notifications:
       appID: 2926172
       installationID: 111820839
       privateKey: $github-privateKey
-    service.github.vaam-store: |
-      appID: 2926172
-      installationID: 111824144
-      privateKey: $github-privateKey
     service.github.adorsys-gis: |
       appID: 2926172
       installationID: 112379420
