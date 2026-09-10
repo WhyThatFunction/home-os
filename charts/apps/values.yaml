@@ -48,7 +48,7 @@ applications:
     source:
       repoURL: https://github.com/WhyThatFunction/ssegning-com
       targetRevision: HEAD
-      path: deploy/chart
+      path: deploy/cd
     destination:
       server: https://kubernetes.default.svc
       namespace: ssegning
@@ -93,7 +93,7 @@ applications:
     source:
       repoURL: https://github.com/vaam-apps/vaam-apps
       targetRevision: HEAD
-      path: deploy/chart
+      path: deploy/cd
     destination:
       server: https://kubernetes.default.svc
       namespace: vaam
