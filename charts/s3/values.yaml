@@ -185,32 +185,11 @@ rustfsProvisioning:
           resources:
             - arn:aws:s3:::vymalo-cnpg-backups
             - arn:aws:s3:::vymalo-cnpg-backups/*
-    - name: vaam-s3-policy
+    - name: vaam-apps-policy
       statements:
         - actions: ["s3:*"]
           effect: Allow
           resources:
-            - arn:aws:s3:::vaam-catalog
-            - arn:aws:s3:::vaam-catalog/*
-            - arn:aws:s3:::vaam-uploads
-            - arn:aws:s3:::vaam-uploads/*
-            - arn:aws:s3:::vaam-insights
-            - arn:aws:s3:::vaam-insights/*
-            - arn:aws:s3:::vaam-gitops
-            - arn:aws:s3:::vaam-gitops/*
-            - arn:aws:s3:::vaam-cnpg-backups
-            - arn:aws:s3:::vaam-cnpg-backups/*
-    - name: vaam-store-policy
-      statements:
-        - actions: ["s3:*"]
-          effect: Allow
-          resources:
-            - arn:aws:s3:::vaam-catalog
-            - arn:aws:s3:::vaam-catalog/*
-            - arn:aws:s3:::vaam-uploads
-            - arn:aws:s3:::vaam-uploads/*
-            - arn:aws:s3:::vaam-insights
-            - arn:aws:s3:::vaam-insights/*
             - arn:aws:s3:::vaam-media
             - arn:aws:s3:::vaam-media/*
             - arn:aws:s3:::vaam-cnpg-backups
@@ -248,11 +227,7 @@ rustfsProvisioning:
     - vymalo-uploads
     - vymalo-insights
     - vaam-cnpg-backups
-    - vaam-catalog
-    - vaam-uploads
-    - vaam-insights
     - vaam-media
-    - vaam-gitops
     - turbo-cache
     - sc-cache
     - mobile-store

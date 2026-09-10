@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# ArgoCD repository credential for the PRIVATE vaam-apps/vaam-apps repo.
+# Lives in the argocd namespace so argocd-server/repo-server can clone it.
+namespace: argocd
+
+resources:
+  - argocd-repo.externalsecret.yaml

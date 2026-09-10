@@ -60,6 +60,51 @@ applications:
         prune: true
         selfHeal: true
 
+  # vaam — the Vaam Store production stack (backend, admin, landing, image
+  # resizer, Meilisearch, CNPG Postgres+PostGIS), replacing the deleted
+  # old-platform deployer fleet this app-of-apps used to fan out to.
+  #
+  # The chart lives in the APP repo (github.com/vaam-apps/vaam-apps, path
+  # `deploy/chart`), same shape and for the same reason as `ssegning-com`
+  # above: home-os `main` is PR-only behind the governance check, so nothing
+  # here can write a new image tag back into this repo. vaam-apps CI pushes
+  # straight to its own `main` and bumps `deploy/chart/values.yaml` image
+  # tags to `sha-<full sha>` on every green build; ArgoCD tracks HEAD there
+  # and rolls the new image out.
+  #
+  # Unlike ssegning-com, vaam-apps is PRIVATE (repo and GHCR packages), so
+  # two credentials exist for it: the ArgoCD repository credential below
+  # (`vaam-apps-argocd-creds`, applied to the argocd namespace) so ArgoCD can
+  # even clone the source, and the chart's own `ghcr-pull` ExternalSecret
+  # (inside `deploy/chart`, ns `vaam`) so every image pull — including the
+  # migrate Job — authenticates against GHCR.
+  #
+  # Hostnames (Traefik Gateway API, `traefik-gateway` / `kube-system`, same
+  # pattern as the old platform's routes):
+  #   vaam.store                     -> landing
+  #   admin.vaam.store               -> admin
+  #   api.vaam.store                 -> backend server (/rpc, /oauth, /healthz, /readyz)
+  #   api.vaam.store/webhooks        -> backend notification
+  #   api.vaam.store/api/images      -> emgr (image resizer)
+  - name: vaam
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: vaam-store
+    source:
+      repoURL: https://github.com/vaam-apps/vaam-apps
+      targetRevision: HEAD
+      path: deploy/chart
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: vaam
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: jellyfin
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -284,62 +329,6 @@ applications:
         prune: true
         selfHeal: true
 
-  # Deploys the vaam-store/platform 8-service fleet's 8 Argo CD Applications +
-  # its ArgoCD OCI repo cred + image-updater GHCR cred + ImageUpdater CR (all
-  # kustomize-forced into the argocd namespace, same pattern as
-  # vymalo-shop-deployer above). See serverless/k/vaam-store-platform/
-  # argocd-application.yaml's own header for the sync-ordering design.
-  - name: vaam-store-platform-deployer
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: external
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: serverless/k/vaam-store-platform
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: serverless-vaam-store-platform
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-      automated:
-        prune: true
-        selfHeal: true
-
-  # Deploys the vaam-store/frontends web apps' 3 Argo CD Applications + their
-  # ImageUpdater CR (kustomize-forced into the argocd namespace, same pattern as
-  # vaam-store-platform-deployer above).
-  #
-  # Separate from vaam-store-platform-deployer on purpose: different source
-  # repo, different image namespace (ghcr.io/vaam-store/frontends/* vs
-  # .../platform/*), different cosign signing identities, and no create-time
-  # ordering between the two fleets -- the frontends call the platform over
-  # in-cluster DNS at runtime only. It does REUSE two of that deployer's
-  # resources rather than duplicating them (the ghcr.io/vaam-store/charts OCI
-  # repo cred and the registry-wide GHCR pull secret); see
-  # serverless/k/vaam-store-frontends/kustomization.yaml for why, and for the
-  # dependency that creates.
-  #
-  # vaam-store/frontends#24.
-  - name: vaam-store-frontends-deployer
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: external
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: serverless/k/vaam-store-frontends
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: serverless-vaam-store-frontends
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-      automated:
-        prune: true
-        selfHeal: true
-
   # Provisions the ArgoCD repository credential (ESO, argocd ns) that lets ArgoCD
   # pull the PRIVATE converse-frontends OCI chart. The converse-ui workload itself
   # is deployed by ai-helm's charts/apps app-of-apps, not here.
@@ -369,6 +358,29 @@ applications:
       repoURL: https://github.com/whythatfunction/home-os
       targetRevision: HEAD
       path: serverless/k/lightbridge-authz
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: argocd
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  # ArgoCD repository credential (ESO, argocd ns) for the PRIVATE
+  # vaam-apps/vaam-apps repo, so the `vaam` Application above can even clone
+  # its source. Same PAT and AWS SM key (prod/meta/test-app) the fleet's
+  # other GHCR/GitHub credentials already use, mirroring
+  # lightbridge-authz-ghcr-creds above.
+  - name: vaam-apps-argocd-creds
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: vaam-store
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: serverless/k/vaam-apps
     destination:
       server: https://kubernetes.default.svc
       namespace: argocd
