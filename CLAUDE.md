@@ -124,6 +124,18 @@ names across clusters.
   container override must restate `command`** (`["/home/runner/run.sh"]`, or
   `["/bin/sh","-c"]` + `args: [sleep N; exec /home/runner/run.sh]` when it must
   wait for a dind sidecar). Cost a 4-day runaway on `arc-runner-set-sse`.
+- **A `high`-profile pool (requests==limits, Guaranteed QoS) can starve
+  itself on a crowded node** — symptom: most registered runners sit
+  permanently `offline` while that pool's jobs queue for hours and smaller
+  pools on the same cluster keep scheduling fine (`vaam-apps-high-runners`,
+  2026-09-11); confirm with `kubectl --context admin@netcup describe nodes`
+  Allocatable and a `Pending` pod's `Insufficient cpu/memory` event in
+  `gh-runners-<pool>`. Fix by setting that pool's `resourceRequests: {cpu,
+  memory}` in `charts/cd/values.yaml` below the profile's values —
+  `arc-runner-pools.yaml` then keeps `resources.limits` at the full profile
+  but sources `resources.requests` from `resourceRequests` (Burstable QoS);
+  omitted, a pool is unchanged. Not `priorityClass` — that preempts other
+  orgs' running jobs on the shared cluster instead of just easing scheduling.
 
 ## OpenObserve, OpenTelemetry, and RustFS — verified 2026-09-09
 

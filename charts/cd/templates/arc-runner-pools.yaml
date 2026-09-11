@@ -63,10 +63,11 @@ spec:
                   command: [ "/home/runner/run.sh" ]
                   {{- $profileName := .resourceProfile | default "standard" }}
                   {{- $profile := index $.Values.arcRunnerResourceProfiles $profileName }}
+                  {{- $reqs := .resourceRequests | default $profile }}
                   resources:
                     requests:
-                      cpu: {{ $profile.cpu | quote }}
-                      memory: {{ $profile.memory | quote }}
+                      cpu: {{ $reqs.cpu | quote }}
+                      memory: {{ $reqs.memory | quote }}
                     limits:
                       cpu: {{ $profile.cpu | quote }}
                       memory: {{ $profile.memory | quote }}

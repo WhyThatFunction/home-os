@@ -578,7 +578,12 @@ arcRunnerGhcrDockerconfigTemplate: |
 # Runner container cpu/memory (requests == limits, so a runner is never
 # throttled below what it's scheduled for). `standard` is the default every
 # pool below gets unless it sets `resourceProfile: high` explicitly - `high`
-# is only consumed by a pool that opts in, i.e. used only when requested.
+# is only consumed by a pool that opts in, i.e. used only when requested. A
+# pool can override just its scheduling ask with a per-pool `resourceRequests:
+# { cpu, memory }` (see vaam-apps-high-runners below): when set, that value
+# becomes `resources.requests` while `resources.limits` still comes from the
+# profile - Burstable QoS instead of Guaranteed. Omit it and a pool renders
+# byte-identical to today (requests == limits, from the profile alone).
 arcRunnerResourceProfiles:
   standard:
     cpu: "2"
@@ -750,6 +755,35 @@ arcRunnerPools:
     runnerScaleSetName: ubuntu-amd-x64-high
     runnerGroup: default
     resourceProfile: high
+    # Observed 2026-09-11 12:23-18:00 UTC: this scale set showed 4 registered
+    # runners, 3 permanently `offline` and 1 busy, while 38 queued
+    # `ubuntu-amd-x64-high` jobs sat for 5+ hours - meanwhile the `-medium`
+    # pool on the same netcup-k8s cluster kept getting pods scheduled. With
+    # requests==limits (the `high` profile: 7 CPU / 12Gi, Guaranteed QoS),
+    # no node had room for a 7/12Gi pod once smaller runner pods and other
+    # workloads held the rest of the capacity, so ARC counted the
+    # unschedulable pods toward maxRunners and never replaced them.
+    # `resourceRequests` below drops only what the scheduler asks for, to
+    # Burstable QoS (3 CPU / 6Gi requested) - the pool's `limits` stay the
+    # profile's 7/12Gi, so a scheduled build still gets the full headroom the
+    # `high` profile exists for, and CARGO_BUILD_JOBS (pinned from
+    # `$profile.cpu`, i.e. 7) is unaffected. Trade-off: a node can now be
+    # oversubscribed on cpu/memory; under real pressure the kubelet evicts
+    # Burstable pods before Guaranteed ones, which is the order we want here
+    # - a runner retry is cheaper than a pool stuck at 3-of-4 offline for
+    # hours. Do NOT flip on `priorityClass` for this fix: it would preempt
+    # other orgs' already-running CI jobs on the same cluster, not just
+    # reserve room for new ones.
+    # The other orgs' `high` pools (sse-gis-high-runners, vaam-store-high-
+    # runners) are deliberately left at requests==limits until the owner
+    # confirms actual node capacity on netcup-k8s (`kubectl --context
+    # admin@netcup get nodes -o wide` + `describe nodes` Allocatable, and
+    # `kubectl -n gh-runners-vaam-apps-high get pods` showing a `Pending` pod
+    # with an `Insufficient cpu`/`Insufficient memory` FailedScheduling event
+    # is the confirmation this was starvation, not something else).
+    resourceRequests:
+      cpu: "3"
+      memory: 6Gi
     maxRunners: 4
     containersSizeLimit: 80Gi
     turboApi: https://turbo-cache-api.ai.camer.digital
