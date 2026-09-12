@@ -793,3 +793,19 @@ arcRunnerPools:
     managedNamespacePrivileged: true
     enableRunner: true
     #priorityClass: 1000
+
+  - name: azamra-rapid-test-runner
+    releaseName: azamra-rapid-test-runner-runners
+    githubConfigUrl: https://github.com/skyengpro/azamra-tokenization-frontend
+    runnerScaleSetName: ubuntu-amd-x64-high
+    runnerGroup: default
+    resourceProfile: high
+    maxRunners: 1
+    containersSizeLimit: 80Gi
+    turboApi: https://turbo-cache-api.ai.camer.digital
+    turboTeam: azamra
+    destinationCluster: netcup-k8s
+    namespace: gh-runners-azamra
+    managedNamespacePrivileged: true
+    enableRunner: true
+    #priorityClass: 1000
