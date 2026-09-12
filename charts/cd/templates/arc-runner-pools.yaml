@@ -63,7 +63,11 @@ spec:
                   command: [ "/home/runner/run.sh" ]
                   {{- $profileName := .resourceProfile | default "standard" }}
                   {{- $profile := index $.Values.arcRunnerResourceProfiles $profileName }}
-                  {{- $reqs := .resourceRequests | default $profile }}
+                  {{- /* Scheduling ask, widest-last: a per-pool
+                         `resourceRequests` wins; else the profile's own
+                         `requests` block (Burstable - see `high`); else the
+                         profile's cpu/memory, i.e. requests == limits. */}}
+                  {{- $reqs := .resourceRequests | default $profile.requests | default $profile }}
                   resources:
                     requests:
                       cpu: {{ $reqs.cpu | quote }}
@@ -78,9 +82,14 @@ spec:
                       value: vfs
                     - name: BUILDAH_ISOLATION
                       value: chroot
-                    # cargo/rustc (and make -j, nproc) read the HOST cpu count
-                    # (8 on these nodes), NOT the cgroup cpu limit — so cargo
-                    # defaults to -j8 and 8 parallel rustc blow past the 8Gi limit
+                    # cargo/rustc (and make -j, nproc) read the HOST cpu count,
+                    # NOT the cgroup cpu limit — netcup-k8s workers are 12, 12,
+                    # 12 and 8 CPU, so `nproc` inside a runner reports whichever
+                    # node it landed on and never the pod's own allotment (the
+                    # runner's cgroup namespace is not isolated either, so
+                    # /proc/meminfo likewise shows the node's full RAM). Left
+                    # to itself cargo defaults to -j$(nproc) and that many
+                    # parallel rustc blow past the memory limit
                     # → cgroup OOMKill ("cargo builds destroyed"). Pin parallelism
                     # to the cpu allotment so peak memory stays well under 8Gi.
                     - name: CARGO_BUILD_JOBS

@@ -575,15 +575,16 @@ arcRunnerGhcrDockerconfigTemplate: |
     }
   }
 
-# Runner container cpu/memory (requests == limits, so a runner is never
-# throttled below what it's scheduled for). `standard` is the default every
-# pool below gets unless it sets `resourceProfile: high` explicitly - `high`
-# is only consumed by a pool that opts in, i.e. used only when requested. A
-# pool can override just its scheduling ask with a per-pool `resourceRequests:
-# { cpu, memory }` (see vaam-apps-high-runners below): when set, that value
-# becomes `resources.requests` while `resources.limits` still comes from the
-# profile - Burstable QoS instead of Guaranteed. Omit it and a pool renders
-# byte-identical to today (requests == limits, from the profile alone).
+# Runner container cpu/memory. A profile's `cpu`/`memory` are the container's
+# `limits` and also pin CARGO_BUILD_JOBS. `requests` defaults to those same
+# numbers (Guaranteed QoS, never throttled below what it was scheduled for);
+# a profile that sets its own `requests` block renders Burstable instead, and
+# a single pool can still override just its scheduling ask with a per-pool
+# `resourceRequests: { cpu, memory }`. Precedence, widest-last:
+# pool `resourceRequests` > profile `requests` > profile `cpu`/`memory`.
+#
+# `standard` is the default every pool below gets unless it names a profile
+# explicitly; `medium` and `high` are only consumed by a pool that opts in.
 arcRunnerResourceProfiles:
   standard:
     cpu: "2"
@@ -591,9 +592,36 @@ arcRunnerResourceProfiles:
   medium:
     cpu: "4"
     memory: 8Gi
+  # `high` requests LESS than it limits, on purpose - this is the fix from
+  # #154, promoted from one pool to the profile so every `high` pool gets it.
+  #
+  # netcup-k8s has four workers: 3 x 12 CPU / 29.5Gi allocatable and 1 x 8 CPU
+  # / 13.1Gi (`kubectl --context admin@netcup describe nodes`). A 7-CPU
+  # Guaranteed pod therefore fits AT MOST ONE PER 12-CPU NODE (two would need
+  # 14 CPU > 11.95 allocatable) and never on the 8-CPU node once its own system
+  # pods are counted - so at most 3 can exist cluster-wide, and only while
+  # those nodes are otherwise near-empty. Every `high` pool here sets
+  # `maxRunners: 4`, which under Guaranteed QoS is a target the cluster cannot
+  # physically reach. ARC counts an unschedulable ephemeral runner toward
+  # maxRunners and does not replace it, so the pool wedges: on 2026-09-11
+  # 12:23-18:00 UTC vaam-apps' `high` pool sat at 4 registered / 3 permanently
+  # offline / 1 busy while 38 jobs queued for 5+ hours.
+  #
+  # Requesting 3 CPU / 6Gi lets the scheduler place a runner on any worker
+  # while `limits` keep the full 7 CPU / 12Gi headroom the profile exists for,
+  # and CARGO_BUILD_JOBS stays pinned to 7. Trade-off: a node can now be
+  # oversubscribed on cpu/memory, and under real pressure the kubelet evicts
+  # Burstable pods before Guaranteed ones - which is the order we want, since
+  # a runner retry is cheaper than a pool stuck offline for hours.
+  #
+  # Do NOT reach for `priorityClass` instead: it would preempt other orgs'
+  # already-running CI jobs on this shared cluster, not just reserve room.
   high:
     cpu: "7"
     memory: 12Gi
+    requests:
+      cpu: "3"
+      memory: 6Gi
 
 # Rendered by templates/arc-runner-pools.yaml into 4 plain Applications
 # (gis-sse-runners, gis-lightbridge-ai-runners, vymalo-runners,
@@ -754,36 +782,11 @@ arcRunnerPools:
     githubConfigUrl: https://github.com/vaam-apps
     runnerScaleSetName: ubuntu-amd-x64-high
     runnerGroup: default
+    # The Burstable 3 CPU / 6Gi scheduling ask that #154 added here now lives
+    # on the `high` profile itself, so every `high` pool gets it - see the
+    # comment on `arcRunnerResourceProfiles.high` above for the mechanism and
+    # the node arithmetic. This pool renders byte-identical to #154.
     resourceProfile: high
-    # Observed 2026-09-11 12:23-18:00 UTC: this scale set showed 4 registered
-    # runners, 3 permanently `offline` and 1 busy, while 38 queued
-    # `ubuntu-amd-x64-high` jobs sat for 5+ hours - meanwhile the `-medium`
-    # pool on the same netcup-k8s cluster kept getting pods scheduled. With
-    # requests==limits (the `high` profile: 7 CPU / 12Gi, Guaranteed QoS),
-    # no node had room for a 7/12Gi pod once smaller runner pods and other
-    # workloads held the rest of the capacity, so ARC counted the
-    # unschedulable pods toward maxRunners and never replaced them.
-    # `resourceRequests` below drops only what the scheduler asks for, to
-    # Burstable QoS (3 CPU / 6Gi requested) - the pool's `limits` stay the
-    # profile's 7/12Gi, so a scheduled build still gets the full headroom the
-    # `high` profile exists for, and CARGO_BUILD_JOBS (pinned from
-    # `$profile.cpu`, i.e. 7) is unaffected. Trade-off: a node can now be
-    # oversubscribed on cpu/memory; under real pressure the kubelet evicts
-    # Burstable pods before Guaranteed ones, which is the order we want here
-    # - a runner retry is cheaper than a pool stuck at 3-of-4 offline for
-    # hours. Do NOT flip on `priorityClass` for this fix: it would preempt
-    # other orgs' already-running CI jobs on the same cluster, not just
-    # reserve room for new ones.
-    # The other orgs' `high` pools (sse-gis-high-runners, vaam-store-high-
-    # runners) are deliberately left at requests==limits until the owner
-    # confirms actual node capacity on netcup-k8s (`kubectl --context
-    # admin@netcup get nodes -o wide` + `describe nodes` Allocatable, and
-    # `kubectl -n gh-runners-vaam-apps-high get pods` showing a `Pending` pod
-    # with an `Insufficient cpu`/`Insufficient memory` FailedScheduling event
-    # is the confirmation this was starvation, not something else).
-    resourceRequests:
-      cpu: "3"
-      memory: 6Gi
     maxRunners: 4
     containersSizeLimit: 80Gi
     turboApi: https://turbo-cache-api.ai.camer.digital
