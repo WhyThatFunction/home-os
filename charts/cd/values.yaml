@@ -617,7 +617,7 @@ arcRunnerPools:
     destinationCluster: netcup-k8s
     namespace: gh-runners-sse-gis-runners
     managedNamespacePrivileged: true
-    enableRunner: true
+    #enableRunner: true
     scaleSetLabels:
       - adorsys-gis-runner
       - gis-ci
@@ -637,7 +637,7 @@ arcRunnerPools:
     destinationCluster: netcup-k8s
     namespace: gh-runners-sse-gis-medium-runners
     managedNamespacePrivileged: true
-    enableRunner: true
+    #enableRunner: true
 
   - name: sse-gis-high-runners
     releaseName: sse-gis-runners
@@ -652,7 +652,7 @@ arcRunnerPools:
     destinationCluster: netcup-k8s
     namespace: gh-runners-sse-gis-high-runners
     managedNamespacePrivileged: true
-    enableRunner: true
+    #enableRunner: false
     #priorityClass: 1000
 
   - name: vymalo-arc-runners
@@ -807,5 +807,5 @@ arcRunnerPools:
     destinationCluster: netcup-k8s
     namespace: gh-runners-azamra
     managedNamespacePrivileged: true
-    enableRunner: true
+    #enableRunner: true
     #priorityClass: 1000
