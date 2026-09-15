@@ -604,57 +604,6 @@ arcRunnerResourceProfiles:
 # on a pool to opt it into arcRunnerResourceProfiles.high (4vCPU/8Gi) instead
 # of the standard-profile default (2vCPU/4Gi).
 arcRunnerPools:
-  - name: sse-gis-runners
-    releaseName: sse-gis-runners
-    githubConfigUrl: https://github.com/ADORSYS-GIS
-    runnerScaleSetName: ubuntu-amd-x64
-    runnerGroup: flaky-rescue
-    resourceProfile: standard
-    maxRunners: 20
-    containersSizeLimit: 40Gi
-    turboApi: https://turbo-cache-api.ai.camer.digital
-    turboTeam: adorsys-gis
-    destinationCluster: netcup-k8s
-    namespace: gh-runners-sse-gis-runners
-    managedNamespacePrivileged: true
-    #enableRunner: true
-    scaleSetLabels:
-      - adorsys-gis-runner
-      - gis-ci
-      - gis-sse-runners
-      - arc-runner-set-sse
-
-  - name: sse-gis-medium-runners
-    releaseName: sse-gis-runners
-    githubConfigUrl: https://github.com/ADORSYS-GIS
-    runnerScaleSetName: ubuntu-amd-x64-medium
-    runnerGroup: flaky-rescue
-    resourceProfile: medium
-    maxRunners: 10
-    containersSizeLimit: 40Gi
-    turboApi: https://turbo-cache-api.ai.camer.digital
-    turboTeam: adorsys-gis
-    destinationCluster: netcup-k8s
-    namespace: gh-runners-sse-gis-medium-runners
-    managedNamespacePrivileged: true
-    #enableRunner: true
-
-  - name: sse-gis-high-runners
-    releaseName: sse-gis-runners
-    githubConfigUrl: https://github.com/ADORSYS-GIS
-    runnerScaleSetName: ubuntu-amd-x64-high
-    runnerGroup: flaky-rescue
-    resourceProfile: high
-    maxRunners: 4
-    containersSizeLimit: 40Gi
-    turboApi: https://turbo-cache-api.ai.camer.digital
-    turboTeam: adorsys-gis
-    destinationCluster: netcup-k8s
-    namespace: gh-runners-sse-gis-high-runners
-    managedNamespacePrivileged: true
-    #enableRunner: false
-    #priorityClass: 1000
-
   - name: vymalo-arc-runners
     releaseName: vymalo-arc-vps
     githubConfigUrl: https://github.com/vymalo
@@ -792,20 +741,4 @@ arcRunnerPools:
     namespace: gh-runners-vaam-apps-high
     managedNamespacePrivileged: true
     enableRunner: true
-    #priorityClass: 1000
-
-  - name: azamra-rapid-test-runner
-    releaseName: azamra-rapid-test-runner-runners
-    githubConfigUrl: https://github.com/skyengpro/azamra-tokenization-frontend
-    runnerScaleSetName: ubuntu-amd-x64-high
-    runnerGroup: default
-    resourceProfile: high
-    maxRunners: 1
-    containersSizeLimit: 80Gi
-    turboApi: https://turbo-cache-api.ai.camer.digital
-    turboTeam: azamra
-    destinationCluster: netcup-k8s
-    namespace: gh-runners-azamra
-    managedNamespacePrivileged: true
-    #enableRunner: true
     #priorityClass: 1000
