@@ -211,6 +211,34 @@ real backend and this server logs **zero** requests — there is no error,
 just a cache that quietly never gets used. That is the documented upstream
 failure mode, not a bug in this chart.
 
+## Sync ordering (this bit is load-bearing)
+
+| Wave | Resource | Why |
+| --- | --- | --- |
+| `-1` | `ExternalSecret ci-cache-root` | ArgoCD has a health check for ExternalSecret, so the Secret exists before anything mounts it |
+| `0` | RustFS, both registry caches | the object store and the pull-through proxies have no cross-dependencies |
+| `1` | provisioning Job (**Sync**-phase hook) | creates the buckets and imports lifecycle rules |
+| `2` | `gha-cache` | the only workload that validates its bucket at startup |
+
+The provisioning Job is a **Sync**-phase hook, not `PostSync`. `PostSync`
+deadlocked on first install and the failure is worth remembering, because it
+presents as an application bug rather than an ordering one:
+
+```
+gha-cache:  Failed to initialize storage: Bucket gha-cache does not exist
+            → CrashLoopBackOff
+ArgoCD:     phase=Running  msg=waiting for healthy state of apps/Deployment/gha-cache
+Jobs:       No resources found
+```
+
+The server will not start without its bucket, so the Deployment never goes
+Healthy, so the sync never completes, so the `PostSync` hook that would have
+*created* the bucket never runs. Circular. Sync-phase hooks participate in
+wave ordering, which breaks the cycle.
+
+Adding a workload here means asking whether it needs a bucket to pre-exist.
+If it does, it belongs at wave 2 or later — not wave 0 alongside RustFS.
+
 ## Validating a change
 
 ```bash
