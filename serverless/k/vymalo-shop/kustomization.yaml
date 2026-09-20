@@ -8,8 +8,24 @@ namespace: argocd
 # Application from a raw.githubusercontent URL — it's committed locally here.
 resources:
   - argocd-application.yaml
-  # ArgoCD repo cred (ESO) so it can pull the PRIVATE OCI Helm chart.
-  - argocd-charts-oci-repo.externalsecret.yaml
+  # NOTE: the ArgoCD repo credential for the PRIVATE ghcr.io/vymalo/charts
+  # registry used to live here as argocd-charts-oci-repo.externalsecret.yaml.
+  # It now lives in charts/cd/templates/vymalo-charts-oci-credentials.externalsecret.yaml,
+  # because charts/cd is actually deployed and this directory is not
+  # (nothing in charts/apps or charts/cd references serverless/k/vymalo-shop).
+  #
+  # Keeping both was a latent bug, not just duplication: they declared the
+  # SAME ExternalSecret name AND the same target Secret name, both with
+  # creationPolicy: Owner, so reviving this directory would have put two
+  # controllers in a write loop over one Secret on different refresh
+  # intervals (10m here vs 1h there). Renaming one side would NOT have fixed
+  # it - ArgoCD matches a `repository`-type credential by EXACT url, and both
+  # claimed url: ghcr.io/vymalo/charts, so two of them is ambiguous however
+  # they are named.
+  #
+  # If this directory is ever revived, it needs no credential of its own:
+  # the one in charts/cd lands in the same argocd namespace and covers every
+  # Application using that repoURL.
   # GHCR read cred (ESO, dockerconfigjson) so the image-updater can query the
   # PRIVATE vymalo-* image digests — referenced by each app's pull-secret
   # annotation. Without it the controller gets `unauthorized` and no digest
