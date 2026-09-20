@@ -98,8 +98,16 @@ spec:
                   command: [ "/bin/sh", "-c" ]
                   args:
                     - |
-                      if command -v sccache >/dev/null 2>&1 && [ -n "${RUSTC_WRAPPER}" ]; then
-                        if timeout 30 sccache --start-server >/dev/null 2>&1; then
+                      # Keyed on RUSTC_WRAPPER alone, NOT on sccache being present.
+                      # RUSTC_WRAPPER is hardcoded to "sccache" in this pod's env, so if
+                      # the image ever ships without the binary, a guard that required
+                      # sccache to exist would SKIP - leaving RUSTC_WRAPPER pointing at
+                      # nothing and every rustc invocation failing to spawn its wrapper.
+                      # That is precisely the hard failure this preflight exists to
+                      # prevent, so a missing binary must take the unset branch too.
+                      if [ -n "${RUSTC_WRAPPER}" ]; then
+                        if command -v sccache >/dev/null 2>&1 \
+                           && timeout 30 sccache --start-server >/dev/null 2>&1; then
                           # Stop the probe's own server again so this stays a pure predicate
                           # with no side effects. Left running, it would be pinned to the
                           # POD's SCCACHE_* config, and a job overriding any of those in its
