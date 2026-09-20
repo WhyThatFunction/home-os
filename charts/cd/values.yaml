@@ -41,9 +41,14 @@ projects:
     description: Arc Runner
     sourceRepos:
       - "*"
+    # netcup-k8s only. Every arcRunnerPool below and every Application in
+    # charts/cd-ci that uses this project targets netcup, and the last
+    # home-remote member (the `arc-runners` controller) was retired once it
+    # had no AutoscalingRunnerSets left to reconcile. An AppProject
+    # destination no Application uses is dead config that quietly re-permits
+    # a cluster nobody meant to deploy to; re-add the entry deliberately if
+    # a home-remote runner pool ever comes back.
     destinations:
-      - namespace: "*"
-        name: home-remote
       - namespace: "*"
         name: netcup-k8s
     clusterResourceWhitelist:
