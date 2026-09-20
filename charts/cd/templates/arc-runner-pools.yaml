@@ -60,7 +60,73 @@ spec:
                   # exits 0 in <1s, and the JIT-registered runner never comes
                   # online — leaving queued jobs unserved and the listener
                   # churning replacements forever. Mirror sky-frontend.
-                  command: [ "/home/runner/run.sh" ]
+                  #
+                  # sccache preflight (verified against the real RustFS with
+                  # sccache 0.16.0, real creds): `sccache --start-server`
+                  # exits 0 when the S3 bucket is reachable and exits 2 with
+                  # "NoSuchBucket" when it is missing — and when it can't
+                  # start, rustc cannot run AT ALL (RUSTC_WRAPPER points at a
+                  # dead wrapper), so the whole job fails instead of just
+                  # losing its cache. Confirmed today in vaam-apps: `sccache:
+                  # error: Server startup failed: cache storage failed to
+                  # read: ... NoSuchBucket` -> exit code 101 killed `rust` and
+                  # `rust-live`. The multi-level disk+s3 chain does NOT help
+                  # here — it still exits 2 on a missing bucket because this
+                  # failure is at read/init during startup, not at write, so
+                  # the chain's write-error policy never gets a chance to
+                  # apply.
+                  #
+                  # We probe with sccache itself, not a TCP/HTTP reachability
+                  # check against the endpoint: a plain connectivity probe
+                  # would have passed during today's incident, since the
+                  # endpoint was up and only the bucket was missing. Only
+                  # exercising the exact failing operation catches that.
+                  # `timeout 30` bounds a hung endpoint so it degrades to
+                  # uncached instead of wedging pod startup — this must always
+                  # fail toward "build without cache", never toward "pod
+                  # never starts". On failure we `unset RUSTC_WRAPPER` in this
+                  # shell: that removes it from the environment `exec
+                  # /home/runner/run.sh` inherits, and job steps in turn
+                  # inherit the runner process's environment, so this is the
+                  # entire mechanism by which the job stops invoking sccache
+                  # and falls back to plain rustc. `exec` at the end keeps
+                  # run.sh as PID 1 so the runner's lifecycle/signal handling
+                  # is unchanged. Known limitation: the health/warning line
+                  # below lands in the pod log (`kubectl logs`), not the
+                  # GitHub Actions job log, so a silently-uncached build is
+                  # only visible via kubectl, not in the Actions UI.
+                  command: [ "/bin/sh", "-c" ]
+                  args:
+                    - |
+                      # Keyed on RUSTC_WRAPPER alone, NOT on sccache being present.
+                      # RUSTC_WRAPPER is hardcoded to "sccache" in this pod's env, so if
+                      # the image ever ships without the binary, a guard that required
+                      # sccache to exist would SKIP - leaving RUSTC_WRAPPER pointing at
+                      # nothing and every rustc invocation failing to spawn its wrapper.
+                      # That is precisely the hard failure this preflight exists to
+                      # prevent, so a missing binary must take the unset branch too.
+                      if [ -n "${RUSTC_WRAPPER}" ]; then
+                        if command -v sccache >/dev/null 2>&1 \
+                           && timeout 30 sccache --start-server >/dev/null 2>&1; then
+                          # Stop the probe's own server again so this stays a pure predicate
+                          # with no side effects. Left running, it would be pinned to the
+                          # POD's SCCACHE_* config, and a job overriding any of those in its
+                          # own steps would silently keep talking to the pod-configured
+                          # backend instead. Stopping restores exactly the behaviour before
+                          # this change: the job starts the server lazily, with its own env.
+                          # --stop-server is asynchronous: measured in the runner image,
+                          # the process is still present immediately after it returns and
+                          # gone within 3s. Harmless here - runner startup and job dispatch
+                          # take far longer than that, so the job's first sccache call
+                          # always starts a fresh server.
+                          sccache --stop-server >/dev/null 2>&1 || true
+                          echo "[sccache-preflight] compile cache is healthy; using RUSTC_WRAPPER=${RUSTC_WRAPPER}"
+                        else
+                          echo "[sccache-preflight] WARNING: Rust compile cache (sccache) is unreachable; building UNCACHED. This is deliberate and slower, not a failure."
+                          unset RUSTC_WRAPPER
+                        fi
+                      fi
+                      exec /home/runner/run.sh
                   {{- $profileName := .resourceProfile | default "standard" }}
                   {{- $profile := index $.Values.arcRunnerResourceProfiles $profileName }}
                   {{- $reqs := .resourceRequests | default $profile }}
