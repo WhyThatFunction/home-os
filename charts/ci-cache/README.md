@@ -16,7 +16,11 @@ cache reads/writes never leave the cluster network.
 - **Cluster:** `netcup-k8s` (`kubectl` context `admin@netcup`)
 - **Namespace:** `ci-cache`
 - **In-cluster endpoint:** `http://rustfs-svc.ci-cache.svc.cluster.local:9000`
-  (console on `:9001`)
+- **Console:** enabled on `:9001` but deliberately NOT admitted by the
+  NetworkPolicy — it is administration surface with no in-cluster consumer.
+  Reach it with
+  `kubectl --context admin@netcup -n ci-cache port-forward svc/rustfs-svc 9001:9001`
+  (kubelet-mediated, so NetworkPolicy does not apply).
 
 ## Buckets
 
@@ -42,7 +46,7 @@ presets the environment on every runner container, sourced from the
 | `TURBO_TEAM` / `TURBO_TOKEN` | per-pool team, shared token | namespaces the cache per org |
 | `SCCACHE_ENDPOINT` / `SCCACHE_BUCKET` | `rustfs-svc.ci-cache…:9000` / `sc-cache` | `RUSTC_WRAPPER=sccache` writes here |
 | `SCCACHE_S3_USE_SSL` | `false` | plaintext pod-to-pod hop; nothing terminates TLS in front of the ClusterIP |
-| `AWS_ENDPOINT_URL`, `AWS_ENDPOINT_URL_S3` | the RustFS URL | an *unconfigured* S3 client (`aws s3 cp`, any SDK) defaults here instead of AWS |
+| `AWS_ENDPOINT_URL_S3` | the RustFS URL | an *unconfigured* S3 client (`aws s3 cp`, any SDK) defaults here instead of AWS. The service-specific name only — the generic `AWS_ENDPOINT_URL` would redirect *every* AWS client (sts, ecr, …) here too |
 | `AWS_REQUEST_CHECKSUM_CALCULATION`, `AWS_RESPONSE_CHECKSUM_VALIDATION` | `when_required` | newer AWS SDKs otherwise send CRC32 trailers RustFS rejects |
 | `CI_ARTIFACTS_BUCKET` | `build-artifacts` | documented default so jobs need not hardcode a bucket |
 
@@ -103,10 +107,11 @@ a missing feature.
 **NetworkPolicy trap:** the pre-existing `ci-cache-rustfs` NetworkPolicy
 selects `app.kubernetes.io/instance: ci-cache`, which every pod in this
 chart carries — including the registry caches. The allowed ingress ports
-are now values-driven (`networkPolicy.ports: [9000, 9001, 5000]`) precisely
+are now values-driven (`networkPolicy.ports: [9000, 5000, 3000]`) precisely
 because a port missing from that list is a pod that renders and schedules
 fine but is silently unreachable from every runner pod. Adding a workload to
-this chart means adding its port to that list.
+this chart means adding its port to that list — and, conversely, RustFS's
+console port is absent from it on purpose (see above).
 
 **What this chart does NOT wire up:**
 
