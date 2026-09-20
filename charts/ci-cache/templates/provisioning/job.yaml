@@ -1,0 +1,104 @@
+{{- with .Values.provisioning }}
+{{- if .enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ci-cache-provisioning
+  namespace: {{ $.Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: rustfs-provisioning
+    app.kubernetes.io/instance: {{ $.Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ $.Release.Service | quote }}
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    # Keep the last successful Job as cutover evidence; the next sync
+    # replaces it and reruns the idempotent provisioning contract.
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: rustfs-provisioning
+        app.kubernetes.io/instance: {{ $.Release.Name | quote }}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: provision
+          image: {{ printf "%s:%s" .image.repository .image.tag | quote }}
+          imagePullPolicy: {{ .image.pullPolicy }}
+          command: ["/bin/sh", "-ceu"]
+          args:
+            - |
+              endpoint={{ .endpoint | quote }}
+              access_key="$(cat /credentials/access-key)"
+              secret_key="$(cat /credentials/secret-key)"
+
+              attempt=0
+              until rc --quiet alias set rustfs "$endpoint" "$access_key" "$secret_key" --bucket-lookup path && rc --quiet ready rustfs; do
+                attempt=$((attempt + 1))
+                if [ "$attempt" -ge 60 ]; then
+                  echo "RustFS did not become ready within 300 seconds" >&2
+                  exit 1
+                fi
+                sleep 5
+              done
+
+              # No users and no policies to provision here — this instance's
+              # root credential doubles as the only identity every consumer
+              # uses (see the rootSecret comment in values.yaml for why).
+              {{- range .buckets }}
+              rc --quiet bucket create --ignore-existing rustfs/{{ .name }}
+              {{- if .expiryDays }}
+              rc --quiet bucket lifecycle rule import rustfs/{{ .name }} /config/lifecycle-{{ .name }}.json
+              {{- end }}
+              {{- end }}
+          env:
+            - name: HOME
+              value: /work
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: work
+              mountPath: /work
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: root-credentials
+              mountPath: /credentials
+              readOnly: true
+      volumes:
+        - name: work
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: ci-cache-provisioning
+        - name: root-credentials
+          secret:
+            secretName: {{ $.Values.rootSecret.name | quote }}
+            items:
+              - key: root-user
+                path: access-key
+              - key: root-password
+                path: secret-key
+{{- end }}
+{{- end }}

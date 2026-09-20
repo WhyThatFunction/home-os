@@ -1,0 +1,41 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ci-cache-rustfs
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: rustfs
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+spec:
+  # Covers the RustFS server, the provisioning Job, AND the registry-cache
+  # Deployments below - all of them carry this same instance label. The Job
+  # opens no ports, so the ingress rule below remains an effective deny for
+  # it.
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # Deliberately open to any namespace on these ports: the consumers are
+    # ARC runner pods spread across the many `gh-runners-*` namespaces plus
+    # turbo-cache, all on this same cluster. Ports are values-driven
+    # (`networkPolicy.ports`) rather than hardcoded here because this is a
+    # real trap: every pod this chart owns shares one instance label and
+    # therefore one NetworkPolicy, so a workload added without a matching
+    # entry in that list renders and schedules fine but is silently
+    # unreachable - confirmed when the registry-cache Deployments (port
+    # 5000) were added alongside RustFS (9000/9001).
+    - ports:
+        {{- range .Values.networkPolicy.ports }}
+        - port: {{ . }}
+          protocol: TCP
+        {{- end }}
+  # RustFS, the provisioning Job, and the registry caches all need DNS/API
+  # egress within the cluster - the registry caches additionally need
+  # unrestricted egress to reach their public upstreams (registry-1.docker.io,
+  # ghcr.io), so this stays a full allow rather than being narrowed.
+  egress:
+    - {}
+{{- end }}

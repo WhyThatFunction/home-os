@@ -1,0 +1,322 @@
+rustfs:
+  # Renders the Service as `rustfs-svc`, matching charts/s3's naming so the
+  # in-cluster endpoint stays predictable across both RustFS deployments.
+  fullnameOverride: rustfs
+  replicaCount: 1
+
+  image:
+    rustfs:
+      repository: rustfs/rustfs
+      pullPolicy: IfNotPresent
+      tag: "1.0.0-rc.5@sha256:c36b3efea3d1e503f1a2581abd0e7611e0e5820dd30e1850a52384b3fc52bda4"
+    initImage:
+      repository: busybox
+      pullPolicy: IfNotPresent
+      tag: "1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0"
+
+  mode:
+    standalone:
+      enabled: true
+      strategy:
+        # Never mount the RWO claim from two object-storage processes.
+        type: Recreate
+      existingClaim:
+        # Unlike charts/s3 (which reuses an existing NAS-backed claim), this
+        # store gets a fresh Longhorn volume the chart provisions itself.
+        dataClaim: ""
+        logsClaim: ""
+    distributed:
+      enabled: false
+
+  secret:
+    existingSecret: ci-cache-root
+  extraEnv:
+    - name: RUSTFS_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: ci-cache-root
+          key: root-user
+    - name: RUSTFS_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: ci-cache-root
+          key: root-password
+    - name: RUSTFS_VOLUMES
+      value: /data
+
+  config:
+    rustfs:
+      address: ":9000"
+      console_enable: "true"
+      console_address: ":9001"
+      log_level: info
+      region: us-east-1
+      # Keep logs on stdout; no second persistent log volume is needed.
+      obs_log_directory: ""
+      obs_environment: production
+      # Unlike charts/s3 (an NFS-backed NAS share needing the high-latency
+      # profile), this volume is a real Longhorn block device, so the
+      # default timeout profile applies. Do NOT set high_latency here.
+      timeout_profile: ""
+
+  # This is a freshly provisioned volume with no pre-existing file ownership
+  # to preserve, so unlike charts/s3 (pinned to 1001 to match Bitnami MinIO's
+  # legacy NFS-owned files) there is no reason not to use the upstream
+  # chart's own default uid/gid/fsGroup of 10001.
+  podSecurityContext:
+    fsGroup: 10001
+    runAsUser: 10001
+    runAsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    capabilities:
+      drop: [ALL]
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+
+  service:
+    type: ClusterIP
+    endpoint:
+      port: 9000
+    console:
+      port: 9001
+
+  # This store is deliberately cluster-internal only. Every consumer (the
+  # ARC runner pods and turbo-cache) is on this same cluster, which is the
+  # entire point: keeping cache traffic off the public internet. netcup also
+  # runs no cert-manager ClusterIssuer for these hosts.
+  ingress:
+    enabled: false
+
+  serviceAccount:
+    create: true
+    automount: false
+
+  enableServiceLinks: false
+
+  storageclass:
+    name: longhorn
+    # netcup's default StorageClass is `longhorn` with numberOfReplicas=2, so
+    # 200Gi consumes ~400Gi of the ~1.8Ti cluster raw capacity.
+    dataStorageSize: 200Gi
+    logStorageSize: 1Gi
+
+# This instance's RustFS ROOT credential is deliberately the same
+# `artifact-cache` identity the ARC runners and turbo-cache already hold,
+# rather than a separate root plus per-user policies the way charts/s3 does
+# it. That is a conscious trade-off, not an oversight:
+#   (a) this store holds nothing but disposable CI caches;
+#   (b) it has no ingress and is only reachable from inside netcup-k8s;
+#   (c) every consumer would end up with s3:* on every bucket here anyway,
+#       so a separate provisioned user would add ceremony without adding
+#       any real isolation.
+# To split them later: add a dedicated pair of properties to the AWS
+# Secrets Manager object at `prod/artifact-cache/env` and repoint
+# `accessKeyProperty`/`secretKeyProperty` below — no template change needed.
+rootSecret:
+  enabled: true
+  name: ci-cache-root
+  store:
+    name: ssegning-aws
+    kind: ClusterSecretStore
+  refreshInterval: 1h
+  remoteKey: prod/artifact-cache/env
+  accessKeyProperty: object_storage_access_key
+  secretKeyProperty: object_storage_secret_key
+
+provisioning:
+  enabled: true
+  image:
+    repository: rustfs/rc
+    tag: "v0.1.34@sha256:fad686174251b22de1e7b11438b3389932c93d2043c4eec981e1168c59edf92f"
+    pullPolicy: IfNotPresent
+  endpoint: http://rustfs-svc:9000
+  # `expiryDays` renders an S3 lifecycle expiration rule (a single rule with
+  # the fixed id `ci-cache-expiry`, imported declaratively) so caches cannot
+  # grow without bound on a fixed-size Longhorn volume. A bucket entry with
+  # no `expiryDays` gets no rule.
+  buckets:
+    # The turborepo remote-cache server's backing store (npm/Turbo task
+    # outputs).
+    - name: turbo-cache
+      expiryDays: 30
+    # sccache's backing store (Rust compilation cache).
+    - name: sc-cache
+      expiryDays: 30
+    # Backing store for the ghaCache Deployment below (`actions/cache`'s
+    # writes on behalf of any workflow using it, e.g. via setup-node/
+    # setup-java/setup-python's built-in cache: input). This lifecycle rule
+    # is deliberately a week *longer* than `ghaCache.cleanupOlderThanDays`
+    # (21 vs 14) so this bucket rule only ever mops up orphans - see the
+    # comment on `ghaCache.cleanupOlderThanDays` for why the server's own
+    # cleanup has to win the race.
+    - name: gha-cache
+      expiryDays: 21
+    # Job build outputs.
+    - name: build-artifacts
+      expiryDays: 30
+
+# Pull-through caches for public container registries. Runner pods are
+# ephemeral (one per job) and podman/buildah's graphroot is wiped with the
+# pod; STORAGE_DRIVER=vfs also copies every layer in full rather than
+# sharing it across pods on the same node. Net effect: every job re-pulls
+# its base images from the public internet from scratch. These mirrors turn
+# that into a warm-cache hit for any image already seen once.
+#
+# Measured locally with `registry:2` in proxy mode: a cold pull of
+# `alpine:3.20` took 41.2s; the same pull warm from the cache took 3.0s
+# (~14x). Docker Hub's anonymous pull limit is also enforced per source IP,
+# and netcup's nodes share egress and can burst to ~40 concurrent runners -
+# without a cache that shared IP risks HTTP 429s surfacing mid-build as a
+# confusing, seemingly-random failure.
+registryCache:
+  enabled: true
+  image:
+    repository: registry
+    # Pinned by multi-arch index digest (includes linux/amd64). Verified
+    # working in proxy mode against BOTH upstreams listed below.
+    tag: "3.1.1@sha256:fd374bae807c225661adfe2c0c1f9970a0b8fab1761fd7dfb91e0fd9a8748f9b"
+    pullPolicy: IfNotPresent
+  port: 5000
+  storageClass: longhorn
+  storageSize: 50Gi
+  resources:
+    requests: { cpu: 25m, memory: 128Mi }
+    limits: { cpu: "1", memory: 512Mi }
+  # Each entry here renders its OWN Deployment/Service/PVC - not a design
+  # choice, a hard upstream constraint: `distribution`'s proxy mode takes
+  # exactly one `proxy.remoteurl` per instance (registry.yml has no concept
+  # of a multi-upstream proxy), so there is no way to front two upstreams
+  # with a single process. A side effect that falls out of this for free:
+  # each mirror serves exactly the same repository paths as its own
+  # upstream, so there are no cross-registry name collisions to resolve.
+  #
+  # Deliberately NO credentials are configured on any of these. A
+  # pull-through cache holding an upstream credential would let any pod in
+  # the cluster pull that upstream's *private* images without ever
+  # presenting the real pull secret - the cache would silently become a
+  # privilege-escalation path. Left anonymous, public images cache
+  # normally and private images simply miss the cache; containers/image
+  # (the pull client used by podman/buildah/CRI-O) falls through to the
+  # primary registry location on a mirror miss, so private pulls keep
+  # working exactly as before, just uncached. That fallback-on-miss
+  # behavior is what makes "no credentials" the safe default here, not a
+  # missing feature.
+  #
+  # The two names below (`dockerio`, `ghcr`) are a contract with the
+  # `registries.conf` mounted into runner pods by
+  # `charts/cd/templates/arc-runner-pools.yaml` - rename an entry here and
+  # that file's mirror config must change too, or runners silently stop
+  # hitting the cache.
+  upstreams:
+    - name: dockerio
+      remoteUrl: https://registry-1.docker.io
+    - name: ghcr
+      remoteUrl: https://ghcr.io
+
+# A self-hosted implementation of the GitHub Actions cache protocol
+# (falcondev-oss/github-actions-cache-server), so `actions/cache` - and
+# therefore setup-node/setup-java/setup-python/setup-go's built-in `cache:`
+# input, plus Gradle's/pub's own opt-in use of the same action - writes to
+# this in-cluster RustFS instead of egressing to GitHub's real cache
+# backend. Without this, every cache hit/restore on netcup leaves the
+# cluster even though the runner and the object store it could be using are
+# on the same box.
+#
+# THIS ALONE DOES NOTHING - it needs two things outside this chart, both
+# owned by charts/cd:
+#   1. A runner image whose Runner.Worker.dll has been byte-patched to
+#      rename the UTF-16LE string `ACTIONS_RESULTS_URL` to
+#      `ACTIONS_RESULTS_ORL`. Why: actions/cache v4.2+ talks to Cache
+#      Service v2 via `ACTIONS_RESULTS_URL`, and the runner process
+#      unconditionally overwrites that env var from the job context at
+#      startup - anything set on the pod is clobbered before the action
+#      ever reads it. The patch is what makes an externally-injected value
+#      survive. That patch lives in the `vymalo/arc-runners` image, not
+#      here - this chart has no way to apply it. (The upstream cache
+#      server project's own pre-patched image shipped with this exact
+#      patch MISSING from the compiled DLL for three releases in a row -
+#      falcondev-oss/github-actions-cache-server#265, still open as of
+#      writing - which is why the image we depend on asserts the patch
+#      applied at build time instead of trusting upstream's claim.)
+#   2. `ACTIONS_RESULTS_URL` actually set on runner pods, in
+#      charts/cd/templates/arc-runner-pools.yaml.
+# If either is missing, `actions/cache` silently keeps talking to GitHub's
+# real backend and this server logs zero requests - there is no error, just
+# a cache that never gets used. See charts/ci-cache/README.md.
+ghaCache:
+  enabled: true
+  image:
+    repository: ghcr.io/falcondev-oss/github-actions-cache-server
+    # Pinned by multi-arch index digest (includes linux/amd64), per
+    # `ghcr.io/falcondev-oss/github-actions-cache-server:9.8.0`.
+    tag: "9.8.0@sha256:58bc6ae6fc34606c3b139e259c3c12d9ff23c793a666e8a784f13f6bb9b1aa41"
+    pullPolicy: IfNotPresent
+  port: 3000
+  bucket: gha-cache
+  # Deliberately SHORTER than the `gha-cache` bucket's own S3 lifecycle rule
+  # (21 days, see `provisioning.buckets` above). This server keeps a sqlite
+  # index of what it has written to the bucket; if the bucket's lifecycle
+  # rule deleted an object first, the server's index would still point at
+  # it (a dangling reference, not caught until something tries to read it).
+  # Cleaning up here first means by the time the bucket rule could fire on
+  # the same object, the server has already forgotten about it - the bucket
+  # rule is only a backstop for objects orphaned some other way (e.g. a
+  # crash mid-write), which `ORPHANED_STORAGE_GRACE_PERIOD_HOURS` below is
+  # actually meant to catch.
+  cleanupOlderThanDays: 14
+  # sqlite index of what's in the bucket. Small, but unlike the registry
+  # caches' PVCs (100% reconstructible from the upstream on a cold start)
+  # this one is NOT freely reconstructible: losing it orphans every object
+  # already written to the bucket, which the server can then no longer find
+  # or clean up on its own (ORPHANED_STORAGE_GRACE_PERIOD_HOURS reaps those,
+  # but only after they've become invisible to normal use for that long).
+  database:
+    storageClass: longhorn
+    storageSize: 5Gi
+    path: /data/cache-server.db
+  # Verified end-to-end against a real RustFS backend (CreateCacheEntry ->
+  # PUT blob -> FinalizeCacheEntryUpload -> GetCacheEntryDownloadURL -> GET,
+  # byte-correct round trip): this server is on the data path in BOTH
+  # directions. The download URL it hands back
+  # (`<API_BASE_URL>/download/<uuid>`) streams the object through the pod
+  # itself with `Transfer-Encoding: chunked` - it does NOT 302-redirect the
+  # client to RustFS. That held true even with `ENABLE_DIRECT_DOWNLOADS=true`
+  # set (verified), which is why that flag is deliberately left unset below
+  # instead of being added here "for later": it does not offload downloads
+  # to RustFS for the s3 storage driver in 9.8.0, so flipping it would not
+  # buy the speedup it sounds like it would. Every cache blob (node_modules,
+  # Gradle caches, often hundreds of MB) therefore transits this one pod,
+  # which is why requests/limits are sized well above a typical sidecar-ish
+  # proxy rather than at registry-cache/rustfs levels.
+  resources:
+    requests: { cpu: 200m, memory: 512Mi }
+    limits: { cpu: "4", memory: 2Gi }
+
+networkPolicy:
+  enabled: true
+  # Every pod this chart owns carries app.kubernetes.io/instance=<release>,
+  # so this one policy covers RustFS (9000), the registry caches (5000) AND
+  # the gha-cache server (3000). A port missing from this list is a pod
+  # nobody can reach - adding a workload to this chart means adding its port
+  # here. Verified trap: the registry-cache pods carry this same instance
+  # label, so without adding 5000 here they would render and schedule fine
+  # but be silently unreachable from every runner pod; the same applies to
+  # gha-cache and 3000.
+  #
+  # RustFS's console (9001) is deliberately ABSENT. It is administration
+  # surface with no in-cluster consumer - runners, turbo-cache and the
+  # gha-cache server all talk to 9000 only - and admitting it from every
+  # namespace contradicts the rest of this chart's posture. The console
+  # stays enabled on the pod; reach it with
+  # `kubectl --context admin@netcup -n ci-cache port-forward svc/rustfs-svc 9001:9001`,
+  # which is kubelet-mediated and therefore unaffected by this policy.
+  # Kubelet probes are likewise not subject to NetworkPolicy.
+  ports:
+    - 9000
+    - 5000
+    - 3000

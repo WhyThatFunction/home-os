@@ -595,6 +595,88 @@ arcRunnerResourceProfiles:
     cpu: "7"
     memory: 12Gi
 
+# All seven arcRunnerPools below run on netcup-k8s (see `destinationCluster`
+# on each), so their build caches now live on that same cluster too - these
+# are plain cluster-DNS names resolved *inside* netcup-k8s, and cache traffic
+# never leaves it. Before this cutover, every pool repeated its own
+# `turboApi: https://turbo-cache-api.ai.camer.digital` (a Deployment on the
+# separate home-remote/Hetzner cluster) and the template hardcoded
+# `SCCACHE_ENDPOINT: s3.ssegning.me` (the RustFS in the separate in-cluster/
+# admin@homeos cluster) - meaning every cache read and write on every CI job
+# was a public-internet round trip to a *different* cluster from the one
+# running the job. Collapsing it into one block also fixes the exact
+# "duplicated list goes silently stale" trap CLAUDE.md warns about: with all
+# seven pools now sharing one cache, there is no reason for turboApi to be
+# repeated seven times.
+#
+# Plaintext HTTP (no TLS) is deliberate and safe here: the hop is pod-to-pod
+# inside the cluster CNI to a ClusterIP Service, not a public egress, which is
+# also why SCCACHE_S3_USE_SSL flips to "false" in the template. These names
+# are a contract with `charts/ci-cache` (the RustFS + turbo-cache-server
+# workloads themselves) and the `turbo-cache-netcup` Application in
+# `charts/cd-ci/values.yaml`: the Service names `rustfs-svc`/`turbo-cache` and
+# the bucket names below are fixed there, so renaming one side without the
+# other silently breaks every runner pool.
+arcRunnerCache:
+  # sccache takes host[:port] with no scheme and a separate SSL flag.
+  s3Endpoint: rustfs-svc.ci-cache.svc.cluster.local:9000
+  # The AWS SDKs and anything else S3-aware take a full URL.
+  s3EndpointUrl: http://rustfs-svc.ci-cache.svc.cluster.local:9000
+  s3Region: us-east-1
+  sccacheBucket: sc-cache
+  artifactsBucket: build-artifacts
+  turboApi: http://turbo-cache.ci-cache.svc.cluster.local:3000
+
+  # Self-hosted GitHub Actions cache server (charts/ci-cache), so
+  # `actions/cache` - and therefore setup-node's npm/pnpm cache, Gradle,
+  # pip and pub - stores to the in-cluster RustFS instead of egressing to
+  # GitHub on a job that is already running here.
+  #
+  # MUST end with a trailing slash; the runner treats it as a base URL.
+  #
+  # This only takes effect on a runner image carrying the Runner.Worker.dll
+  # patch: `actions/cache` v4.2+ uses Cache Service v2 via
+  # ACTIONS_RESULTS_URL, and the stock runner OVERWRITES that variable from
+  # the job context, so setting it on the pod is silently ignored. The
+  # vymalo/arc-runners image renames the UTF-16LE string
+  # `ACTIONS_RESULTS_URL` to `ACTIONS_RESULTS_ORL` inside the binary so the
+  # externally-set value survives, and asserts at build time that the patch
+  # applied - because the upstream project's own pre-patched image shipped
+  # it missing from the compiled DLL for three releases
+  # (falcondev-oss/github-actions-cache-server#265), turning the whole
+  # thing into a silent no-op.
+  #
+  # ORDERING: this value and the image patch are independently inert - the
+  # env var does nothing without the patch, and the patch does nothing
+  # without the env var - so the two changes can land in either order. The
+  # cache goes live when both are in place; until then `actions/cache`
+  # keeps talking to GitHub exactly as it does today. The runner image is
+  # consumed via the moving tag `:jdk21-node22` with
+  # `imagePullPolicy: Always`, so no tag bump is needed here once the
+  # patched image is published.
+  ghaCacheUrl: http://gha-cache.ci-cache.svc.cluster.local:3000/
+
+  # Container-registry pull-through caches (charts/ci-cache). Mounted into
+  # every runner pod as /etc/containers/registries.conf so podman/buildah
+  # pull through them by default. Runner pods are ephemeral and
+  # STORAGE_DRIVER=vfs copies every layer rather than sharing it with other
+  # pods, so without a mirror every job re-downloads its base images from
+  # the public internet; and Docker Hub's anonymous pull limit is per
+  # source IP, which the netcup nodes share across up to ~40 concurrent
+  # runners. Measured locally: cold `alpine:3.20` pull 41.2s, warm through
+  # the cache 3.0s.
+  #
+  # These names are a contract with `charts/ci-cache` (same as
+  # s3Endpoint/turboApi above) - renaming one side without the other
+  # silently breaks the mirror for every pool. `insecure = true` is
+  # required because the mirrors are plain-HTTP ClusterIP Services (no TLS
+  # terminates in front of them, same reasoning as SCCACHE_S3_USE_SSL above).
+  registryMirrors:
+    - upstream: docker.io
+      mirror: registry-cache-dockerio.ci-cache.svc.cluster.local:5000
+    - upstream: ghcr.io
+      mirror: registry-cache-ghcr.ci-cache.svc.cluster.local:5000
+
 # Rendered by templates/arc-runner-pools.yaml into 4 plain Applications
 # (gis-sse-runners, gis-lightbridge-ai-runners, vymalo-runners,
 # adorsys-gis-runner-runners) - previously 4 hand-duplicated ~250-line
@@ -602,7 +684,10 @@ arcRunnerResourceProfiles:
 # below actually vary per pool; everything else (image, env, affinity,
 # secrets) is shared boilerplate in the template. Set `resourceProfile: high`
 # on a pool to opt it into arcRunnerResourceProfiles.high (4vCPU/8Gi) instead
-# of the standard-profile default (2vCPU/4Gi).
+# of the standard-profile default (2vCPU/4Gi). The build-cache endpoints
+# (Turborepo + sccache/S3) are NOT set per pool anymore - every pool is on
+# netcup-k8s and shares the single in-cluster cache defined in
+# `arcRunnerCache` above; only `turboTeam` still varies per pool.
 arcRunnerPools:
   - name: vymalo-arc-runners
     releaseName: vymalo-arc-vps
@@ -614,7 +699,6 @@ arcRunnerPools:
     resourceProfile: standard
     maxRunners: 10
     containersSizeLimit: 30Gi
-    turboApi: https://turbo-cache-api.ai.camer.digital
     turboTeam: vymalo
     destinationCluster: netcup-k8s
     namespace: gh-runners-vymalo
@@ -629,7 +713,6 @@ arcRunnerPools:
     resourceProfile: standard
     maxRunners: 10
     containersSizeLimit: 40Gi
-    turboApi: https://turbo-cache-api.ai.camer.digital
     turboTeam: vaam-store
     destinationCluster: netcup-k8s
     namespace: gh-runners-vaam-store
@@ -644,7 +727,6 @@ arcRunnerPools:
     resourceProfile: medium
     maxRunners: 6
     containersSizeLimit: 60Gi
-    turboApi: https://turbo-cache-api.ai.camer.digital
     turboTeam: vaam-store
     destinationCluster: netcup-k8s
     namespace: gh-runners-vaam-store-medium
@@ -659,7 +741,6 @@ arcRunnerPools:
     resourceProfile: high
     maxRunners: 4
     containersSizeLimit: 80Gi
-    turboApi: https://turbo-cache-api.ai.camer.digital
     turboTeam: vaam-store
     destinationCluster: netcup-k8s
     namespace: gh-runners-vaam-store-high
@@ -676,7 +757,6 @@ arcRunnerPools:
     resourceProfile: standard
     maxRunners: 10
     containersSizeLimit: 40Gi
-    turboApi: https://turbo-cache-api.ai.camer.digital
     turboTeam: vaam-apps
     destinationCluster: netcup-k8s
     namespace: gh-runners-vaam-apps
@@ -691,7 +771,6 @@ arcRunnerPools:
     resourceProfile: medium
     maxRunners: 6
     containersSizeLimit: 60Gi
-    turboApi: https://turbo-cache-api.ai.camer.digital
     turboTeam: vaam-apps
     destinationCluster: netcup-k8s
     namespace: gh-runners-vaam-apps-medium
@@ -735,7 +814,6 @@ arcRunnerPools:
       memory: 6Gi
     maxRunners: 4
     containersSizeLimit: 80Gi
-    turboApi: https://turbo-cache-api.ai.camer.digital
     turboTeam: vaam-apps
     destinationCluster: netcup-k8s
     namespace: gh-runners-vaam-apps-high

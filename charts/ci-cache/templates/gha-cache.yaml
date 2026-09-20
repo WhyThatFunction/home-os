@@ -1,0 +1,209 @@
+{{- if .Values.ghaCache.enabled }}
+{{- $ghaCache := .Values.ghaCache }}
+{{- $dbDir := dir $ghaCache.database.path }}
+---
+# This server's sqlite index of what it has written to the `gha-cache`
+# bucket. Unlike the registry-cache PVCs (100% reconstructible from the
+# upstream registry on a cold start), this one is NOT freely
+# reconstructible: losing it orphans every object already sitting in the
+# bucket, which the server can then no longer find or clean up itself -
+# `ORPHANED_STORAGE_GRACE_PERIOD_HOURS` eventually reaps those, but only
+# after they've been invisible to normal cache lookups for that long. Worth
+# keeping, hence `resource-policy: keep` / `Prune=false` like the
+# rootSecret-backed resources elsewhere in this chart.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gha-cache-db
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: gha-cache
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+  annotations:
+    helm.sh/resource-policy: keep
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ $ghaCache.database.storageSize | quote }}
+  storageClassName: {{ $ghaCache.database.storageClass | quote }}
+  volumeMode: Filesystem
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gha-cache
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: gha-cache
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+spec:
+  replicas: 1
+  # The sqlite index lives on an RWO claim - two replicas would mean two
+  # writers fighting over the same database file. Recreate tears the old pod
+  # down before starting the new one, so there is never a moment with both
+  # attached. This means a rollout has a short window where the cache is
+  # unreachable, which is acceptable here specifically because
+  # `actions/cache` treats a failed/unreachable cache call as a plain miss,
+  # not a job failure - a workflow just rebuilds that one step instead of
+  # restoring from cache.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gha-cache
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: gha-cache
+        # Required for the shared ci-cache NetworkPolicy, which selects on
+        # this label alone (see networkPolicy.ports in values.yaml) - omit
+        # it and this pod renders and schedules fine but is silently
+        # unreachable from every runner pod, exactly like the registry-cache
+        # trap documented there.
+        app.kubernetes.io/instance: {{ .Release.Name | quote }}
+        app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        # Verified by running the image directly: it ships with NO `USER`
+        # directive and `id` inside the container reports uid=0(root) by
+        # default. The base image does create a uid/gid 1000 `node` user,
+        # and /app is world-readable (root:root, 644/755) so that user can
+        # read the app code fine - confirmed by actually starting the
+        # server with `--user 1000:1000` (it got past reading its own
+        # source and into DB/storage initialization with no permission
+        # errors). fsGroup matches so the PVC (which starts root-owned) is
+        # writable by uid 1000 too.
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: gha-cache
+          image: {{ printf "%s:%s" $ghaCache.image.repository $ghaCache.image.tag | quote }}
+          imagePullPolicy: {{ $ghaCache.image.pullPolicy }}
+          env:
+            # Must resolve from inside a runner pod in a *different*
+            # namespace (gh-runners-*), so this has to be the full
+            # cluster-local FQDN, not just the Service name - a bare
+            # `http://gha-cache:3000` only resolves for pods in this same
+            # namespace.
+            - name: API_BASE_URL
+              value: {{ printf "http://gha-cache.%s.svc.cluster.local:%d" .Release.Namespace ($ghaCache.port | int) | quote }}
+            - name: STORAGE_DRIVER
+              value: s3
+            - name: STORAGE_S3_BUCKET
+              value: {{ $ghaCache.bucket | quote }}
+            - name: AWS_REGION
+              # Same region RustFS itself is configured with
+              # (rustfs.config.rustfs.region above) - RustFS ignores the
+              # value functionally but the AWS SDK requires one to be set.
+              value: us-east-1
+            - name: AWS_ENDPOINT_URL
+              # Same in-cluster RustFS Service the provisioning Job targets
+              # (provisioning.endpoint above), just addressed by its full
+              # cluster-local FQDN since this pod's client isn't restricted
+              # to same-namespace short names.
+              value: {{ printf "http://rustfs-svc.%s.svc.cluster.local:9000" .Release.Namespace | quote }}
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.rootSecret.name | quote }}
+                  key: root-user
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.rootSecret.name | quote }}
+                  key: root-password
+            - name: DB_DRIVER
+              value: sqlite
+            - name: DB_SQLITE_PATH
+              value: {{ $ghaCache.database.path | quote }}
+            - name: CACHE_CLEANUP_OLDER_THAN_DAYS
+              value: {{ $ghaCache.cleanupOlderThanDays | quote }}
+            # Deliberately NOT set: SKIP_TOKEN_VALIDATION (defaults false)
+            # and ENABLE_DIRECT_DOWNLOADS (defaults false). The first is an
+            # auth off-switch that has no reason to exist in a values file
+            # even set to "false". The second was verified NOT to offload
+            # downloads to RustFS for the s3 driver in 9.8.0 (see the
+            # resources comment in values.yaml) - leaving it unset avoids
+            # anyone flipping it later expecting a speedup it doesn't give.
+          ports:
+            - name: http
+              containerPort: {{ $ghaCache.port }}
+              protocol: TCP
+          # Every meaningful HTTP route on this server validates the
+          # caller's real GitHub Actions JWT (confirmed: a request with a
+          # token missing the `ac`/`repository_id`/`scp` claims gets a
+          # specific 401, not a generic one) - there is no unauthenticated
+          # health endpoint to probe. A tcpSocket probe is the honest signal
+          # here: it confirms the Node process is up and listening without
+          # needing a credential the kubelet doesn't have. This mirrors why
+          # the vymalo turbo-cache chart does the same for the same reason.
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            {{- toYaml $ghaCache.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            # Not set to true: this is a Node/nitro app and nothing here
+            # confirmed which paths under / it might want to write besides
+            # the sqlite DB (which already gets its own writable volume
+            # below). Without verifying every temp-file path Node/nitro
+            # might touch, a read-only root risks a confusing runtime
+            # failure for no verified benefit - unlike registry-cache, where
+            # the one write path (/tmp) was known and given its own emptyDir.
+            readOnlyRootFilesystem: false
+          volumeMounts:
+            # Mounted at the PARENT directory of DB_SQLITE_PATH, not the
+            # file itself, so sqlite's `-wal`/`-shm` sidecar files (created
+            # next to the main db file, not inside it) land on the same
+            # persistent volume instead of the ephemeral container
+            # filesystem - losing those on a restart risks the WAL and the
+            # base file disagreeing.
+            - name: db
+              mountPath: {{ $dbDir }}
+      volumes:
+        - name: db
+          persistentVolumeClaim:
+            claimName: gha-cache-db
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gha-cache
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: gha-cache
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: gha-cache
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+  ports:
+    - name: http
+      port: {{ $ghaCache.port }}
+      targetPort: http
+      protocol: TCP
+{{- end }}

@@ -1,0 +1,29 @@
+{{- with .Values.provisioning }}
+{{- if .enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ci-cache-provisioning
+  namespace: {{ $.Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: rustfs-provisioning
+    app.kubernetes.io/instance: {{ $.Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ $.Release.Service | quote }}
+data:
+  {{- range .buckets }}
+  {{- if .expiryDays }}
+  lifecycle-{{ .name }}.json: |
+    {{- /*
+    `rc bucket lifecycle rule import` replaces the bucket's whole lifecycle
+    configuration, so a stable rule id makes the operation declarative and
+    idempotent — re-running the Job neither duplicates rules nor drifts
+    (verified locally against rustfs 1.0.0-rc.5: `rule add` generates a
+    fresh random id each run and would stack duplicates; `rule import`
+    does not). Shape verified against rustfs rc v0.1.34: `rule export`
+    emits lowercase keys, and `rule import` accepts them.
+    */}}
+    {{ dict "rules" (list (dict "id" "ci-cache-expiry" "status" "Enabled" "expiration" (dict "days" .expiryDays))) | toJson | nindent 4 }}
+  {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,166 @@
+{{- if .Values.registryCache.enabled }}
+{{- $root := . }}
+{{- range .Values.registryCache.upstreams }}
+---
+# The cache's own data volume. Unlike charts/s3's PVC (which protects
+# irreplaceable NAS-migrated data), everything here is 100% reconstructible
+# from the upstream registry on a cold start - these two annotations exist
+# only to stop an accidental `helm uninstall`/resync from nuking a warm
+# 50Gi cache and forcing every runner back to cold pulls, not to protect
+# data that can't be regenerated.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: registry-cache-{{ .name }}
+  namespace: {{ $root.Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: registry-cache
+    app.kubernetes.io/component: {{ .name }}
+    app.kubernetes.io/instance: {{ $root.Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ $root.Release.Service | quote }}
+  annotations:
+    helm.sh/resource-policy: keep
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ $root.Values.registryCache.storageSize | quote }}
+  storageClassName: {{ $root.Values.registryCache.storageClass | quote }}
+  volumeMode: Filesystem
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registry-cache-{{ .name }}
+  namespace: {{ $root.Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: registry-cache
+    app.kubernetes.io/component: {{ .name }}
+    app.kubernetes.io/instance: {{ $root.Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ $root.Release.Service | quote }}
+spec:
+  replicas: 1
+  # The data volume is RWO - two replicas would mean two writers fighting
+  # over the same filesystem, and a rolling update would briefly try to run
+  # both old and new pods at once. Recreate tears the old pod down first.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: registry-cache
+      app.kubernetes.io/component: {{ .name }}
+      app.kubernetes.io/instance: {{ $root.Release.Name | quote }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: registry-cache
+        app.kubernetes.io/component: {{ .name }}
+        # Required for the shared ci-cache NetworkPolicy above, which
+        # selects on this label alone - omit it and this pod is unreachable
+        # even though it looks healthy.
+        app.kubernetes.io/instance: {{ $root.Release.Name | quote }}
+        app.kubernetes.io/managed-by: {{ $root.Release.Service | quote }}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        # The upstream `registry` image's filesystem (including
+        # /var/lib/registry) is owned by uid/gid 1000, and it does not
+        # relax that at startup - fsGroup 1000 is what makes the mounted
+        # PVC (which starts root-owned) writable by that uid.
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: registry
+          image: {{ printf "%s:%s" $root.Values.registryCache.image.repository $root.Values.registryCache.image.tag | quote }}
+          imagePullPolicy: {{ $root.Values.registryCache.image.pullPolicy }}
+          env:
+            - name: REGISTRY_PROXY_REMOTEURL
+              value: {{ .remoteUrl | quote }}
+            - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
+              value: /var/lib/registry
+            - name: REGISTRY_HTTP_ADDR
+              value: {{ printf "0.0.0.0:%d" ($root.Values.registryCache.port | int) | quote }}
+            - name: REGISTRY_LOG_LEVEL
+              value: info
+            # Proxy-mode registries store nothing authoritative of their
+            # own (everything is a cache of the upstream), so the storage
+            # driver health check - meant to catch a *primary* registry
+            # losing its backing store - has no useful signal here and only
+            # adds a way for the pod to flap unhealthy.
+            - name: REGISTRY_HEALTH_STORAGEDRIVER_ENABLED
+              value: "false"
+          ports:
+            - name: registry
+              containerPort: {{ $root.Values.registryCache.port }}
+              protocol: TCP
+          # `/v2/` is the distribution API base route and returns a bare 200
+          # with an empty JSON body on an unauthenticated proxy registry
+          # (no auth is configured on these caches - see the values.yaml
+          # comment on why), which is exactly what makes it a valid,
+          # credential-free probe target.
+          readinessProbe:
+            httpGet:
+              path: /v2/
+              port: registry
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /v2/
+              port: registry
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            {{- toYaml $root.Values.registryCache.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            # `registry` writes its own temp files under /tmp during layer
+            # downloads before they're committed into
+            # /var/lib/registry/docker - a read-only root would fail those
+            # writes, so /tmp gets its own writable emptyDir instead of
+            # loosening this for the whole filesystem.
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/registry
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: registry-cache-{{ .name }}
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: registry-cache-{{ .name }}
+  namespace: {{ $root.Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: registry-cache
+    app.kubernetes.io/component: {{ .name }}
+    app.kubernetes.io/instance: {{ $root.Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ $root.Release.Service | quote }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: registry-cache
+    app.kubernetes.io/component: {{ .name }}
+    app.kubernetes.io/instance: {{ $root.Release.Name | quote }}
+  ports:
+    - name: registry
+      port: {{ $root.Values.registryCache.port }}
+      targetPort: registry
+      protocol: TCP
+{{- end }}
+{{- end }}
