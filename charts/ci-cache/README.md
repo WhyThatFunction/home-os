@@ -64,6 +64,64 @@ provisioned user would add ceremony without adding isolation. See the
 comment above `rootSecret` in `values.yaml` for how to split them later if
 that trade-off ever needs revisiting.
 
+## Registry pull-through caches
+
+Runner pods are ephemeral (one per job): podman/buildah's graphroot is wiped
+with the pod, and `STORAGE_DRIVER=vfs` copies every layer in full instead of
+sharing it, so every job re-downloads its base images from upstream. This
+chart runs two `registry:3.1.1` instances in proxy (pull-through cache) mode
+to remove that cost:
+
+| Service | In-cluster address | Upstream |
+| --- | --- | --- |
+| `registry-cache-dockerio` | `http://registry-cache-dockerio.ci-cache.svc.cluster.local:5000` | `https://registry-1.docker.io` |
+| `registry-cache-ghcr` | `http://registry-cache-ghcr.ci-cache.svc.cluster.local:5000` | `https://ghcr.io` |
+
+Measured locally: a cold pull of `alpine:3.20` through `registry:2` in proxy
+mode took 41.2s; the same pull warm from the cache took 3.0s (~14x). Docker
+Hub's anonymous pull limit is enforced per source IP, and netcup's nodes
+share egress and can burst to ~40 concurrent runners, so an uncached burst
+risks HTTP 429s surfacing mid-build as a confusing, unrelated-looking
+failure — the cache also removes that risk.
+
+**Why two Deployments instead of one:** `distribution`'s proxy mode accepts
+exactly one `proxy.remoteurl` per instance — there's no multi-upstream proxy
+mode to configure — so each upstream gets its own
+Deployment/Service/PVC (`registryCache.upstreams` in `values.yaml`). A side
+effect: each mirror serves the exact same repository paths as its own
+upstream, so there's no cross-registry naming to reconcile.
+
+**No credentials are configured on these, on purpose.** A pull-through cache
+holding an upstream credential would let any pod in the cluster pull that
+upstream's *private* images without ever presenting the real pull secret.
+Left anonymous, public images cache normally, and a miss on a private image
+falls through to the primary upstream (this is how `containers/image`
+resolves a mirror miss) — private pulls still work, they're just never
+cached. That fallback-on-miss is what makes "no credentials" safe here, not
+a missing feature.
+
+**NetworkPolicy trap:** the pre-existing `ci-cache-rustfs` NetworkPolicy
+selects `app.kubernetes.io/instance: ci-cache`, which every pod in this
+chart carries — including the registry caches. The allowed ingress ports
+are now values-driven (`networkPolicy.ports: [9000, 9001, 5000]`) precisely
+because a port missing from that list is a pod that renders and schedules
+fine but is silently unreachable from every runner pod. Adding a workload to
+this chart means adding its port to that list.
+
+**What this chart does NOT wire up:**
+
+- Pointing runner containers at these mirrors (an `/etc/containers/registries.conf`
+  with `[[registry.mirror]]` entries for `docker.io` → `registry-cache-dockerio`
+  and `ghcr.io` → `registry-cache-ghcr`) is applied by
+  `charts/cd/templates/arc-runner-pools.yaml`, not by this chart. The two
+  upstream names (`dockerio`, `ghcr`) in `values.yaml` are a contract with
+  that file — rename one here and the other side must change too.
+- Talos node-level pulls (`kubelet`/containerd pulling node images, e.g. for
+  DaemonSets) are a **separate, currently unwired** concern. Routing those
+  through these caches needs `machine.registries.mirrors` in the Talos
+  machine config (`cluster/`), which this chart cannot reach — it only
+  affects pods, not the node's own containerd.
+
 ## Validating a change
 
 ```bash

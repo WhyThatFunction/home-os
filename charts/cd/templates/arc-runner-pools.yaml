@@ -151,6 +151,17 @@ spec:
                     # outputs without hardcoding one; created by charts/ci-cache.
                     - name: CI_ARTIFACTS_BUCKET
                       value: {{ $.Values.arcRunnerCache.artifactsBucket }}
+                    # Redirects `actions/cache` (and setup-node's npm/pnpm
+                    # cache, Gradle, pip, pub) at the in-cluster cache
+                    # server instead of GitHub. Inert unless the runner
+                    # image carries the Runner.Worker.dll patch - the stock
+                    # runner overwrites this variable from the job context,
+                    # so an unpatched image silently ignores it and keeps
+                    # caching to GitHub. See arcRunnerCache.ghaCacheUrl in
+                    # values.yaml for the full story and why that failure
+                    # mode is silent.
+                    - name: ACTIONS_RESULTS_URL
+                      value: {{ $.Values.arcRunnerCache.ghaCacheUrl | quote }}
                   securityContext:
                     runAsUser: 1001
                     runAsGroup: 1001
@@ -178,6 +189,16 @@ spec:
                     # rootless graphroot for buildah/podman image storage
                     - name: containers
                       mountPath: /home/runner/.local/share/containers
+                    # /etc/containers/registries.conf already EXISTS in the
+                    # ghcr.io/actions/actions-runner base image (verified:
+                    # 3799 bytes) - mount only this one file via subPath
+                    # instead of the whole /etc/containers dir, which would
+                    # shadow storage.conf/containers.conf that the image
+                    # writes itself and that podman/buildah need.
+                    - name: containers-registries-conf
+                      mountPath: /etc/containers/registries.conf
+                      subPath: registries.conf
+                      readOnly: true
               volumes:
                 - name: work
                   emptyDir: { }
@@ -185,6 +206,9 @@ spec:
                   emptyDir: { }
                 - name: containers
                   emptyDir: { sizeLimit: {{ .containersSizeLimit }} }
+                - name: containers-registries-conf
+                  configMap:
+                    name: {{ .releaseName }}-registries-conf
     {{- end }}
 
     - repoURL: https://bjw-s-labs.github.io/helm-charts
@@ -269,6 +293,43 @@ spec:
                       remoteRef:
                         key: "prod/meta/test-app"
                         property: github_email
+
+            # Podman/buildah pull-through mirror config, replacing the
+            # registries.conf that already EXISTS inside the
+            # ghcr.io/actions/actions-runner base image (3799 bytes) via the
+            # subPath volumeMount above, so every image pull on the runner
+            # goes through the caches in charts/ci-cache by default - no
+            # runner-image change, and nothing for a workflow to opt into.
+            # short-name-mode = "permissive" is set explicitly because the
+            # enforcing default prompts interactively for an unqualified
+            # image ref (e.g. `alpine:3.20`), which just hangs a CI job
+            # instead of failing or resolving one. A mirror miss (cache down,
+            # or an image the mirror doesn't have) falls back automatically
+            # to the upstream `location` below, so this degrades to today's
+            # direct-pull behaviour rather than breaking builds.
+            # forceRename (not `name`, per CLAUDE.md's bjw-s rawResource
+            # gotcha) gives this ConfigMap a predictable name so the volume
+            # below can reference it directly.
+            containers-registries-conf:
+              enabled: true
+              forceRename: {{ .releaseName }}-registries-conf
+              apiVersion: v1
+              kind: ConfigMap
+              spec:
+                data:
+                  registries.conf: |
+                    unqualified-search-registries = ["docker.io"]
+                    short-name-mode = "permissive"
+                    {{- range $.Values.arcRunnerCache.registryMirrors }}
+
+                    [[registry]]
+                    prefix = "{{ .upstream }}"
+                    location = "{{ .upstream }}"
+
+                      [[registry.mirror]]
+                      location = "{{ .mirror }}"
+                      insecure = true
+                    {{- end }}
 
     {{- if .priorityClass }}
     - repoURL: https://bjw-s-labs.github.io/helm-charts
