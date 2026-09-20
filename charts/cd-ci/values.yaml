@@ -84,3 +84,109 @@ applications:
         prune: true
         selfHeal: true
 
+  # CI-only object store: keeps ARC runner cache traffic (Turborepo, sccache,
+  # gha-cache, build artifacts) inside netcup-k8s instead of leaving the
+  # cluster over the public internet. This is NOT the home object store
+  # (charts/s3, in-cluster, publicly routed at s3.ssegning.me) and
+  # deliberately shares nothing with it. Lives in the arc-runner project
+  # because its only consumers are the ARC runner pools and turbo-cache-netcup
+  # below.
+  - name: ci-cache
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: arc-runner
+    source:
+      repoURL: https://github.com/whythatfunction/home-os
+      targetRevision: HEAD
+      path: charts/ci-cache
+      helm:
+        # The upstream rustfs chart ships a Helm test Pod that is not part of
+        # the runtime and does not satisfy this cluster's Pod Security profile
+        # (same reason charts/cd-storage sets this on the `s3` Application).
+        skipTests: true
+    destination:
+      name: netcup-k8s
+      namespace: ci-cache
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+
+  # Turborepo remote cache server running on netcup itself, talking to
+  # ci-cache above over a short in-cluster hop instead of the public
+  # turbo-cache-api.ai.camer.digital endpoint on home-remote.
+  #   - `releaseName: turbo-cache` is pinned so the chart's Service renders as
+  #     the bare name `turbo-cache`, giving runners the stable address
+  #     http://turbo-cache.ci-cache.svc.cluster.local:3000 — charts/cd/values.yaml's
+  #     `arcRunnerCache.turboApi` depends on exactly this name.
+  #   - Shares the same namespace as ci-cache so the two talk over a short
+  #     in-cluster hop and one NetworkPolicy story covers the pair.
+  #   - Unlike the `turbo-cache` Application above (which targets home-remote
+  #     and pulls a values file from the vymalo-shop repo via a second
+  #     `sources` ref), this one carries an inline `valuesObject`: its
+  #     configuration is netcup-specific (in-cluster S3 endpoint, this
+  #     cluster's ClusterSecretStore) and has nothing to do with the
+  #     vymalo-shop deploy values.
+  #   - `storeKind: ClusterSecretStore` + `storeName: ssegning-aws` because
+  #     netcup's external-secrets exposes a cluster-scoped `ssegning-aws`
+  #     store (the chart's own default is a namespaced `SecretStore` named
+  #     `vymalo-aws`, which does not exist on this cluster), and
+  #     `secretStore.enabled: false` because we are not creating a namespaced
+  #     store.
+  #   - `gateway`/`ingress` stay off on purpose: every consumer is
+  #     same-cluster, which is the whole point of this migration. Turning
+  #     either on would put the cache back on the public internet.
+  #   - `TURBO_TOKEN` is read from the same `prod/artifact-cache/env` object
+  #     the runners read theirs from, so the bearer token the runner presents
+  #     and the one the server validates cannot drift.
+  - name: turbo-cache-netcup
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: arc-runner
+    source:
+      repoURL: ghcr.io/vymalo/charts
+      chart: turbo-cache
+      targetRevision: 0.1.*
+      helm:
+        releaseName: turbo-cache
+        valuesObject:
+          config:
+            NODE_ENV: production
+            HOST: "0.0.0.0"
+            PORT: "3000"
+            STORAGE_PROVIDER: s3
+            STORAGE_PATH: turbo-cache
+            S3_REGION: us-east-1
+            S3_ENDPOINT: http://rustfs-svc.ci-cache.svc.cluster.local:9000
+            LOG_LEVEL: info
+          externalSecret:
+            enabled: true
+            storeName: ssegning-aws
+            storeKind: ClusterSecretStore
+            remoteKey: prod/artifact-cache/env
+            secretName: turbo-cache-env
+            refreshInterval: 1h
+            keys:
+              TURBO_TOKEN: turbo_token
+              S3_ACCESS_KEY: object_storage_access_key
+              S3_SECRET_KEY: object_storage_secret_key
+          secretStore:
+            enabled: false
+          gateway:
+            enabled: false
+          ingress:
+            enabled: false
+    destination:
+      name: netcup-k8s
+      namespace: ci-cache
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      automated:
+        prune: true
+        selfHeal: true
+

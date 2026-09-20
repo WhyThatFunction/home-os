@@ -1,0 +1,158 @@
+rustfs:
+  # Renders the Service as `rustfs-svc`, matching charts/s3's naming so the
+  # in-cluster endpoint stays predictable across both RustFS deployments.
+  fullnameOverride: rustfs
+  replicaCount: 1
+
+  image:
+    rustfs:
+      repository: rustfs/rustfs
+      pullPolicy: IfNotPresent
+      tag: "1.0.0-rc.5@sha256:c36b3efea3d1e503f1a2581abd0e7611e0e5820dd30e1850a52384b3fc52bda4"
+    initImage:
+      repository: busybox
+      pullPolicy: IfNotPresent
+      tag: "1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0"
+
+  mode:
+    standalone:
+      enabled: true
+      strategy:
+        # Never mount the RWO claim from two object-storage processes.
+        type: Recreate
+      existingClaim:
+        # Unlike charts/s3 (which reuses an existing NAS-backed claim), this
+        # store gets a fresh Longhorn volume the chart provisions itself.
+        dataClaim: ""
+        logsClaim: ""
+    distributed:
+      enabled: false
+
+  secret:
+    existingSecret: ci-cache-root
+  extraEnv:
+    - name: RUSTFS_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: ci-cache-root
+          key: root-user
+    - name: RUSTFS_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: ci-cache-root
+          key: root-password
+    - name: RUSTFS_VOLUMES
+      value: /data
+
+  config:
+    rustfs:
+      address: ":9000"
+      console_enable: "true"
+      console_address: ":9001"
+      log_level: info
+      region: us-east-1
+      # Keep logs on stdout; no second persistent log volume is needed.
+      obs_log_directory: ""
+      obs_environment: production
+      # Unlike charts/s3 (an NFS-backed NAS share needing the high-latency
+      # profile), this volume is a real Longhorn block device, so the
+      # default timeout profile applies. Do NOT set high_latency here.
+      timeout_profile: ""
+
+  # This is a freshly provisioned volume with no pre-existing file ownership
+  # to preserve, so unlike charts/s3 (pinned to 1001 to match Bitnami MinIO's
+  # legacy NFS-owned files) there is no reason not to use the upstream
+  # chart's own default uid/gid/fsGroup of 10001.
+  podSecurityContext:
+    fsGroup: 10001
+    runAsUser: 10001
+    runAsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    capabilities:
+      drop: [ALL]
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+
+  service:
+    type: ClusterIP
+    endpoint:
+      port: 9000
+    console:
+      port: 9001
+
+  # This store is deliberately cluster-internal only. Every consumer (the
+  # ARC runner pods and turbo-cache) is on this same cluster, which is the
+  # entire point: keeping cache traffic off the public internet. netcup also
+  # runs no cert-manager ClusterIssuer for these hosts.
+  ingress:
+    enabled: false
+
+  serviceAccount:
+    create: true
+    automount: false
+
+  enableServiceLinks: false
+
+  storageclass:
+    name: longhorn
+    # netcup's default StorageClass is `longhorn` with numberOfReplicas=2, so
+    # 200Gi consumes ~400Gi of the ~1.8Ti cluster raw capacity.
+    dataStorageSize: 200Gi
+    logStorageSize: 1Gi
+
+# This instance's RustFS ROOT credential is deliberately the same
+# `artifact-cache` identity the ARC runners and turbo-cache already hold,
+# rather than a separate root plus per-user policies the way charts/s3 does
+# it. That is a conscious trade-off, not an oversight:
+#   (a) this store holds nothing but disposable CI caches;
+#   (b) it has no ingress and is only reachable from inside netcup-k8s;
+#   (c) every consumer would end up with s3:* on every bucket here anyway,
+#       so a separate provisioned user would add ceremony without adding
+#       any real isolation.
+# To split them later: add a dedicated pair of properties to the AWS
+# Secrets Manager object at `prod/artifact-cache/env` and repoint
+# `accessKeyProperty`/`secretKeyProperty` below — no template change needed.
+rootSecret:
+  enabled: true
+  name: ci-cache-root
+  store:
+    name: ssegning-aws
+    kind: ClusterSecretStore
+  refreshInterval: 1h
+  remoteKey: prod/artifact-cache/env
+  accessKeyProperty: object_storage_access_key
+  secretKeyProperty: object_storage_secret_key
+
+provisioning:
+  enabled: true
+  image:
+    repository: rustfs/rc
+    tag: "v0.1.34@sha256:fad686174251b22de1e7b11438b3389932c93d2043c4eec981e1168c59edf92f"
+    pullPolicy: IfNotPresent
+  endpoint: http://rustfs-svc:9000
+  # `expiryDays` renders an S3 lifecycle expiration rule (a single rule with
+  # the fixed id `ci-cache-expiry`, imported declaratively) so caches cannot
+  # grow without bound on a fixed-size Longhorn volume. A bucket entry with
+  # no `expiryDays` gets no rule.
+  buckets:
+    # The turborepo remote-cache server's backing store (npm/Turbo task
+    # outputs).
+    - name: turbo-cache
+      expiryDays: 30
+    # sccache's backing store (Rust compilation cache).
+    - name: sc-cache
+      expiryDays: 30
+    # General-purpose bucket for jobs that cache to S3 directly.
+    - name: gha-cache
+      expiryDays: 14
+    # Job build outputs.
+    - name: build-artifacts
+      expiryDays: 30
+
+networkPolicy:
+  enabled: true

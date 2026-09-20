@@ -94,15 +94,21 @@ spec:
                     - name: RUNNER_TOOL_CACHE
                       value: /opt/hostedtoolcache
                     - name: SCCACHE_BUCKET
-                      value: sc-cache
+                      value: {{ $.Values.arcRunnerCache.sccacheBucket }}
                     - name: SCCACHE_REGION
                       value: auto
+                    # These now resolve to ClusterIP Services in the ci-cache
+                    # namespace on this same netcup-k8s cluster (see
+                    # arcRunnerCache in values.yaml) - plaintext is a pod-to-
+                    # pod hop inside the CNI, not a public egress, and SSL is
+                    # off because nothing terminates TLS in front of these
+                    # Services on purpose.
                     - name: SCCACHE_S3_USE_SSL
-                      value: 'true'
+                      value: "false"
                     - name: SCCACHE_ENDPOINT
-                      value: s3.ssegning.me
+                      value: {{ $.Values.arcRunnerCache.s3Endpoint }}
                     - name: TURBO_API
-                      value: {{ .turboApi }}
+                      value: {{ $.Values.arcRunnerCache.turboApi }}
                     - name: TURBO_TEAM
                       value: {{ .turboTeam }}
                     - name: TURBO_TOKEN
@@ -111,10 +117,40 @@ spec:
                       valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: access-key-id } }
                     - name: SCCACHE_S3_SECRET_ACCESS_KEY
                       valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: secret-access-key } }
+                    # Credentials AWS_ENDPOINT_URL[_S3] below authenticate
+                    # with - the same prod/artifact-cache/env identity the
+                    # turbo-cache server itself uses.
                     - name: AWS_ACCESS_KEY_ID
                       valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: access-key-id } }
                     - name: AWS_SECRET_ACCESS_KEY
                       valueFrom: { secretKeyRef: { name: arc-runner-secrets, key: secret-access-key } }
+                    - name: AWS_REGION
+                      value: {{ $.Values.arcRunnerCache.s3Region }}
+                    - name: AWS_DEFAULT_REGION
+                      value: {{ $.Values.arcRunnerCache.s3Region }}
+                    # Makes an *unconfigured* S3 client (a job that just runs
+                    # `aws s3 cp` or uses an SDK with no explicit endpoint)
+                    # default to the in-cluster RustFS instead of AWS. Both
+                    # names are set because some SDKs read the service-
+                    # specific AWS_ENDPOINT_URL_S3 first and older tooling
+                    # only knows the generic AWS_ENDPOINT_URL.
+                    - name: AWS_ENDPOINT_URL
+                      value: {{ $.Values.arcRunnerCache.s3EndpointUrl }}
+                    - name: AWS_ENDPOINT_URL_S3
+                      value: {{ $.Values.arcRunnerCache.s3EndpointUrl }}
+                    # RustFS needs this: newer AWS SDKs default to sending/
+                    # validating CRC32 checksum trailers that it rejects.
+                    # CLAUDE.md already records `when_required` as a verified
+                    # requirement for talking to this RustFS - it's set the
+                    # same way on the OpenObserve awss3 exporter.
+                    - name: AWS_REQUEST_CHECKSUM_CALCULATION
+                      value: when_required
+                    - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+                      value: when_required
+                    # A documented default bucket name jobs can use for build
+                    # outputs without hardcoding one; created by charts/ci-cache.
+                    - name: CI_ARTIFACTS_BUCKET
+                      value: {{ $.Values.arcRunnerCache.artifactsBucket }}
                   securityContext:
                     runAsUser: 1001
                     runAsGroup: 1001
