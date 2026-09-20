@@ -37,6 +37,12 @@ kind: Deployment
 metadata:
   name: gha-cache
   namespace: {{ .Release.Namespace | quote }}
+  annotations:
+    # Wave 2: strictly after the wave-1 provisioning hook creates this
+    # server's bucket. Unlike RustFS or the registry caches, this server
+    # validates its bucket at startup and exits if it is missing, so it
+    # cannot be brought up in the same wave as the store it depends on.
+    argocd.argoproj.io/sync-wave: "2"
   labels:
     app.kubernetes.io/name: gha-cache
     app.kubernetes.io/instance: {{ .Release.Name | quote }}
