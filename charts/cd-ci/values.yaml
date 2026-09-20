@@ -1,33 +1,15 @@
 applications:
-  - name: arc-runners
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: arc-runner
-    source:
-      repoURL: "oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller"
-      targetRevision: "0.*"
-      chart: "."
-      helm:
-        releaseName: arc
-        valuesObject:
-          resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              cpu: 500m
-              memory: 256Mi
-    destination:
-      name: home-remote
-      namespace: arc-systems
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-        - ServerSideApply=true
-      automated:
-        prune: true
-        selfHeal: true
-
+  # The ARC controller. Only ONE remains, on netcup-k8s: the former
+  # `arc-runners` Application on home-remote was retired once every runner
+  # pool had moved to netcup, leaving a controller that had reconciled zero
+  # AutoscalingRunnerSets for months.
+  #
+  # It keeps the `-netcup` suffix rather than reclaiming the bare name
+  # `arc-runners`. Renaming it in the same change that removes the other one
+  # would mutate the live Application's destination instead of deleting it,
+  # and ArgoCD does not prune resources in an Application's PREVIOUS
+  # destination - the home-remote controller would be orphaned rather than
+  # removed. Same reasoning as turbo-cache-netcup below.
   - name: arc-runners-netcup
     finalizers:
       - resources-finalizer.argocd.argoproj.io
