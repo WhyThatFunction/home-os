@@ -130,12 +130,19 @@ spec:
                       value: {{ $.Values.arcRunnerCache.s3Region }}
                     # Makes an *unconfigured* S3 client (a job that just runs
                     # `aws s3 cp` or uses an SDK with no explicit endpoint)
-                    # default to the in-cluster RustFS instead of AWS. Both
-                    # names are set because some SDKs read the service-
-                    # specific AWS_ENDPOINT_URL_S3 first and older tooling
-                    # only knows the generic AWS_ENDPOINT_URL.
-                    - name: AWS_ENDPOINT_URL
-                      value: {{ $.Values.arcRunnerCache.s3EndpointUrl }}
+                    # default to the in-cluster RustFS instead of AWS.
+                    #
+                    # ONLY the service-specific name. The generic
+                    # AWS_ENDPOINT_URL is service-AGNOSTIC: it redirects
+                    # every AWS client - sts, ecr, dynamodb, sqs - at this
+                    # address, so an unrelated `aws ecr get-login-password`
+                    # in some job would stop reaching AWS and instead get an
+                    # opaque S3 XML error back from RustFS. An earlier
+                    # revision set both and justified it as covering "older
+                    # tooling"; that was wrong - the generic and the
+                    # service-specific variables shipped in the same SDK
+                    # release, so there is no tool that reads one and not the
+                    # other, and nothing is lost by omitting the generic one.
                     - name: AWS_ENDPOINT_URL_S3
                       value: {{ $.Values.arcRunnerCache.s3EndpointUrl }}
                     # RustFS needs this: newer AWS SDKs default to sending/

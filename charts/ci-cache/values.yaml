@@ -300,15 +300,23 @@ ghaCache:
 networkPolicy:
   enabled: true
   # Every pod this chart owns carries app.kubernetes.io/instance=<release>,
-  # so this one policy covers RustFS (9000/9001), the registry caches
-  # (5000), AND the gha-cache server (3000). A port missing from this list
-  # is a pod nobody can reach - adding a workload to this chart means adding
-  # its port here. Verified trap: the registry-cache pods carry this same
-  # instance label, so without adding 5000 here they would render and
-  # schedule fine but be silently unreachable from every runner pod; the
-  # same applies to gha-cache and 3000.
+  # so this one policy covers RustFS (9000), the registry caches (5000) AND
+  # the gha-cache server (3000). A port missing from this list is a pod
+  # nobody can reach - adding a workload to this chart means adding its port
+  # here. Verified trap: the registry-cache pods carry this same instance
+  # label, so without adding 5000 here they would render and schedule fine
+  # but be silently unreachable from every runner pod; the same applies to
+  # gha-cache and 3000.
+  #
+  # RustFS's console (9001) is deliberately ABSENT. It is administration
+  # surface with no in-cluster consumer - runners, turbo-cache and the
+  # gha-cache server all talk to 9000 only - and admitting it from every
+  # namespace contradicts the rest of this chart's posture. The console
+  # stays enabled on the pod; reach it with
+  # `kubectl --context admin@netcup -n ci-cache port-forward svc/rustfs-svc 9001:9001`,
+  # which is kubelet-mediated and therefore unaffected by this policy.
+  # Kubelet probes are likewise not subject to NetworkPolicy.
   ports:
     - 9000
-    - 9001
     - 5000
     - 3000

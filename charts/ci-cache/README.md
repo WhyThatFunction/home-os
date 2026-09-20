@@ -122,6 +122,90 @@ this chart means adding its port to that list.
   machine config (`cluster/`), which this chart cannot reach — it only
   affects pods, not the node's own containerd.
 
+## GitHub Actions cache server (`gha-cache`)
+
+A self-hosted implementation of the GitHub Actions cache protocol
+([falcondev-oss/github-actions-cache-server](https://github.com/falcondev-oss/github-actions-cache-server),
+pinned to `9.8.0`), so `actions/cache` — and therefore `setup-node`'s,
+`setup-java`'s, `setup-python`'s, and `setup-go`'s built-in `cache:` input,
+plus Gradle's and pub's own opt-in use of the same action — stores to this
+in-cluster RustFS instead of GitHub's real cache backend.
+
+- **In-cluster address:** `http://gha-cache.ci-cache.svc.cluster.local:3000`
+- **Backing bucket:** `gha-cache`
+- **Object layout:** the server writes under a fixed key prefix inside the
+  bucket, e.g. `gh-actions-cache/6398716841/parts/0` (verified with
+  `rc ls --recursive`). The bucket's lifecycle rule has no prefix filter, so
+  it already covers everything the server writes — don't add a prefix
+  filter later without checking this.
+
+### Retention: two numbers, deliberately different
+
+| Setting | Value | Why |
+| --- | --- | --- |
+| `ghaCache.cleanupOlderThanDays` | 14 | The server's own cleanup job, backed by its sqlite index. |
+| `gha-cache` bucket lifecycle (`provisioning.buckets`) | 21 | A backstop, one week longer. |
+
+The server keeps a sqlite index of every object it has written to the
+bucket. If the bucket's S3 lifecycle rule deleted an object first, the
+server's index would still point at something that no longer exists — a
+dangling reference. Making the server's own cleanup run first (14 days)
+means that by the time the bucket rule could fire on the same object (21
+days), the server has already forgotten about it through its own
+bookkeeping. The bucket rule only exists to catch objects orphaned some
+other way (e.g. a crash mid-write) — `ORPHANED_STORAGE_GRACE_PERIOD_HOURS`
+(left at its default) is the mechanism actually meant for that case.
+
+### Auth model: no shared secret
+
+Unlike `TURBO_TOKEN`/`SCCACHE_ENDPOINT` style shared credentials, this
+server validates the runner's **real GitHub Actions JWT** on every request
+(`ACTIONS_TOKEN_ISSUER` defaults to `https://token.actions.githubusercontent.com`,
+`SKIP_TOKEN_VALIDATION` left at its default `false`). Verified: a token
+missing the `ac`, `repository_id`, or `scp` claims gets a specific 401, not
+a generic one. This means:
+
+- The server needs real egress to GitHub (to fetch JWKS for signature
+  verification) — it is not purely cluster-internal like RustFS itself.
+- There is no bearer token or URL secret to provision, mirror, or rotate.
+- There is also no unauthenticated health route to probe — every
+  meaningful HTTP path is token-gated, which is why the Deployment uses a
+  `tcpSocket` readiness/liveness probe instead of an HTTP one.
+
+### It proxies, it does not redirect
+
+Verified end-to-end against a real RustFS backend (full
+CreateCacheEntry → PUT blob → FinalizeCacheEntryUpload →
+GetCacheEntryDownloadURL → GET round trip, byte-correct): the download URL
+this server hands back streams the object through the pod itself
+(`Transfer-Encoding: chunked`), it does **not** 302-redirect the client to
+RustFS — even with `ENABLE_DIRECT_DOWNLOADS=true` set. Every cache blob
+(node_modules, Gradle caches, often hundreds of MB) therefore transits this
+one pod, which is why its `resources` in `values.yaml` are sized well above
+a typical thin proxy.
+
+### This does nothing until BOTH of these, owned by `charts/cd`, are true
+
+1. **A patched runner image.** `actions/cache` v4.2+ talks to Cache Service
+   v2 via `ACTIONS_RESULTS_URL`, and the runner process unconditionally
+   overwrites that env var from the job context at startup — anything set
+   on the pod is clobbered before the action ever reads it. The fix is a
+   byte patch to `Runner.Worker.dll` renaming the UTF-16LE string
+   `ACTIONS_RESULTS_URL` to `ACTIONS_RESULTS_ORL` so an externally-injected
+   value survives. That patch lives in the `vymalo/arc-runners` image, not
+   in this chart. (Notably, the upstream cache-server project's own
+   pre-patched image shipped with this exact patch **missing** from the
+   compiled DLL for three releases —
+   [falcondev-oss/github-actions-cache-server#265](https://github.com/falcondev-oss/github-actions-cache-server/issues/265),
+   open as of writing.)
+2. **`ACTIONS_RESULTS_URL` actually set on runner pods**, in
+   `charts/cd/templates/arc-runner-pools.yaml`.
+
+If either is missing, `actions/cache` silently keeps talking to GitHub's
+real backend and this server logs **zero** requests — there is no error,
+just a cache that quietly never gets used. That is the documented upstream
+failure mode, not a bug in this chart.
+
 ## Validating a change
 
 ```bash
