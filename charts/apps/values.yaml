@@ -48,7 +48,21 @@ applications:
     source:
       repoURL: https://github.com/WhyThatFunction/ssegning-com
       targetRevision: HEAD
-      path: deploy/cd
+      # `deploy/chart`, not `deploy/cd`. That second path has NEVER existed in
+      # that repository (`git log --all -- deploy/cd` is empty), so this
+      # Application has never been able to render and reported
+      #   ComparisonError: deploy/cd: app path does not exist
+      # The failure is quiet in the worst way: an Application that cannot
+      # render its source shows `Sync: Unknown` / `Health: Unknown`, because
+      # there is no desired state to diff and no resources of its own to mark
+      # unhealthy. It reads as fine on the dashboard while managing nothing -
+      # the same shape as the turbo-cache Application fixed in #159.
+      #
+      # Consequence: the live ssegning stack has been running unmanaged. Its
+      # images were last updated 2026-09-04 (sha-8afefda), so every chart
+      # change merged since then was silently ignored, and nothing corrected
+      # drift or applied `instances: 2` to the CNPG cluster.
+      path: deploy/chart
     destination:
       server: https://kubernetes.default.svc
       namespace: ssegning
