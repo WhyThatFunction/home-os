@@ -56,6 +56,47 @@ Those names are an **unenforced contract**: the Service names `rustfs-svc` and
 strings. Nothing fails at render time if they drift — every runner just
 silently loses its cache. Change one side, change all three.
 
+## Package-download caching is already covered — don't add a node-level cache
+
+`actions/cache` and `Swatinem/rust-cache` already route to the `gha-cache`
+server in this chart, because the runner pods set `ACTIONS_RESULTS_URL` and
+the runner image carries the `Runner.Worker.dll` patch that stops the runner
+overwriting it. Verified live on 2026-09-20: **15 cache entries, 4.5 GB**, in
+`s3://gha-cache/gh-actions-cache/` on this cluster's RustFS.
+
+Every repository that compiles Rust in these orgs already caches the cargo
+registry through that path — `vaam-apps/vaam-apps` via `Swatinem/rust-cache@v2`
+in three jobs, `vaam-store/mobile` via `actions/cache@v4` on `~/.cargo/registry`,
+`~/.cargo/git` and its `target/`. So the cargo, pnpm, pub, Gradle and pip
+caches are in-cluster and repo-scoped today.
+
+A `hostPath` cache shared across runner pods (a recurring suggestion, since it
+needs no workflow changes) would be a **regression**, for four reasons — each
+one checked, not assumed:
+
+1. **No isolation.** `vymalo`, `vaam-store` and `vaam-apps` runners share
+   nodes, so one org's job would write the package store another org's job
+   executes from. `gha-cache` derives its scope from the `repository_id` claim
+   in the runner's GitHub JWT and rejects a token without it, so it isolates
+   per repository by construction. (Runner pods are already `privileged`, so
+   this is not a new trust boundary — but it lowers the bar from "escape the
+   container" to "write a file", and it catches accidents as well as attacks.)
+2. **Unbounded.** `emptyDir` has `sizeLimit`; **`hostPath` has none**. It
+   writes to the node root filesystem with no quota and no GC, so a runaway
+   store fills the disk and evicts every pod on that node.
+3. **It breaks cargo's locking.** Cargo's inter-process locks live at
+   `$CARGO_HOME/.package-cache` and `.package-cache-mutate`, NOT inside
+   `registry/` (verified by running `cargo fetch` in the runner image). Sharing
+   `registry/` while leaving `$CARGO_HOME` pod-local gives every pod a private
+   lock over a shared tree — mutual exclusion defeated, with up to 10 runners
+   per node.
+4. **`chown -R` on every pod start** walks every inode, getting slower exactly
+   as the cache becomes worth having.
+
+If a repository is genuinely missing package caching, add `actions/cache` or
+`Swatinem/rust-cache` to that workflow. One line, repo-scoped, bounded, and it
+lands here.
+
 ## Root credential trade-off
 
 The RustFS root credential (`ci-cache-root`, synced from
