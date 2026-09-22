@@ -74,6 +74,40 @@ applications:
       helm:
         releaseName: opentelemetry-operator
         valuesObject:
+          # The operator.networkpolicy feature gate (default-ON since the
+          # operator's 0.159.0) makes the chart render a NetworkPolicy that
+          # selects the operator pod and allows egress ONLY to the node
+          # endpoint 10.10.0.55:6443. The operator reaches the API through the
+          # SERVICE address 10.96.0.1:443 - different IP, different port - so
+          # the policy drops its own control-plane traffic:
+          #   Get "https://10.96.0.1:443/api": dial tcp 10.96.0.1:443: i/o timeout
+          #
+          # The operator then misreports that as a missing-CRD fatal error
+          #   "The OpenTelemetryCollector CRDs are not present in the cluster"
+          # which is false - opentelemetrycollectors.opentelemetry.io has
+          # existed since 2026-04-11 and a collector has been running in the
+          # openobserve namespace throughout. It is reporting a consequence,
+          # not the cause, which is what made this take five days to find.
+          #
+          # Result: CrashLoopBackOff (2044 restarts in 5d13h in-cluster, 2447
+          # in 6d17h on home-remote), the webhook Service left with zero
+          # endpoints, and therefore ArgoCD unable to server-side-diff any
+          # Application containing an OpenTelemetryCollector - keycloak-ha and
+          # openobserve both sat Sync=Unknown with selfHeal silently inert.
+          #
+          # Disabled rather than patched: the generated policy hardcodes a node
+          # endpoint, so it is wrong on any cluster where pods reach the API by
+          # service IP.
+          #
+          # `operand.networkpolicy` is deliberately left ENABLED. It does
+          # generate a policy - openobserve-collector-networkpolicy - but that
+          # one is `policyTypes: [Ingress]` only, allowing 4317/4318/8888/13133
+          # inbound and leaving egress unrestricted. So it cannot lock a
+          # collector away from anything, and the collector has run 13 days
+          # through it. Only the operator's own policy has the egress bug.
+          manager:
+            featureGatesMap:
+              operator.networkpolicy: false
           tolerations:
             - key: node-role.kubernetes.io/control-plane
               operator: Exists
@@ -108,6 +142,40 @@ applications:
       helm:
         releaseName: opentelemetry-operator
         valuesObject:
+          # The operator.networkpolicy feature gate (default-ON since the
+          # operator's 0.159.0) makes the chart render a NetworkPolicy that
+          # selects the operator pod and allows egress ONLY to the node
+          # endpoint 10.10.0.55:6443. The operator reaches the API through the
+          # SERVICE address 10.96.0.1:443 - different IP, different port - so
+          # the policy drops its own control-plane traffic:
+          #   Get "https://10.96.0.1:443/api": dial tcp 10.96.0.1:443: i/o timeout
+          #
+          # The operator then misreports that as a missing-CRD fatal error
+          #   "The OpenTelemetryCollector CRDs are not present in the cluster"
+          # which is false - opentelemetrycollectors.opentelemetry.io has
+          # existed since 2026-04-11 and a collector has been running in the
+          # openobserve namespace throughout. It is reporting a consequence,
+          # not the cause, which is what made this take five days to find.
+          #
+          # Result: CrashLoopBackOff (2044 restarts in 5d13h in-cluster, 2447
+          # in 6d17h on home-remote), the webhook Service left with zero
+          # endpoints, and therefore ArgoCD unable to server-side-diff any
+          # Application containing an OpenTelemetryCollector - keycloak-ha and
+          # openobserve both sat Sync=Unknown with selfHeal silently inert.
+          #
+          # Disabled rather than patched: the generated policy hardcodes a node
+          # endpoint, so it is wrong on any cluster where pods reach the API by
+          # service IP.
+          #
+          # `operand.networkpolicy` is deliberately left ENABLED. It does
+          # generate a policy - openobserve-collector-networkpolicy - but that
+          # one is `policyTypes: [Ingress]` only, allowing 4317/4318/8888/13133
+          # inbound and leaving egress unrestricted. So it cannot lock a
+          # collector away from anything, and the collector has run 13 days
+          # through it. Only the operator's own policy has the egress bug.
+          manager:
+            featureGatesMap:
+              operator.networkpolicy: false
           tolerations:
             - key: node-role.kubernetes.io/control-plane
               operator: Exists
