@@ -67,25 +67,72 @@ applications:
     finalizers:
       - resources-finalizer.argocd.argoproj.io
     project: infrastructure
-    source:
-      repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
-      targetRevision: "0.*"
-      chart: opentelemetry-operator
-      helm:
-        releaseName: opentelemetry-operator
-        valuesObject:
-          tolerations:
-            - key: node-role.kubernetes.io/control-plane
-              operator: Exists
-              effect: NoSchedule
-          admissionWebhooks:
-            autoGenerateCert:
-              enabled: false
-            certManager:
-              issuerRef:
-                kind: ClusterIssuer
-                name: self-signed-ca
-                group: cert-manager.io
+    sources:
+      - repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
+        targetRevision: "0.*"
+        chart: opentelemetry-operator
+        helm:
+          releaseName: opentelemetry-operator
+          valuesObject:
+            tolerations:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
+                effect: NoSchedule
+            admissionWebhooks:
+              autoGenerateCert:
+                enabled: false
+              certManager:
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: self-signed-ca
+                  group: cert-manager.io
+      # home-remote runs Cilium (v1.19), which gives node IPs the special
+      # `remote-node`/`host` identity rather than a CIDR/world identity. The
+      # chart's own bundled NetworkPolicy (turned on by a recent `0.*` minor
+      # bump, no valuesObject override needed to trigger it) egress-allows
+      # only a plain-k8s ipBlock CIDR to the control-plane node IPs on :6443 --
+      # that ipBlock rule does NOT match under Cilium, and the pod actually
+      # calls the in-cluster API Service (ClusterIP), which the rule doesn't
+      # cover either way. Result: the operator cannot reach the API server at
+      # all, cannot discover its own CRDs, and CrashLoopBackOffs forever
+      # (found live 2026-09-22: 2464 restarts since 2026-09-15, the exact age
+      # of this NetworkPolicy object -- ai-helm ADORSYS-GIS/lightbridge-
+      # governance#358's rollout PR's ArgoCD sync surfaced it, unrelated
+      # cause). This second source adds the Cilium-native allow (reserved
+      # `kube-apiserver` entity, same pattern as ai-helm-values
+      # environments/prod/deps/grafana-operator/ciliumnetworkpolicy.yaml)
+      # rather than touching the chart's own broken policy, which is
+      # otherwise-harmless dead config once this exists (Kubernetes unions
+      # NetworkPolicy/CiliumNetworkPolicy allow-rules across every object
+      # selecting a pod).
+      - repoURL: https://bjw-s-labs.github.io/helm-charts
+        targetRevision: "4.*"
+        chart: app-template
+        helm:
+          releaseName: otel-operator-egress
+          valuesObject:
+            rawResources:
+              opentelemetry-operator-allow-egress:
+                enabled: true
+                apiVersion: cilium.io/v2
+                kind: CiliumNetworkPolicy
+                spec:
+                  endpointSelector:
+                    matchLabels:
+                      app.kubernetes.io/name: opentelemetry-operator
+                      app.kubernetes.io/component: controller-manager
+                  egress:
+                    - toEntities:
+                        - kube-apiserver
+                    - toEndpoints:
+                        - matchLabels:
+                            k8s:io.kubernetes.pod.namespace: kube-system
+                      toPorts:
+                        - ports:
+                            - port: "53"
+                              protocol: UDP
+                            - port: "53"
+                              protocol: TCP
     destination:
       name: home-remote
       namespace: opentelemetry-system
