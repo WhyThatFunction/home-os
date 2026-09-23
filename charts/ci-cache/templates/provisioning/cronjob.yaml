@@ -1,0 +1,48 @@
+{{- with .Values.provisioning }}
+{{- if .enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ci-cache-provisioning-reconcile
+  namespace: {{ $.Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: rustfs-provisioning
+    app.kubernetes.io/instance: {{ $.Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ $.Release.Service | quote }}
+  # Deliberately NO argocd.argoproj.io/hook annotation: this is an ordinary
+  # ArgoCD-managed resource, not a sync-phase step. See job.yaml for why the
+  # Sync-phase hook Job stays alongside this — this CronJob is the
+  # continuous reconciler for an invariant no Kubernetes controller can
+  # watch, since S3 buckets are not Kubernetes objects and ArgoCD only
+  # asserts this chart's own manifests at sync time. Its schedule cannot
+  # promise "before wave 2" the way the hook Job can, so it does not replace
+  # it — it covers the gap the hook leaves open: a bucket disappearing
+  # (a replaced RustFS PVC, or someone deleting one by hand) between syncs,
+  # which changes no manifest and therefore triggers no sync at all.
+spec:
+  schedule: {{ .reconcile.schedule | quote }}
+  # Two provisioners racing `bucket create`/`lifecycle rule import` against
+  # the same buckets buys nothing but contention; the script is idempotent
+  # either way, but there's no reason to let concurrent runs stack up.
+  concurrencyPolicy: Forbid
+  # Without explicit limits, Kubernetes keeps every Job/Pod this CronJob has
+  # ever created — on a 15-minute schedule that accumulates fast. One
+  # successful run is enough evidence of the last good reconcile; failures
+  # keep a small trail (3) for debugging without growing unbounded.
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  # If the controller is down or the cluster is under enough pressure that
+  # a scheduled run is missed by more than this, skip straight to the next
+  # scheduled time rather than firing a burst of backlogged runs.
+  startingDeadlineSeconds: {{ .reconcile.startingDeadlineSeconds }}
+  jobTemplate:
+    metadata:
+      labels:
+        app.kubernetes.io/name: rustfs-provisioning
+        app.kubernetes.io/instance: {{ $.Release.Name | quote }}
+    spec:
+      backoffLimit: 5
+      template:
+        {{- include "ci-cache.provisioning.podTemplate" $ | nindent 8 }}
+{{- end }}
+{{- end }}

@@ -159,6 +159,27 @@ provisioning:
     # Job build outputs.
     - name: build-artifacts
       expiryDays: 30
+  # The Sync-phase hook Job above only ever runs when ArgoCD performs a
+  # sync — it guarantees buckets exist BEFORE wave 2 on a first install, but
+  # nothing re-runs it afterwards if a bucket disappears without a manifest
+  # change (e.g. the RustFS PVC gets replaced while the Application is
+  # already Synced: no manifest diff, so no sync, so the hook never fires,
+  # and every bucket is silently gone with nothing to recreate them — this
+  # has already caused a real outage, fixed by hand in-cluster). This
+  # CronJob runs the identical idempotent script (shared via _helpers.tpl)
+  # on a schedule instead, as the continuous reconciler for an invariant no
+  # Kubernetes controller can watch, since S3 buckets are not Kubernetes
+  # objects. It ships enabled — there is no reason to gate durability
+  # behind an opt-in.
+  reconcile:
+    # Every 15 minutes: bounds the damage window (how long a missing bucket
+    # can silently break CI) without generating excessive pod churn for
+    # what is otherwise a no-op `--ignore-existing` run almost every time.
+    schedule: "*/15 * * * *"
+    # If a scheduled run is missed by more than this (controller downtime,
+    # cluster pressure), skip it rather than firing a burst of backlogged
+    # runs once things recover.
+    startingDeadlineSeconds: 300
 
 # Pull-through caches for public container registries. Runner pods are
 # ephemeral (one per job) and podman/buildah's graphroot is wiped with the
