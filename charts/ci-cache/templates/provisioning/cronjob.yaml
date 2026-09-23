@@ -33,8 +33,16 @@ spec:
   failedJobsHistoryLimit: 3
   # If the controller is down or the cluster is under enough pressure that
   # a scheduled run is missed by more than this, skip straight to the next
-  # scheduled time rather than firing a burst of backlogged runs.
-  startingDeadlineSeconds: {{ .reconcile.startingDeadlineSeconds }}
+  # scheduled time rather than firing a burst of backlogged runs. Defaulted
+  # (not just documented in values.yaml) because this field is also a
+  # safety guard, not only a scheduling nicety: with it set, the CronJob
+  # controller raises `earliestTime` to `now - startingDeadlineSeconds`, so
+  # at most one missed schedule can ever be in the catch-up window. Leaving
+  # it unset re-opens the "too many missed start times" path Kubernetes
+  # otherwise closes — and `--set provisioning.reconcile.startingDeadlineSeconds=null`
+  # would silently render an empty value (helm exits 0) without this
+  # `default`, unsetting the very guard it looks like it's setting.
+  startingDeadlineSeconds: {{ .reconcile.startingDeadlineSeconds | default 300 }}
   jobTemplate:
     metadata:
       labels:
@@ -42,6 +50,22 @@ spec:
         app.kubernetes.io/instance: {{ $.Release.Name | quote }}
     spec:
       backoffLimit: 5
+      # Comfortably above the readiness loop's own 300s budget (60 attempts
+      # x 5s sleep). That loop bounds ATTEMPT COUNT, not attempt DURATION —
+      # no `rc` call carries a timeout flag, so a `rustfs-svc` endpoint that
+      # accepts a TCP connection but never answers (a pod stuck
+      # Terminating, a hung Longhorn attach) blocks a single `rc` call far
+      # past 5s, and the container never exits, so `backoffLimit`/
+      # `restartPolicy: OnFailure` never engage either. On the Sync-phase
+      # hook Job that failure mode is loud - a wedged hook blocks the sync
+      # and ArgoCD surfaces the Application stuck `Progressing`. Moved onto
+      # a CronJob, the same unbounded script wedges silently instead: the
+      # stuck pod outlives every later schedule and `concurrencyPolicy:
+      # Forbid` skips every subsequent tick, forever, with nothing to
+      # alert on it. `activeDeadlineSeconds` converts that permanent silent
+      # halt into a bounded failure, which `failedJobsHistoryLimit: 3`
+      # above then makes visible as a failed Job object.
+      activeDeadlineSeconds: 600
       template:
         {{- include "ci-cache.provisioning.podTemplate" $ | nindent 8 }}
 {{- end }}
