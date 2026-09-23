@@ -280,6 +280,71 @@ wave ordering, which breaks the cycle.
 Adding a workload here means asking whether it needs a bucket to pre-exist.
 If it does, it belongs at wave 2 or later — not wave 0 alongside RustFS.
 
+## The provisioning Job guarantees ordering, not persistence — the CronJob covers the rest
+
+The Sync-phase hook above only ever runs when ArgoCD performs a sync. If the
+RustFS PVC is replaced while the Application is already `Synced`, nothing in
+this chart's manifests changes, so ArgoCD performs no sync, so the hook never
+re-runs — every bucket silently disappears with nothing to trigger their
+recreation. This already happened once in production: the buckets had to be
+created by hand in-cluster to unblock CI. It's broader than the one server
+that complains loudly — only `gha-cache`, of the consumers **this chart**
+deploys, validates its bucket at startup and CrashLoops; a missing
+`sc-cache` bucket instead fails every Rust CI job at a tool-*install* step,
+which reads as an unrelated tooling problem until you think to check the
+buckets. There is at least one other consumer this chart does not deploy
+and so cannot speak for: `turbo-cache-netcup`
+(`charts/cd-ci/values.yaml`, `STORAGE_PROVIDER: s3` / `STORAGE_PATH:
+turbo-cache` against this same RustFS), a third-party chart on a floating
+`targetRevision: 0.1.*` whose own startup behaviour against a missing
+bucket is unverified from here.
+
+`provisioning/cronjob.yaml` (`ci-cache-provisioning-reconcile`) closes that
+gap: it runs the exact same idempotent script — shared with the Job via
+`templates/_helpers.tpl`'s `ci-cache.provisioning.script` and
+`ci-cache.provisioning.podTemplate`, not copy-pasted — on a schedule
+(`provisioning.reconcile.schedule`, default every 15 minutes). It carries no
+ArgoCD hook annotation; it's an ordinary managed resource, because it is the
+continuous reconciler for an invariant no Kubernetes controller watches (S3
+buckets are not Kubernetes objects) rather than a step in the sync sequence.
+
+Both stay, deliberately:
+
+- The **Sync-phase Job** is the only thing that guarantees provisioning
+  happens *before* wave 2 (`gha-cache`) on a first install. A CronJob's
+  schedule cannot make that promise.
+- The **CronJob** heals a bucket lost between syncs — a replaced PVC, or
+  someone deleting a bucket by hand — which the Job structurally cannot do,
+  since nothing about that event causes ArgoCD to sync.
+
+`concurrencyPolicy: Forbid` because two provisioners racing `bucket create`
+buys nothing; `successfulJobsHistoryLimit: 1` / `failedJobsHistoryLimit: 3`
+so a 15-minute schedule doesn't accumulate Job objects forever;
+`startingDeadlineSeconds` (defaulted in the template, not only in
+`values.yaml`, so an explicit `null` override can't silently unset the
+guard) so a missed run is skipped rather than backlogged;
+`activeDeadlineSeconds: 600` on the `jobTemplate` so a `rustfs-svc` endpoint
+that accepts a connection but never answers can't wedge the reconciler
+pod forever — the readiness loop in the script bounds attempt *count*
+(60 x 5s), not attempt *duration*, and no `rc` call carries its own
+timeout. This ships live — durability for a production CI dependency is
+not the kind of thing to gate behind an opt-in flag.
+
+**This reconciler is authoritative, not additive — it overwrites drift on
+every run, including a deliberate one.** `bucket lifecycle rule import`
+replaces a bucket's *entire* lifecycle configuration (see the comment in
+`provisioning/config.yaml`), so the script is idempotent with respect to
+this chart's declared state, not merely non-destructive: it is designed to
+overwrite anything that disagrees with `values.yaml`, which is what makes
+it fit for reconciling drift at all. On `main` that only fires at sync
+time; with this CronJob it fires up to every 15 minutes. Concretely: if
+someone lengthens or removes `build-artifacts`' `ci-cache-expiry` rule by
+hand during an incident, to stop a 30-day expiry from deleting objects
+they still need, this CronJob reverts that change within one schedule
+tick and the objects expire on the chart's original schedule — silently,
+with no event or alert. Change the bucket's lifecycle in `values.yaml`
+first if you need it to stick.
+
 ## Validating a change
 
 ```bash
