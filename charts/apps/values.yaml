@@ -481,6 +481,15 @@ applications:
                   subPath: cargo
                 - mountPath: /home/openhands/.cache
                   subPath: cache
+                # ACP agents Agent Canvas can drive. A subscription/OAuth
+                # login takes priority over an API key and lives on disk:
+                # Claude Code in ~/.claude (.credentials.json on Linux, plus
+                # ~/.claude.json — relocated inside by CLAUDE_CONFIG_DIR
+                # below), Codex in ~/.codex (auth.json, config.toml).
+                - mountPath: /home/openhands/.claude
+                  subPath: claude
+                - mountPath: /home/openhands/.codex
+                  subPath: codex
             # The agent compiles inside this same pod (no sandbox pods), next
             # to the server processes. At the chart default (2 CPU / 4Gi) a
             # single `cargo build` of vaam-backend pinned memory at the 4Gi
@@ -526,6 +535,12 @@ applications:
                   value: /home/openhands/.cache/pnpm-store
                 - name: npm_config_cache
                   value: /home/openhands/.cache/npm
+                # Without it Claude Code writes ~/.claude.json (sign-in session,
+                # MCP servers, per-project trust) at the root of $HOME, which is
+                # not persisted. Set, that file lives inside this directory
+                # (verified: nothing is written to $HOME).
+                - name: CLAUDE_CONFIG_DIR
+                  value: /home/openhands/.claude
 
       - repoURL: https://bjw-s-labs.github.io/helm-charts
         targetRevision: "4.*"
