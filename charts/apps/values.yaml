@@ -444,12 +444,43 @@ applications:
         helm:
           releaseName: agent-canvas
           valuesObject:
+            # Upstream agent-canvas plus Rust/Flutter/Node toolchains under
+            # /opt, built by github.com/vymalo/openhand-images. Pin the
+            # immutable `<agent-canvas version>-<sha7>` tag, and keep the
+            # version in step with `targetRevision` above.
+            image:
+              repository: ghcr.io/vymalo/openhand-images/agent-canvas
+              tag: 1.24.0-f2d1ca9
             # RBAC stays off (chart default): the agent gets no Kubernetes
             # API rights, so it does not need the SA token either.
             serviceAccount:
               automountServiceAccountToken: false
+            # Merges over the chart's podSecurityContext (fsGroup 10001 etc.).
+            # Default policy re-chowns the whole volume recursively on every
+            # pod start; with worktrees and cargo target/ dirs on it that is
+            # millions of files. Only fix ownership when the root is wrong.
+            podSecurityContext:
+              fsGroupChangePolicy: OnRootMismatch
             persistence:
               storageClassName: longhorn
+              # Only these paths survive a restart; everything else (/tmp,
+              # the rest of $HOME) is container filesystem. Lists replace
+              # wholesale, so the chart's two default mounts are restated.
+              # Toolchains are baked into the image under /opt (see `image`
+              # above), so nothing here may be mounted over /opt. ~/.cargo
+              # (CARGO_HOME: crate registry/git caches, `cargo install`ed
+              # tools) and ~/.cache (pub, pnpm, npm, uv caches — see the env
+              # below) keep downloads across restarts. Neither exists in the
+              # image, so these mounts hide nothing.
+              mounts:
+                - mountPath: /home/openhands/.openhands
+                  subPath: openhands
+                - mountPath: /home/openhands/workspace
+                  subPath: workspace
+                - mountPath: /home/openhands/.cargo
+                  subPath: cargo
+                - mountPath: /home/openhands/.cache
+                  subPath: cache
             # The agent compiles inside this same pod (no sandbox pods), next
             # to the server processes. At the chart default (2 CPU / 4Gi) a
             # single `cargo build` of vaam-backend pinned memory at the 4Gi
@@ -479,6 +510,22 @@ applications:
                   value: "1"
                 - name: VITE_DO_NOT_TRACK
                   value: "1"
+                # agent-server puts per-conversation git worktrees under
+                # conversation_worktree_root, default /tmp/conversation-worktrees
+                # (openhands-agent-server config.py; OH_ + field name). /tmp is
+                # not on the PVC, so a pod restart deleted a worktree with all
+                # its uncommitted work. Keep them on the persistent workspace
+                # mount instead.
+                - name: OH_CONVERSATION_WORKTREE_ROOT
+                  value: /home/openhands/workspace/.conversation-worktrees
+                # Package caches that default outside ~/.cache, moved onto the
+                # persistent ~/.cache mount.
+                - name: PUB_CACHE
+                  value: /home/openhands/.cache/pub
+                - name: npm_config_store_dir
+                  value: /home/openhands/.cache/pnpm-store
+                - name: npm_config_cache
+                  value: /home/openhands/.cache/npm
 
       - repoURL: https://bjw-s-labs.github.io/helm-charts
         targetRevision: "4.*"
