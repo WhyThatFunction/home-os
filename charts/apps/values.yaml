@@ -450,6 +450,28 @@ applications:
               automountServiceAccountToken: false
             persistence:
               storageClassName: longhorn
+            # The agent compiles inside this same pod (no sandbox pods), next
+            # to the server processes. At the chart default (2 CPU / 4Gi) a
+            # single `cargo build` of vaam-backend pinned memory at the 4Gi
+            # limit (rustc alone ~2.2GB RSS) and throttled the CPU until
+            # /alive stopped answering within 5s, the UI dropped and liveness
+            # was on course to restart the container mid-build. Burstable:
+            # modest requests so it still schedules, room to build above them.
+            resources:
+              requests:
+                cpu: "2"
+                memory: 4Gi
+              limits:
+                cpu: "8"
+                memory: 16Gi
+            # A busy build can still slow /alive; don't let liveness kill the
+            # agent for being slow. ~5 min of consecutive failures to restart.
+            probes:
+              liveness:
+                timeoutSeconds: 15
+                failureThreshold: 10
+              readiness:
+                timeoutSeconds: 15
             config:
               extraEnv:
                 # Opt out of the bundled PostHog product analytics.
