@@ -445,12 +445,12 @@ applications:
           releaseName: agent-canvas
           valuesObject:
             # Upstream agent-canvas plus Rust/Flutter/Node toolchains under
-            # /opt, built by github.com/vymalo/openhand-images. Pin the
+            # /opt, built by github.com/vymalo/another-agentic-images. Pin the
             # immutable `<agent-canvas version>-<sha7>` tag, and keep the
             # version in step with `targetRevision` above.
             image:
-              repository: ghcr.io/vymalo/openhand-images/agent-canvas
-              tag: 1.24.0-9a9ac2a
+              repository: ghcr.io/vymalo/another-agentic-images/agent-canvas
+              tag: 1.24.0-454d008
             # RBAC stays off (chart default): the agent gets no Kubernetes
             # API rights, so it does not need the SA token either.
             serviceAccount:
@@ -501,6 +501,16 @@ applications:
                   subPath: claude
                 - mountPath: /home/openhands/.codex
                   subPath: codex
+                # OpenCode: login (auth.json), sessions and logs live in
+                # ~/.local/share/opencode, config in ~/.config/opencode; its
+                # cache is already under the persisted ~/.cache. The image
+                # pre-creates ~/.local/share as openhands — without that the
+                # container runtime would create the missing parents as root
+                # and break every other tool writing under ~/.local/share.
+                - mountPath: /home/openhands/.local/share/opencode
+                  subPath: opencode-data
+                - mountPath: /home/openhands/.config/opencode
+                  subPath: opencode-config
             # The agent compiles inside this same pod (no sandbox pods), next
             # to the server processes. At the chart default (2 CPU / 4Gi) a
             # single `cargo build` of vaam-backend pinned memory at the 4Gi
