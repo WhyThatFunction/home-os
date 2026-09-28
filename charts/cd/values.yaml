@@ -221,6 +221,38 @@ projects:
     syncWindows: [ ]
     sourceNamespaces:
       - "*"
+  # OpenHands Agent Canvas (Application `agent-canvas` in charts/apps). Pinned
+  # to the one namespace on netcup-k8s: the agent runs arbitrary shell in its
+  # pod, so its project should not be able to deploy anywhere else. Sources
+  # are the OpenHands repo (the chart is not published to any Helm/OCI repo)
+  # and bjw-s app-template for the oauth2-proxy in front of it.
+  - name: agent-canvas
+    additionalLabels: { }
+    additionalAnnotations: { }
+    permitOnlyProjectScopedClusters: false
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    description: OpenHands Agent Canvas
+    sourceRepos:
+      - https://github.com/OpenHands/OpenHands.git
+      - https://bjw-s-labs.github.io/helm-charts
+    destinations:
+      - namespace: agent-canvas
+        name: netcup-k8s
+    clusterResourceWhitelist:
+      - group: ""
+        kind: Namespace
+    clusterResourceBlacklist: [ ]
+    namespaceResourceBlacklist: [ ]
+    namespaceResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    orphanedResources: { }
+    roles: [ ]
+    syncWindows: [ ]
+    sourceNamespaces:
+      - "*"
+
   - name: base-apps
     additionalLabels: { }
     additionalAnnotations: { }

@@ -405,6 +405,192 @@ applications:
         prune: true
         selfHeal: true
 
+  # OpenHands Agent Canvas on netcup-k8s, behind Keycloak via oauth2-proxy.
+  # https://docs.openhands.dev/openhands/usage/agent-canvas/backend-setup/kubernetes
+  #
+  # The chart is not published to any Helm/OCI registry, so it is consumed
+  # from the OpenHands repo at the release tag; bump `targetRevision` to
+  # upgrade (the image tag follows the chart's appVersion).
+  #
+  # It is ONE all-in-one pod: frontend + agent-server + automation behind a
+  # single port 8000 (/canvas UI, /api, /sockets websocket, /vscode editor).
+  # Agent Canvas has no user auth of its own, and its static server bakes the
+  # backend session API key into the served HTML — anyone who can load the
+  # page holds a key that runs shell in the pod. So the oauth2-proxy is not a
+  # "frontend only" guard: it is the only ingress, reverse-proxying EVERY path
+  # to the agent-canvas Service after Keycloak login. Never re-enable the
+  # chart's own `ingress` — that would publish the key unauthenticated.
+  #
+  #   agent-canvas.sls.servers.segning.pro  -> oauth2-proxy -> agent-canvas:8000
+  #
+  # TLS: `cert-cloudflare` (DNS-01, segning.pro is a Cloudflare zone).
+  # oauth2-proxy credentials: AWS SM `prod/meta/test-app`, properties
+  # agent_canvas_oauth2_client_id / agent_canvas_oauth2_secret /
+  # agent_canvas_cookie_secret, from a confidential `agent-canvas` client in
+  # Keycloak realm `ssegning-internal` (redirect URI
+  # https://agent-canvas.sls.servers.segning.pro/oauth2/callback).
+  #
+  # State (settings, LLM keys encrypted with the auto-generated OH_SECRET_KEY,
+  # conversations, workspace, SQLite automation DB) lives on the single RWO
+  # PVC `data-agent-canvas-0`, so this stays a single replica.
+  - name: agent-canvas
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: agent-canvas
+    sources:
+      - repoURL: https://github.com/OpenHands/OpenHands.git
+        targetRevision: v1.24.0
+        path: helm/agent-canvas
+        helm:
+          releaseName: agent-canvas
+          valuesObject:
+            # RBAC stays off (chart default): the agent gets no Kubernetes
+            # API rights, so it does not need the SA token either.
+            serviceAccount:
+              automountServiceAccountToken: false
+            persistence:
+              storageClassName: longhorn
+            config:
+              extraEnv:
+                # Opt out of the bundled PostHog product analytics.
+                - name: DO_NOT_TRACK
+                  value: "1"
+                - name: VITE_DO_NOT_TRACK
+                  value: "1"
+
+      - repoURL: https://bjw-s-labs.github.io/helm-charts
+        targetRevision: "4.*"
+        chart: app-template
+        helm:
+          releaseName: agent-canvas-auth
+          valuesObject:
+            controllers:
+              oauth2-proxy:
+                containers:
+                  app:
+                    image:
+                      repository: quay.io/oauth2-proxy/oauth2-proxy
+                      tag: v7.15.4
+                    args:
+                      - --http-address=0.0.0.0:4180
+                      - --provider=keycloak-oidc
+                      - --oidc-issuer-url=https://auth.verif.fyi/realms/ssegning-internal
+                      - --redirect-url=https://agent-canvas.sls.servers.segning.pro/oauth2/callback
+                      - --upstream=http://agent-canvas.agent-canvas.svc.cluster.local:8000/
+                      # Agent API calls can run long; websockets (/sockets)
+                      # are proxied natively (--proxy-websockets defaults on).
+                      - --upstream-timeout=300s
+                      - --reverse-proxy=true
+                      - --email-domain=*
+                      - --code-challenge-method=S256
+                      - --skip-provider-button=true
+                      - --cookie-secure=true
+                      - --cookie-samesite=lax
+                    env:
+                      OAUTH2_PROXY_CLIENT_ID:
+                        valueFrom:
+                          secretKeyRef:
+                            name: agent-canvas-oauth2-creds
+                            key: client-id
+                      OAUTH2_PROXY_CLIENT_SECRET:
+                        valueFrom:
+                          secretKeyRef:
+                            name: agent-canvas-oauth2-creds
+                            key: client-secret
+                      OAUTH2_PROXY_COOKIE_SECRET:
+                        valueFrom:
+                          secretKeyRef:
+                            name: agent-canvas-oauth2-creds
+                            key: cookie-secret
+                    probes:
+                      liveness:
+                        enabled: true
+                        custom: true
+                        spec:
+                          httpGet:
+                            path: /ping
+                            port: 4180
+                          periodSeconds: 10
+                      readiness:
+                        enabled: true
+                        custom: true
+                        spec:
+                          httpGet:
+                            path: /ready
+                            port: 4180
+                          periodSeconds: 5
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                      runAsNonRoot: true
+                      capabilities:
+                        drop: ["ALL"]
+                    resources:
+                      requests:
+                        cpu: 10m
+                        memory: 32Mi
+                      limits:
+                        memory: 128Mi
+            service:
+              oauth2-proxy:
+                controller: oauth2-proxy
+                ports:
+                  http:
+                    port: 4180
+            ingress:
+              main:
+                className: traefik
+                annotations:
+                  cert-manager.io/cluster-issuer: cert-cloudflare
+                hosts:
+                  - host: agent-canvas.sls.servers.segning.pro
+                    paths:
+                      - path: /
+                        pathType: Prefix
+                        service:
+                          identifier: oauth2-proxy
+                          port: http
+                tls:
+                  - secretName: agent-canvas-tls
+                    hosts:
+                      - agent-canvas.sls.servers.segning.pro
+            rawResources:
+              oauth2-creds:
+                forceRename: agent-canvas-oauth2-creds
+                apiVersion: external-secrets.io/v1
+                kind: ExternalSecret
+                spec:
+                  spec:
+                    refreshInterval: 1h0m0s
+                    secretStoreRef:
+                      name: ssegning-aws
+                      kind: ClusterSecretStore
+                    target:
+                      name: agent-canvas-oauth2-creds
+                      creationPolicy: Owner
+                    data:
+                      - secretKey: client-id
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: agent_canvas_oauth2_client_id
+                      - secretKey: client-secret
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: agent_canvas_oauth2_secret
+                      - secretKey: cookie-secret
+                        remoteRef:
+                          key: "prod/meta/test-app"
+                          property: agent_canvas_cookie_secret
+    destination:
+      name: netcup-k8s
+      namespace: agent-canvas
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+      automated:
+        prune: true
+        selfHeal: true
+
     #  - name: ai-poc-model-deployment
     #    finalizers:
     #      - resources-finalizer.argocd.argoproj.io
