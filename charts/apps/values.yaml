@@ -450,6 +450,20 @@ applications:
               automountServiceAccountToken: false
             persistence:
               storageClassName: longhorn
+              # Only these paths survive a restart; everything else (/tmp,
+              # the rest of $HOME) is container filesystem. Lists replace
+              # wholesale, so the chart's two default mounts are restated.
+              # ~/.rustup and ~/.cargo keep toolchains the agent installs
+              # (it runs rustup itself; the image has no Rust).
+              mounts:
+                - mountPath: /home/openhands/.openhands
+                  subPath: openhands
+                - mountPath: /home/openhands/workspace
+                  subPath: workspace
+                - mountPath: /home/openhands/.rustup
+                  subPath: rustup
+                - mountPath: /home/openhands/.cargo
+                  subPath: cargo
             # The agent compiles inside this same pod (no sandbox pods), next
             # to the server processes. At the chart default (2 CPU / 4Gi) a
             # single `cargo build` of vaam-backend pinned memory at the 4Gi
@@ -479,6 +493,14 @@ applications:
                   value: "1"
                 - name: VITE_DO_NOT_TRACK
                   value: "1"
+                # agent-server puts per-conversation git worktrees under
+                # conversation_worktree_root, default /tmp/conversation-worktrees
+                # (openhands-agent-server config.py; OH_ + field name). /tmp is
+                # not on the PVC, so a pod restart deleted a worktree with all
+                # its uncommitted work. Keep them on the persistent workspace
+                # mount instead.
+                - name: OH_CONVERSATION_WORKTREE_ROOT
+                  value: /home/openhands/workspace/.conversation-worktrees
 
       - repoURL: https://bjw-s-labs.github.io/helm-charts
         targetRevision: "4.*"
