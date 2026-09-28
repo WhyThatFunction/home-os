@@ -481,6 +481,17 @@ applications:
                   subPath: cargo
                 - mountPath: /home/openhands/.cache
                   subPath: cache
+                # npm's default cache (incl. the `npx -y` package cache). It
+                # must be the DEFAULT path, not moved via npm_config_cache: MCP
+                # stdio servers (`npx -y @modelcontextprotocol/...`) are spawned
+                # by the MCP client with only HOME/PATH/SHELL/TERM/USER/LOGNAME,
+                # so they never see that variable. With ~/.npm unpersisted, every
+                # restart re-downloaded all npx MCP servers at once and the
+                # agent-server's single 30s tool-listing timeout failed the first
+                # conversations (4x "MCP tool listing timed out", 12:02-12:08,
+                # 2026-09-28; warm, each server lists tools in ~3s).
+                - mountPath: /home/openhands/.npm
+                  subPath: npm
                 # ACP agents Agent Canvas can drive. A subscription/OAuth
                 # login takes priority over an API key and lives on disk:
                 # Claude Code in ~/.claude (.credentials.json on Linux, plus
@@ -533,8 +544,6 @@ applications:
                 # config store-dir"; the image sets it in ~/.config/pnpm/rc.
                 - name: PUB_CACHE
                   value: /home/openhands/.cache/pub
-                - name: npm_config_cache
-                  value: /home/openhands/.cache/npm
                 # Without it Claude Code writes ~/.claude.json (sign-in session,
                 # MCP servers, per-project trust) at the root of $HOME, which is
                 # not persisted. Set, that file lives inside this directory
