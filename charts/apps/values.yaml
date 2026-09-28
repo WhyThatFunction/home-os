@@ -450,7 +450,7 @@ applications:
             # version in step with `targetRevision` above.
             image:
               repository: ghcr.io/vymalo/openhand-images/agent-canvas
-              tag: 1.24.0-f2d1ca9
+              tag: 1.24.0-9a9ac2a
             # RBAC stays off (chart default): the agent gets no Kubernetes
             # API rights, so it does not need the SA token either.
             serviceAccount:
@@ -528,11 +528,11 @@ applications:
                 - name: OH_CONVERSATION_WORKTREE_ROOT
                   value: /home/openhands/workspace/.conversation-worktrees
                 # Package caches that default outside ~/.cache, moved onto the
-                # persistent ~/.cache mount.
+                # persistent ~/.cache mount. pnpm's store is NOT set here: as
+                # npm_config_store_dir npm also reads it and warns "Unknown env
+                # config store-dir"; the image sets it in ~/.config/pnpm/rc.
                 - name: PUB_CACHE
                   value: /home/openhands/.cache/pub
-                - name: npm_config_store_dir
-                  value: /home/openhands/.cache/pnpm-store
                 - name: npm_config_cache
                   value: /home/openhands/.cache/npm
                 # Without it Claude Code writes ~/.claude.json (sign-in session,
