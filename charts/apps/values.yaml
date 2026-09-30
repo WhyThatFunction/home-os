@@ -325,23 +325,23 @@ applications:
         prune: true
         selfHeal: true
 
-  - name: opfs-webauthn
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: external
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: serverless/k/opfs-webauthn
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: serverless-opfs-webauthn
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-      automated:
-        prune: true
-        selfHeal: true
+  # - name: opfs-webauthn
+  #   finalizers:
+  #     - resources-finalizer.argocd.argoproj.io
+  #   project: external
+  #   source:
+  #     repoURL: https://github.com/whythatfunction/home-os
+  #     targetRevision: HEAD
+  #     path: serverless/k/opfs-webauthn
+  #   destination:
+  #     server: https://kubernetes.default.svc
+  #     namespace: serverless-opfs-webauthn
+  #   syncPolicy:
+  #     syncOptions:
+  #       - CreateNamespace=true
+  #     automated:
+  #       prune: true
+  #       selfHeal: true
 
   # Provisions the ArgoCD repository credential (ESO, argocd ns) that lets ArgoCD
   # pull the PRIVATE converse-frontends OCI chart. The converse-ui workload itself
@@ -387,23 +387,23 @@ applications:
   # its source. Same PAT and AWS SM key (prod/meta/test-app) the fleet's
   # other GHCR/GitHub credentials already use, mirroring
   # lightbridge-authz-ghcr-creds above.
-  - name: vaam-apps-argocd-creds
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: vaam-store
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: serverless/k/vaam-apps
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: argocd
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-      automated:
-        prune: true
-        selfHeal: true
+    # - name: vaam-apps-argocd-creds
+    #   finalizers:
+    #     - resources-finalizer.argocd.argoproj.io
+    #   project: vaam-store
+    #   source:
+    #     repoURL: https://github.com/whythatfunction/home-os
+    #     targetRevision: HEAD
+    #     path: serverless/k/vaam-apps
+    #   destination:
+    #     server: https://kubernetes.default.svc
+    #     namespace: argocd
+    #   syncPolicy:
+    #     syncOptions:
+    #       - CreateNamespace=true
+    #     automated:
+    #       prune: true
+    #       selfHeal: true
 
     #  - name: ai-poc-model-deployment
     #    finalizers:
