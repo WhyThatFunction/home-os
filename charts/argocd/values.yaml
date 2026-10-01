@@ -2,7 +2,7 @@ global:
   domain: argocd.ssegning.me
 
 controller:
-  replicas: 3 # = number of destination clusters (home-remote, netcup-k8s, in-cluster); the controller shards by cluster, not by app count
+  replicas: 2 # = number of destination clusters (home-remote, netcup-k8s, in-cluster); the controller shards by cluster, not by app count
   pdb:
     enabled: true
     minAvailable: 1
@@ -17,7 +17,7 @@ controller:
       memory: 4Gi # no CPU limit — let it burst during sync storms
   env:
     - name: ARGOCD_CONTROLLER_REPLICAS # required for sharding to actually distribute clusters across replicas
-      value: "3"
+      value: "2"
 
 # Single redis is a SPOF and a reconcile/UI latency source (cache rebuild on restart).
 # redis-ha gives a 3-node sentinel cluster; it is mutually exclusive with `redis`.
@@ -34,15 +34,15 @@ redis-ha:
 server:
   autoscaling:
     enabled: true
-    minReplicas: 2
-    maxReplicas: 3
+    minReplicas: 1
+    maxReplicas: 2
     targetCPUUtilizationPercentage: 60
   resources:
     requests:
       cpu: 250m
       memory: 256Mi
     limits:
-      memory: 512Mi
+      memory: 2Gi
   ingress:
     enabled: true
     ingressClassName: traefik
@@ -54,13 +54,13 @@ server:
 repoServer:
   autoscaling:
     enabled: true
-    minReplicas: 2
-    maxReplicas: 5 # render is bursty and CPU-bound; raise the ceiling
+    minReplicas: 1
+    maxReplicas: 2 # render is bursty and CPU-bound; raise the ceiling
     targetCPUUtilizationPercentage: 60
   resources:
     requests:
-      cpu: 500m
-      memory: 1Gi
+      cpu: 250m
+      memory: 256Mi
     # Bumped from 1Gi after the cd chart split (#112): repo-server now has to
     # `helm template` 10 charts (cd + 9 cd-<group> app-of-apps) instead of 1,
     # and their simultaneous first-syncs OOMKilled the sole repo-server pod
@@ -73,7 +73,7 @@ repoServer:
     minAvailable: 1 # minAvailable:2 with minReplicas:2 blocks ALL voluntary disruption (drains/rollouts hang)
 
 applicationSet:
-  replicas: 3
+  replicas: 2
   resources:
     requests:
       cpu: 250m
@@ -82,7 +82,7 @@ applicationSet:
       memory: 512Mi
   pdb:
     enabled: true
-    minAvailable: 2
+    minAvailable: 1
 
 dex:
   pdb:
