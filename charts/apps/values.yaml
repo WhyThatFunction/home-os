@@ -100,24 +100,24 @@ applications:
   #   api.vaam.store                 -> backend server (/rpc, /oauth, /healthz, /readyz)
   #   api.vaam.store/webhooks        -> backend notification
   #   api.vaam.store/api/images      -> emgr (image resizer)
-  - name: vaam
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: vaam-store
-    source:
-      repoURL: https://github.com/vaam-apps/vaam-apps
-      targetRevision: HEAD
-      path: deploy/cd
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: vaam
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-        - ServerSideApply=true
-      automated:
-        prune: true
-        selfHeal: true
+    # - name: vaam
+    #   finalizers:
+    #     - resources-finalizer.argocd.argoproj.io
+    #   project: vaam-store
+    #   source:
+    #     repoURL: https://github.com/vaam-apps/vaam-apps
+    #     targetRevision: HEAD
+    #     path: deploy/cd
+    #   destination:
+    #     server: https://kubernetes.default.svc
+    #     namespace: vaam
+    #   syncPolicy:
+    #     syncOptions:
+    #       - CreateNamespace=true
+    #       - ServerSideApply=true
+    #     automated:
+    #       prune: true
+    #       selfHeal: true
 
   - name: jellyfin
     finalizers:
@@ -307,23 +307,23 @@ applications:
 
   # Self-hosted OpenObserve backend. Public OTLP ingest remains at
   # otel.vaam.store; the OpenObserve UI stays on the home network.
-  - name: openobserve
-    finalizers:
-      - resources-finalizer.argocd.argoproj.io
-    project: external
-    source:
-      repoURL: https://github.com/whythatfunction/home-os
-      targetRevision: HEAD
-      path: charts/home-apps/openobserve
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: openobserve
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=true
-      automated:
-        prune: true
-        selfHeal: true
+   # - name: openobserve
+   #   finalizers:
+   #     - resources-finalizer.argocd.argoproj.io
+   #   project: external
+   #   source:
+   #     repoURL: https://github.com/whythatfunction/home-os
+   #     targetRevision: HEAD
+   #     path: charts/home-apps/openobserve
+   #   destination:
+   #     server: https://kubernetes.default.svc
+   #     namespace: openobserve
+   #   syncPolicy:
+   #     syncOptions:
+   #       - CreateNamespace=true
+   #     automated:
+   #       prune: true
+   #       selfHeal: true
 
   # - name: opfs-webauthn
   #   finalizers:
