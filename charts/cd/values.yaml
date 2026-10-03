@@ -252,6 +252,45 @@ projects:
     sourceNamespaces:
       - "*"
 
+  # another-agentic: the orchestration layer (vymalo/another-agentic-system) and
+  # its coder agent (vymalo/another-adam-rs), both on netcup-k8s.
+  #
+  # Deliberately the narrowest project here: one cluster, ONE namespace, and
+  # `Namespace` as the only cluster-scoped kind (it is what CreateNamespace and
+  # managedNamespaceMetadata need). Everything else the charts render (CNPG
+  # Clusters, ExternalSecrets, Ingress, NetworkPolicies, ...) is namespaced.
+  # `sourceNamespaces` is left out on purpose: only Applications in the argocd
+  # namespace (the `apps` app-of-apps) may use this project.
+  #
+  # sourceRepos: the two app repos (public, so no repository credential) and
+  # bjw-s's app-template, which `another-agentic-coder` uses as a second source
+  # to render the coder's GitHub App Secret as an ExternalSecret (the ARC
+  # runner pools' pattern); adam-rs's chart has no ExternalSecret for the key.
+  - name: another-agentic
+    additionalLabels: { }
+    additionalAnnotations: { }
+    permitOnlyProjectScopedClusters: false
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    description: another-agentic-system and its coder agent on netcup
+    sourceRepos:
+      - https://github.com/vymalo/another-agentic-system
+      - https://github.com/vymalo/another-adam-rs
+      - https://bjw-s-labs.github.io/helm-charts
+    destinations:
+      - namespace: another-agentic-system
+        name: netcup-k8s
+    clusterResourceWhitelist:
+      - group: ""
+        kind: Namespace
+    clusterResourceBlacklist: [ ]
+    namespaceResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    orphanedResources: { }
+    roles: [ ]
+    syncWindows: [ ]
+
 applications:
   - name: cd
     finalizers:
