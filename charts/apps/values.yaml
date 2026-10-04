@@ -226,6 +226,14 @@ applications:
                 url: "http://another-agentic-websearch.another-agentic-system.svc:8080/mcp"
               context7:
                 enabled: true
+            # The coder's run store is the database `coder` in the system
+            # chart's one CNPG cluster (owner decision, 2026-10-04): no Cluster
+            # of its own. The system chart renders the Secret coder-db-uri (key
+            # uri) with sharedDatabase.coder.enabled below.
+            database:
+              enabled: false
+              existingSecret:
+                name: coder-db-uri
             externalSecrets:
               key: prod/another-agentic/env
               properties:
@@ -289,7 +297,7 @@ applications:
       helm:
         releaseName: another-agentic-system
         # Mirrors deploy/chart/examples/netcup.values.yaml (what that repo's CI
-        # renders). `sharing` is absent: sharing is disabled. Agents: the
+        # renders), plus the shared database and sharing below. Agents: the
         # chart's defaults, the coder (by its card at the Service above) and the
         # chat agent; no researcher.
         valuesObject:
@@ -323,6 +331,18 @@ applications:
           # syncs: a missing one fails the orchestrator's whole ExternalSecret.
           webSearch:
             enabled: true
+          # One CNPG cluster, three databases (owner decision, 2026-10-04): the
+          # coder's database, role and Secret coder-db-uri in this chart's
+          # cluster (AWS property coder_db_password). Needs CNPG 1.25 or later
+          # (the Database CRD).
+          sharedDatabase:
+            coder:
+              enabled: true
+          # Sharing a thread by link (ADR 0040), signed-in readers only for
+          # now: `public` would open the share routes to anyone with the link
+          # (AWS property sharing_secret).
+          sharing:
+            mode: internal
           orchestrator:
             toolServers:
               websearch:
