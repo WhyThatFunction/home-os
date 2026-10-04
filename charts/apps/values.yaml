@@ -178,11 +178,11 @@ applications:
           releaseName: coder
           valuesObject:
             config:
-              # The gateway's URL (https://api.ai.camer.digital/v1) is kept in
+              # The AI gateway's URL is kept in
               # AWS, property `model_base_url`, not in git (owner's choice,
               # 2026-10-04; another-adam-rs #85).
               modelBaseUrlFromSecret: true
-              # The models the gateway (api.ai.camer.digital) serves for the
+              # The models the AI gateway serves for the
               # coder and for OpenCode through the same gateway (owner's
               # choice, 2026-10-04).
               model: deepseek-v4.1-flash
