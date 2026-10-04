@@ -152,9 +152,9 @@ applications:
   #
   # Before this merges (it deploys immediately), the owner actions of
   # vymalo/another-agentic-system#148 must be done: the AWS secret with every
-  # property above, the Keycloak client, the GitHub App and its installation,
+  # property this file names, the Keycloak client, the GitHub App and its installation,
   # DNS for the host, public 443 on netcup, and a certificate issuer that can
-  # sign for the host. The values marked PLACEHOLDER below must be replaced.
+  # sign for the host.
   #
   # Pod Security: enforce `baseline`, warn and audit at `restricted`. Every pod
   # the charts render sets runAsNonRoot, drops ALL capabilities (the edge adds
@@ -200,15 +200,14 @@ applications:
               # Administration permission).
               createRepoOwners: [ ]
               app:
-                # PLACEHOLDERS, to replace before merging: the App's ID (or
-                # its client ID), and the accounts (users or organisations)
-                # the coder may work on. No installation ID: the coder finds
-                # the installation of each repository's owner with the App's
-                # key (another-adam-rs ADR 0017). A placeholder owner is not a
-                # GitHub login, so the coder refuses to start (exit 78) until
-                # it is replaced. Cross-account work needs a public App.
-                id: "<GITHUB_APP_ID>"
-                owners: [ "<GITHUB_OWNER>" ]
+                # The App bored-giant-panda, owned by vymalo (application ID
+                # 5185821); `id` is its client ID, the JWT's `iss`. The coder
+                # works on vymalo's repositories only. No installation ID: the
+                # coder finds the installation of each repository's owner with
+                # the App's key (another-adam-rs ADR 0017). Another account in
+                # `owners` needs the App installed there, so a public App.
+                id: "Iv23li4m1ZrQ8wdwjnQH"
+                owners: [ "vymalo" ]
                 privateKeySecret: coder-github-app
             # Web search (the system chart's search pod, same namespace) and
             # Context7 (hosted), as optional MCP servers of every conversation:
