@@ -208,6 +208,17 @@ applications:
                 id: "<GITHUB_APP_ID>"
                 owners: [ "<GITHUB_OWNER>" ]
                 privateKeySecret: coder-github-app
+            # Web search (the system chart's search pod, same namespace) and
+            # Context7 (hosted), as optional MCP servers of every conversation:
+            # a server that is down at start is skipped, not a crash loop
+            # (another-adam-rs ADR 0018). Plain http inside the cluster is
+            # allowed by MCP_ALLOW_INSECURE above. Keys: the AWS properties
+            # `search_mcp_token` and `context7_api_key` (chart defaults).
+            mcp:
+              websearch:
+                url: "http://another-agentic-websearch.another-agentic-system.svc:8080/mcp"
+              context7:
+                enabled: true
             externalSecrets:
               key: prod/another-agentic/env
               properties:
