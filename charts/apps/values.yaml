@@ -178,9 +178,10 @@ applications:
           releaseName: coder
           valuesObject:
             config:
-              # PLACEHOLDER: the OpenAI-compatible gateway, with its /v1
-              # prefix and streaming. The owner names it (plan decision D2).
-              modelBaseUrl: "https://gateway.example.invalid/v1"
+              # The gateway's URL (https://api.ai.camer.digital/v1) is kept in
+              # AWS, property `model_base_url`, not in git (owner's choice,
+              # 2026-10-04; another-adam-rs #85).
+              modelBaseUrlFromSecret: true
               # The models the gateway (api.ai.camer.digital) serves for the
               # coder and for OpenCode through the same gateway (owner's
               # choice, 2026-10-04).
