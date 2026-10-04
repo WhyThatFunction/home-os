@@ -198,11 +198,15 @@ applications:
               # Administration permission).
               createRepoOwners: [ ]
               app:
-                # PLACEHOLDERS, deliberately refused by the chart until
-                # replaced (installationId must be a positive integer): the
-                # coder renders nothing until the owner has created the App.
+                # PLACEHOLDERS, to replace before merging: the App's ID (or
+                # its client ID), and the accounts (users or organisations)
+                # the coder may work on. No installation ID: the coder finds
+                # the installation of each repository's owner with the App's
+                # key (another-adam-rs ADR 0017). A placeholder owner is not a
+                # GitHub login, so the coder refuses to start (exit 78) until
+                # it is replaced. Cross-account work needs a public App.
                 id: "<GITHUB_APP_ID>"
-                installationId: "<GITHUB_APP_INSTALLATION_ID>"
+                owners: [ "<GITHUB_OWNER>" ]
                 privateKeySecret: coder-github-app
             externalSecrets:
               key: prod/another-agentic/env
