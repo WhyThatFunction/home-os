@@ -181,10 +181,11 @@ applications:
               # PLACEHOLDER: the OpenAI-compatible gateway, with its /v1
               # prefix and streaming. The owner names it (plan decision D2).
               modelBaseUrl: "https://gateway.example.invalid/v1"
-              # PLACEHOLDER: the aliases the gateway serves for the coder
-              # (also what OpenCode uses through the same gateway).
-              model: coder
-              opencodeModel: coder
+              # The models the gateway (api.ai.camer.digital) serves for the
+              # coder and for OpenCode through the same gateway (owner's
+              # choice, 2026-10-04).
+              model: adorsys-coder
+              opencodeModel: adorsys-coder
               # Pull requests open as drafts while people are testing.
               prDraft: true
               extraEnv:
@@ -299,8 +300,9 @@ applications:
             # (with /v1, streaming). The owner names it (plan decision D2).
             baseUrl: "https://gateway.example.invalid/v1"
           chat:
-            # PLACEHOLDER: the alias the gateway serves for the chat agent.
-            model: chat
+            # The gateway's model for the chat agent (owner's choice,
+            # 2026-10-04).
+            model: glm-5.3
           # Titles and descriptions (orchestrator.tasks.*.model) stay off until
           # the owner names a small alias for them.
           # Web search (our own MCP pod on Brave) and Context7 (hosted), which a
