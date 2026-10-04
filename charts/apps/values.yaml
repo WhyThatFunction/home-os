@@ -297,9 +297,13 @@ applications:
             # ClusterIssuer here.
             clusterIssuer: cert-cloudflare
           model:
-            # PLACEHOLDER: the same OpenAI-compatible gateway as the coder's
-            # (with /v1, streaming). The owner names it (plan decision D2).
-            baseUrl: "https://gateway.example.invalid/v1"
+            # The same AI gateway as the coder's (with /v1). Its URL is kept in
+            # AWS, property `model_base_url`, not in git (owner's choice,
+            # 2026-10-04; another-agentic-system #182). Needs an orchestrator
+            # image at or after that change (the chart's README, "The pinned
+            # orchestrator image").
+            baseUrl: ""
+            baseUrlFromSecret: true
           chat:
             # The gateway's model for the chat agent (owner's choice,
             # 2026-10-04).
