@@ -119,6 +119,230 @@ applications:
     #       prune: true
     #       selfHeal: true
 
+  # another-agentic — the orchestration layer (chat web + orchestrator behind
+  # oauth2-proxy and Caddy, CNPG databases, the `chat` agent) and its coder
+  # agent, on netcup-k8s, namespace `another-agentic-system`. Two Applications
+  # in the AppProject `another-agentic` (charts/cd/values.yaml):
+  #
+  #   another-agentic-coder   vymalo/another-adam-rs  deploy/coder, release `coder`
+  #   another-agentic-system  vymalo/another-agentic-system  deploy/chart
+  #
+  # No sync-wave: a later wave in this app-of-apps would wait for every other
+  # app here to be healthy. The orchestrator starts without the coder and
+  # reaches it by its card URL once it is up.
+  #
+  # Both charts live in their APP repos and Argo tracks HEAD, for the reason
+  # given at `ssegning-com`: home-os `main` is PR-only, so image tags are bumped
+  # by each app repo's own CI in its `deploy/*/values.yaml`. Both repos are
+  # PUBLIC, as are their GHCR packages: no repository credential, no
+  # imagePullSecret. This file holds only what is specific to THIS deployment.
+  # Decisions: another-agentic-system ADR 0041
+  # (docs/decisions/0041-deployed-with-helm-on-kubernetes-secrets-by-externalsecret.md).
+  #
+  # Secrets: nothing secret is in git. Every value is a property of the AWS
+  # Secrets Manager secret `prod/another-agentic/env`, read through the
+  # ClusterSecretStore `ssegning-aws` by External Secrets (the ARC runner pools'
+  # mechanism). The coder's A2A bearer is `coder_a2a_token`, the property the
+  # orchestrator's chart reads for the same agent, so the two sides cannot
+  # differ. The GitHub App's PEM is `github_app_private_key`: adam-rs's chart
+  # only mounts a Secret you provide (`github.app.privateKeySecret`) and has no
+  # ExternalSecret for it, so the Secret `coder-github-app` is rendered by the
+  # second source of the coder Application (bjw-s app-template rawResources, as
+  # in charts/cd/templates/arc-runner-pools.yaml).
+  #
+  # Before this merges (it deploys immediately), the owner actions of
+  # vymalo/another-agentic-system#148 must be done: the AWS secret with every
+  # property this file names, the Keycloak client, the GitHub App and its installation,
+  # DNS for the host, public 443 on netcup, and a certificate issuer that can
+  # sign for the host.
+  #
+  # Pod Security: enforce `baseline`, warn and audit at `restricted`. Every pod
+  # the charts render sets runAsNonRoot, drops ALL capabilities (the edge adds
+  # NET_BIND_SERVICE) and uses the RuntimeDefault seccomp profile, but that is
+  # unverified on this cluster, including the pods CloudNativePG creates. Raise
+  # `enforce` to `restricted` once a sync shows no warning. Both Applications
+  # carry the same metadata, so either may create the namespace first.
+  - name: another-agentic-coder
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: another-agentic
+    sources:
+      - repoURL: https://github.com/vymalo/another-adam-rs
+        targetRevision: HEAD
+        path: deploy/coder
+        helm:
+          # The Service is `coder` (the chart's fullname collapses when the
+          # release name contains the chart name), which the orchestrator
+          # chart's default agents entry names:
+          # http://coder.another-agentic-system.svc:8080
+          releaseName: coder
+          valuesObject:
+            config:
+              # The AI gateway's URL is kept in
+              # AWS, property `model_base_url`, not in git (owner's choice,
+              # 2026-10-04; another-adam-rs #85).
+              modelBaseUrlFromSecret: true
+              # The models the AI gateway serves for the
+              # coder and for OpenCode through the same gateway (owner's
+              # choice, 2026-10-04).
+              model: deepseek-v4.1-flash
+              opencodeModel: deepseek-v4.1-flash
+              # Pull requests open as drafts while people are testing.
+              prDraft: true
+              extraEnv:
+                # The orchestrator's thread tools are plain http inside the
+                # cluster (another-adam-rs bin/adam-coder/README.md, "What the
+                # deployment decides").
+                MCP_ALLOW_INSECURE: "true"
+            github:
+              auth: app
+              # No repository creation by the coder (needs the App's
+              # Administration permission).
+              createRepoOwners: [ ]
+              app:
+                # The App bored-giant-panda, owned by vymalo (application ID
+                # 5185821); `id` is its client ID, the JWT's `iss`. The coder
+                # works on vymalo's repositories only. No installation ID: the
+                # coder finds the installation of each repository's owner with
+                # the App's key (another-adam-rs ADR 0017). Another account in
+                # `owners` needs the App installed there, so a public App.
+                id: "Iv23li4m1ZrQ8wdwjnQH"
+                owners: [ "vymalo" ]
+                privateKeySecret: coder-github-app
+            # Web search (the system chart's search pod, same namespace) and
+            # Context7 (hosted), as optional MCP servers of every conversation:
+            # a server that is down at start is skipped, not a crash loop
+            # (another-adam-rs ADR 0018). Plain http inside the cluster is
+            # allowed by MCP_ALLOW_INSECURE above. Keys: the AWS properties
+            # `search_mcp_token` and `context7_api_key` (chart defaults).
+            mcp:
+              websearch:
+                url: "http://another-agentic-websearch.another-agentic-system.svc:8080/mcp"
+              context7:
+                enabled: true
+            externalSecrets:
+              key: prod/another-agentic/env
+              properties:
+                modelApiKey: model_api_key
+                # github.auth=app: no token.
+                githubToken: null
+                a2aBearerTokens: coder_a2a_token
+      # The Secret `coder-github-app` (key private-key.pem), from the AWS
+      # property `github_app_private_key`. One rawResource: its name comes
+      # from forceRename.
+      - repoURL: https://bjw-s-labs.github.io/helm-charts
+        targetRevision: "4.*"
+        chart: app-template
+        helm:
+          releaseName: coder-github-app
+          valuesObject:
+            rawResources:
+              github-app-key:
+                enabled: true
+                forceRename: coder-github-app
+                apiVersion: external-secrets.io/v1
+                kind: ExternalSecret
+                spec:
+                  spec:
+                    refreshInterval: 1h
+                    secretStoreRef:
+                      name: ssegning-aws
+                      kind: ClusterSecretStore
+                    target:
+                      name: coder-github-app
+                      creationPolicy: Owner
+                    data:
+                      - secretKey: private-key.pem
+                        remoteRef:
+                          key: prod/another-agentic/env
+                          property: github_app_private_key
+    destination:
+      name: netcup-k8s
+      namespace: another-agentic-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      managedNamespaceMetadata:
+        labels:
+          pod-security.kubernetes.io/enforce: baseline
+          pod-security.kubernetes.io/warn: restricted
+          pod-security.kubernetes.io/audit: restricted
+      automated:
+        prune: true
+        selfHeal: true
+
+  - name: another-agentic-system
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: another-agentic
+    source:
+      repoURL: https://github.com/vymalo/another-agentic-system
+      targetRevision: HEAD
+      path: deploy/chart
+      helm:
+        releaseName: another-agentic-system
+        # Mirrors deploy/chart/examples/netcup.values.yaml (what that repo's CI
+        # renders). `sharing` is absent: sharing is disabled. Agents: the
+        # chart's defaults, the coder (by its card at the Service above) and the
+        # chat agent; no researcher.
+        valuesObject:
+          host: agentic.servers.segning.pro
+          auth:
+            issuer: https://auth.verif.fyi/realms/vymalo
+          ingress:
+            # DNS-01 through the Cloudflare token. Whether that token can edit
+            # the zone segning.pro is UNVERIFIED; if not, name another
+            # ClusterIssuer here.
+            clusterIssuer: cert-cloudflare
+          model:
+            # The same AI gateway as the coder's (with /v1). Its URL is kept in
+            # AWS, property `model_base_url`, not in git (owner's choice,
+            # 2026-10-04; another-agentic-system #182). Needs an orchestrator
+            # image at or after that change (the chart's README, "The pinned
+            # orchestrator image").
+            baseUrl: ""
+            baseUrlFromSecret: true
+          chat:
+            # The gateway's model for the chat agent (owner's choice,
+            # 2026-10-04).
+            model: glm-5.3
+          # Titles and descriptions (orchestrator.tasks.*.model) stay off until
+          # the owner names a small alias for them.
+          # Web search (our own MCP pod on Brave) and Context7 (hosted), which a
+          # person can attach to a conversation; the orchestrator holds both
+          # keys (another-agentic-system ADR 0024, deploy/chart/README.md "Web
+          # search and Context7"). The AWS properties `brave_api_key`,
+          # `search_mcp_token` and `context7_api_key` must exist before this
+          # syncs: a missing one fails the orchestrator's whole ExternalSecret.
+          webSearch:
+            enabled: true
+          orchestrator:
+            toolServers:
+              websearch:
+                enabled: true
+              context7:
+                enabled: true
+          networkPolicy:
+            # Only Traefik (namespace traefik-system on netcup, see
+            # charts/cd-networking) may reach the edge.
+            ingressControllerNamespace: traefik-system
+    destination:
+      name: netcup-k8s
+      namespace: another-agentic-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      managedNamespaceMetadata:
+        labels:
+          pod-security.kubernetes.io/enforce: baseline
+          pod-security.kubernetes.io/warn: restricted
+          pod-security.kubernetes.io/audit: restricted
+      automated:
+        prune: true
+        selfHeal: true
+
   - name: jellyfin
     finalizers:
       - resources-finalizer.argocd.argoproj.io
