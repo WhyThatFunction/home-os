@@ -189,6 +189,12 @@ applications:
               opencodeModel: deepseek-v4.1-flash
               # Pull requests open as drafts while people are testing.
               prDraft: true
+              # Commits are the App's bot user, so GitHub shows them as the
+              # App: <bot user id>+<slug>[bot]@users.noreply.github.com. The id
+              # is the bot user's (GET /users/bored-giant-panda[bot]), not the
+              # App's (owner, 2026-10-04).
+              gitAuthorName: "bored-giant-panda[bot]"
+              gitAuthorEmail: "337696346+bored-giant-panda[bot]@users.noreply.github.com"
               extraEnv:
                 # The orchestrator's thread tools are plain http inside the
                 # cluster (another-adam-rs bin/adam-coder/README.md, "What the
