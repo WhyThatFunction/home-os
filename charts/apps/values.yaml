@@ -184,8 +184,8 @@ applications:
               # The models the gateway (api.ai.camer.digital) serves for the
               # coder and for OpenCode through the same gateway (owner's
               # choice, 2026-10-04).
-              model: adorsys-coder
-              opencodeModel: adorsys-coder
+              model: deepseek-v4.1-flash
+              opencodeModel: deepseek-v4.1-flash
               # Pull requests open as drafts while people are testing.
               prDraft: true
               extraEnv:
