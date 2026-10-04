@@ -292,6 +292,20 @@ applications:
             model: chat
           # Titles and descriptions (orchestrator.tasks.*.model) stay off until
           # the owner names a small alias for them.
+          # Web search (our own MCP pod on Brave) and Context7 (hosted), which a
+          # person can attach to a conversation; the orchestrator holds both
+          # keys (another-agentic-system ADR 0024, deploy/chart/README.md "Web
+          # search and Context7"). The AWS properties `brave_api_key`,
+          # `search_mcp_token` and `context7_api_key` must exist before this
+          # syncs: a missing one fails the orchestrator's whole ExternalSecret.
+          webSearch:
+            enabled: true
+          orchestrator:
+            toolServers:
+              websearch:
+                enabled: true
+              context7:
+                enabled: true
           networkPolicy:
             # Only Traefik (namespace traefik-system on netcup, see
             # charts/cd-networking) may reach the edge.
