@@ -252,17 +252,25 @@ projects:
     sourceNamespaces:
       - "*"
 
-  # another-agentic: the orchestration layer (vymalo/another-agentic-system) and
-  # its coder agent (vymalo/another-adam-rs), both on netcup-k8s.
+  # another-agentic: the orchestration layer (vymalo/another-agentic-system),
+  # its coder agent (vymalo/another-adam-rs) and the agent operator
+  # (vymalo/another-agentic-platform), all on netcup-k8s.
   #
   # Deliberately the narrowest project here: one cluster, ONE namespace, and
   # `Namespace` as the only cluster-scoped kind (it is what CreateNamespace and
   # managedNamespaceMetadata need). Everything else the charts render (CNPG
   # Clusters, ExternalSecrets, Ingress, NetworkPolicies, ...) is namespaced.
+  # The operator's chart (deploy/operator of another-agentic-platform) renders
+  # a Deployment, a ServiceAccount, a Role and RoleBinding, two Services, a
+  # NetworkPolicy and an ExternalSecret, all namespaced and no ClusterRole
+  # (its render check fails on one), so it needs nothing added to
+  # clusterResourceWhitelist. Its CRDs ARE cluster-scoped and are NOT allowed
+  # here: they are the Application `aap-operator-crds` of the `infrastructure`
+  # project (below), which is where a CRD belongs and which is not pruned.
   # `sourceNamespaces` is left out on purpose: only Applications in the argocd
   # namespace (the `apps` app-of-apps) may use this project.
   #
-  # sourceRepos: the two app repos (public, so no repository credential) and
+  # sourceRepos: the three app repos (public, so no repository credential) and
   # bjw-s's app-template, which `another-agentic-coder` uses as a second source
   # to render the coder's GitHub App Secret as an ExternalSecret (the ARC
   # runner pools' pattern); adam-rs's chart has no ExternalSecret for the key.
@@ -272,10 +280,11 @@ projects:
     permitOnlyProjectScopedClusters: false
     finalizers:
       - resources-finalizer.argocd.argoproj.io
-    description: another-agentic-system and its coder agent on netcup
+    description: another-agentic-system, its coder agent and the agent operator on netcup
     sourceRepos:
       - https://github.com/vymalo/another-agentic-system
       - https://github.com/vymalo/another-adam-rs
+      - https://github.com/vymalo/another-agentic-platform
       - https://bjw-s-labs.github.io/helm-charts
     destinations:
       - namespace: another-agentic-system
@@ -527,6 +536,55 @@ applications:
         - ServerSideApply=true
       automated:
         prune: true
+        selfHeal: true
+
+  # aap-operator-crds: the CustomResourceDefinitions of the another-agentic
+  # operator, `agentservices.agents.vymalo.com` and
+  # `agentconfigs.agents.vymalo.com` (v1alpha1), from
+  # vymalo/another-agentic-platform `deploy/operator-crds`. Their own app, in
+  # THIS project, not `another-agentic`: a CRD is cluster-scoped, and that
+  # project lets in one namespace and no cluster-scoped kind but Namespace. The
+  # operator itself is the Application `another-agentic-operator`
+  # (charts/apps/values.yaml). Decided in the platform's §93 ("Operator v0").
+  #
+  # Deleting a CRD deletes every AgentService and AgentConfig on the cluster,
+  # so unlike the Gateway API CRDs (charts/cd-networking), which are plain
+  # `prune: true` with the finalizer, this app is set up so that Argo never
+  # deletes them by itself:
+  #   * `automated.prune: false`: a CRD dropped from the chart is not deleted
+  #     by a sync. It stays until a person prunes it on purpose.
+  #   * NO `resources-finalizer`: deleting this Application (or the `cd`
+  #     app-of-apps pruning it) leaves the CRDs and every resource of those
+  #     kinds in the cluster. Do not add the finalizer back.
+  #   * `ServerSideApply=true`: the two CRDs are 55 KB, past what a client-side
+  #     apply keeps in the last-applied annotation.
+  # `selfHeal` stays on, so an edited or deleted CRD is restored (a deleted CRD
+  # comes back empty, which is why it must not happen).
+  # Not done here: the CRD objects carry no `argocd.argoproj.io/sync-options:
+  # Prune=false` (the way charts/ci-cache protects what holds data), because
+  # the chart does not set it and this repository does not edit a chart it does
+  # not own. An upstream chart change would add the second lock.
+  #
+  # No sync-wave: `another-agentic-operator` may start before this app has
+  # synced and then waits, unready, until the CRDs exist (its readiness is
+  # "both caches listed"). The first sync of both settles it within minutes.
+  - name: aap-operator-crds
+    project: infrastructure
+    source:
+      repoURL: https://github.com/vymalo/another-agentic-platform
+      targetRevision: HEAD
+      path: deploy/operator-crds
+      helm:
+        releaseName: aap-operator-crds
+    destination:
+      name: netcup-k8s
+      # CRDs are cluster-scoped: the namespace is not used, and is not created.
+      namespace: another-agentic-system
+    syncPolicy:
+      syncOptions:
+        - ServerSideApply=true
+      automated:
+        prune: false
         selfHeal: true
 
   - name: ai-apps-v2
