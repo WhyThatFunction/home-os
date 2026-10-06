@@ -289,7 +289,7 @@ applications:
       helm:
         releaseName: another-agentic-system
         # Mirrors deploy/chart/examples/netcup.values.yaml (what that repo's CI
-        # renders). `sharing` is absent: sharing is disabled. Agents: the
+        # renders), except `sharing`. Agents: the
         # chart's defaults, the coder (by its card at the Service above) and the
         # chat agent; no researcher.
         valuesObject:
@@ -313,6 +313,15 @@ applications:
             # The gateway's model for the chat agent (owner's choice,
             # 2026-10-04).
             model: glm-5.3
+          # Thread sharing by revocable link, all three tiers: private,
+          # internal (signed-in) and public (another-agentic-system ADR 0040;
+          # owner's choice, 2026-10-06). Public reads are rate limited and hide
+          # step input, output and files (the chart's defaults). The AWS
+          # property `sharing_secret` (openssl rand -hex 32, never the value of
+          # `thread_tools_secret`) must exist before this syncs: a missing one
+          # fails the orchestrator's whole ExternalSecret.
+          sharing:
+            mode: public
           # Titles and descriptions (orchestrator.tasks.*.model) stay off until
           # the owner names a small alias for them.
           # Web search (our own MCP pod on Brave) and Context7 (hosted), which a
