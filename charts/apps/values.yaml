@@ -120,20 +120,25 @@ applications:
     #       selfHeal: true
 
   # another-agentic — the orchestration layer (chat web + orchestrator behind
-  # oauth2-proxy and Caddy, CNPG databases, the `chat` agent) and its coder
-  # agent, on netcup-k8s, namespace `another-agentic-system`. Two Applications
-  # in the AppProject `another-agentic` (charts/cd/values.yaml):
+  # oauth2-proxy and Caddy, CNPG databases, the `chat` agent), its coder
+  # agent and the operator that will run agents as custom resources, on
+  # netcup-k8s, namespace `another-agentic-system`. Three Applications in the
+  # AppProject `another-agentic` (charts/cd/values.yaml):
   #
-  #   another-agentic-coder   vymalo/another-adam-rs  deploy/coder, release `coder`
-  #   another-agentic-system  vymalo/another-agentic-system  deploy/chart
+  #   another-agentic-coder     vymalo/another-adam-rs  deploy/coder, release `coder`
+  #   another-agentic-system    vymalo/another-agentic-system  deploy/chart
+  #   another-agentic-operator  vymalo/another-agentic-platform  deploy/operator, release `aap-operator`
+  #
+  # (The operator's CRDs are a fourth Application, `aap-operator-crds`, in the
+  # `infrastructure` project of charts/cd/values.yaml.)
   #
   # No sync-wave: a later wave in this app-of-apps would wait for every other
   # app here to be healthy. The orchestrator starts without the coder and
   # reaches it by its card URL once it is up.
   #
-  # Both charts live in their APP repos and Argo tracks HEAD, for the reason
+  # The charts live in their APP repos and Argo tracks HEAD, for the reason
   # given at `ssegning-com`: home-os `main` is PR-only, so image tags are bumped
-  # by each app repo's own CI in its `deploy/*/values.yaml`. Both repos are
+  # by each app repo's own CI in its `deploy/*/values.yaml`. All the repos are
   # PUBLIC, as are their GHCR packages: no repository credential, no
   # imagePullSecret. This file holds only what is specific to THIS deployment.
   # Decisions: another-agentic-system ADR 0041
@@ -160,8 +165,8 @@ applications:
   # the charts render sets runAsNonRoot, drops ALL capabilities (the edge adds
   # NET_BIND_SERVICE) and uses the RuntimeDefault seccomp profile, but that is
   # unverified on this cluster, including the pods CloudNativePG creates. Raise
-  # `enforce` to `restricted` once a sync shows no warning. Both Applications
-  # carry the same metadata, so either may create the namespace first.
+  # `enforce` to `restricted` once a sync shows no warning. All three
+  # Applications carry the same metadata, so any may create the namespace first.
   - name: another-agentic-coder
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -297,7 +302,7 @@ applications:
       helm:
         releaseName: another-agentic-system
         # Mirrors deploy/chart/examples/netcup.values.yaml (what that repo's CI
-        # renders), plus the shared database and sharing below. Agents: the
+        # renders), except `sharing`. Agents: the
         # chart's defaults, the coder (by its card at the Service above) and the
         # chat agent; no researcher.
         valuesObject:
@@ -321,6 +326,15 @@ applications:
             # The gateway's model for the chat agent (owner's choice,
             # 2026-10-04).
             model: glm-5.3
+          # Thread sharing by revocable link, all three tiers: private,
+          # internal (signed-in) and public (another-agentic-system ADR 0040;
+          # owner's choice, 2026-10-06). Public reads are rate limited and hide
+          # step input, output and files (the chart's defaults). The AWS
+          # property `sharing_secret` (openssl rand -hex 32, never the value of
+          # `thread_tools_secret`) must exist before this syncs: a missing one
+          # fails the orchestrator's whole ExternalSecret.
+          sharing:
+            mode: public
           # Titles and descriptions (orchestrator.tasks.*.model) stay off until
           # the owner names a small alias for them.
           # Web search (our own MCP pod on Brave) and Context7 (hosted), which a
@@ -331,18 +345,25 @@ applications:
           # syncs: a missing one fails the orchestrator's whole ExternalSecret.
           webSearch:
             enabled: true
-          # One CNPG cluster, three databases (owner decision, 2026-10-04): the
-          # coder's database, role and Secret coder-db-uri in this chart's
-          # cluster (AWS property coder_db_password). Needs CNPG 1.25 or later
-          # (the Database CRD).
+            # The chart's default also excepts ::ffff:0:0/96, which this
+            # cluster's API server refuses in a NetworkPolicy ("must not have
+            # an IPv4-mapped IPv6 address"), failing the whole sync. Such
+            # addresses leave the pod as IPv4, which egressExcept covers.
+            # Drop this override once the chart's default no longer has it.
+            egressExceptV6:
+              - fc00::/7
+              - fe80::/10
+              - 64:ff9b::/96
+          # One CNPG cluster (owner decision, 2026-10-04): the coder's
+          # database, role and Secret coder-db-uri in this chart's cluster (AWS
+          # property coder_db_password). Needs CNPG 1.25 or later (the
+          # Database CRD). coder-github-app keeps its own Cluster for now: a
+          # second entry needs an AWS property of its own.
           sharedDatabase:
-            coder:
-              enabled: true
-          # Sharing a thread by link (ADR 0040), signed-in readers only for
-          # now: `public` would open the share routes to anyone with the link
-          # (AWS property sharing_secret).
-          sharing:
-            mode: internal
+            coders:
+              - name: coder
+                secretName: coder-db-uri
+                passwordProperty: coder_db_password
           orchestrator:
             toolServers:
               websearch:
@@ -353,6 +374,98 @@ applications:
             # Only Traefik (namespace traefik-system on netcup, see
             # charts/cd-networking) may reach the edge.
             ingressControllerNamespace: traefik-system
+    destination:
+      name: netcup-k8s
+      namespace: another-agentic-system
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+      managedNamespaceMetadata:
+        labels:
+          pod-security.kubernetes.io/enforce: baseline
+          pod-security.kubernetes.io/warn: restricted
+          pod-security.kubernetes.io/audit: restricted
+      automated:
+        prune: true
+        selfHeal: true
+
+  # another-agentic-operator — the operator of vymalo/another-agentic-platform
+  # (§59a, "Operator v0"): ONE replica of `operator run`, namespaced, watching
+  # only `another-agentic-system` (a Role and RoleBinding there, no
+  # ClusterRole, no right on Secrets), which reconciles the custom resources
+  # AgentService and AgentConfig and serves the agent registry. This is
+  # slice S10: the operator with NO AgentService yet. The coder keeps running
+  # from `another-agentic-coder` above; a shadow `coder-next` (S13) comes
+  # before any cutover (S14), and nothing here touches the coder.
+  #
+  # Chart: `deploy/operator` of the platform repo at HEAD, release
+  # `aap-operator` (the chart fixes every object's name, so the registry Service
+  # is `aap-operator-registry` whatever the release is called). The image tag
+  # (`image.tag`, `sha-<7>`) is bumped on main by that repo's CI and is NOT set
+  # here. This is the platform's `examples/netcup.values.yaml`, as the
+  # platform's README says; the rest are the chart's defaults.
+  #
+  # The CRDs are NOT in this chart: Application `aap-operator-crds` in the
+  # `infrastructure` project (charts/cd/values.yaml, never pruned). Until they
+  # exist the operator pod stays unready.
+  #
+  # Secret: the registry's bearer token is the AWS property
+  # `agent_registry_token` of `prod/another-agentic/env`, read through the
+  # ClusterSecretStore `ssegning-aws` by the chart's own ExternalSecret
+  # `aap-operator-registry` (defaults: store, key and property are the ones in
+  # the chart's values), mounted as a file, never an env var. Nothing secret is
+  # in git. The orchestrator will read the same property as its
+  # `AGENT_REGISTRY_TOKEN` (S12), so the two sides cannot differ. If the
+  # property is missing the operator pod waits in ContainerCreating.
+  #
+  # Before this merges (it deploys immediately), the owner must:
+  #   1. Make the GHCR package
+  #      ghcr.io/vymalo/another-agentic-platform/operator public (GitHub:
+  #      Packages > operator > Package settings > Change visibility > Public)
+  #      and check the anonymous pull; 200 means yes:
+  #        TOKEN=$(curl -s "https://ghcr.io/token?scope=repository:vymalo/another-agentic-platform/operator:pull" | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+  #        curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOKEN" \
+  #          -H 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json' \
+  #          https://ghcr.io/v2/vymalo/another-agentic-platform/operator/manifests/<image.tag of deploy/operator/values.yaml at HEAD>
+  #      Otherwise the pod is in ImagePullBackOff.
+  #   2. Add the property `agent_registry_token` to the AWS secret
+  #      `prod/another-agentic/env`: random, at least 32 bytes
+  #      (`openssl rand -hex 32`).
+  #
+  # NOT changed by this PR: the orchestrator's own registry URL
+  # (`AGENT_REGISTRY_URL`) in the another-agentic-system Application above and
+  # its chart. It stays on its current registry until S12 points it at
+  # `http://aap-operator-registry.another-agentic-system.svc:8080/registry/v1/agents`
+  # with the same token. The ingress rule below is ready for that.
+  - name: another-agentic-operator
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: another-agentic
+    source:
+      repoURL: https://github.com/vymalo/another-agentic-platform
+      targetRevision: HEAD
+      path: deploy/operator
+      helm:
+        releaseName: aap-operator
+        valuesObject:
+          # watchNamespace is left empty: the release's namespace,
+          # another-agentic-system.
+          externalSecrets:
+            enabled: true
+          registry:
+            # The registry document's own URL, sent as its `anchor`.
+            publicUrl: http://aap-operator-registry.another-agentic-system.svc:8080/registry/v1/agents
+          networkPolicy:
+            registry:
+              # Who may read the registry: the orchestrator's pods only (the
+              # chart refuses an empty list while there is a token). Labels
+              # of another-agentic-system's selector for the orchestrator.
+              allowFrom:
+                - podSelector:
+                    matchLabels:
+                      app.kubernetes.io/name: another-agentic-system
+                      app.kubernetes.io/component: orchestrator
     destination:
       name: netcup-k8s
       namespace: another-agentic-system
