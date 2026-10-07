@@ -429,16 +429,9 @@ applications:
   # secret is in git. If the property is missing the operator pod waits in
   # ContainerCreating.
   #
-  # Before this merges (it deploys immediately), the owner must make the GHCR
-  # package ghcr.io/vymalo/another-adam-rs/operator public (GitHub: Packages >
-  # operator > Package settings > Change visibility > Public), after adam-rs's
-  # workflow has pushed it, and check the anonymous pull; 200 means yes:
-  #   TOKEN=$(curl -s "https://ghcr.io/token?scope=repository:vymalo/another-adam-rs/operator:pull" | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
-  #   curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOKEN" \
-  #     -H 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json' \
-  #     https://ghcr.io/v2/vymalo/another-adam-rs/operator/manifests/<image.tag of deploy/operator/values.yaml at HEAD>
-  # Otherwise the pod is in ImagePullBackOff. (The other images of the family
-  # are public and need no pull secret.)
+  # The image ghcr.io/vymalo/another-adam-rs/operator is public: an anonymous
+  # manifest request for sha-2644008 returned 200 (verified 2026-10-07). Like
+  # the other images of the family, it needs no pull secret.
   #
   # NOT changed here: the orchestrator's own registry URL
   # (`AGENT_REGISTRY_URL`) in the another-agentic-system Application above and
