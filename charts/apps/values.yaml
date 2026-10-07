@@ -332,6 +332,15 @@ applications:
           # syncs: a missing one fails the orchestrator's whole ExternalSecret.
           webSearch:
             enabled: true
+            # The chart's default also excepts ::ffff:0:0/96, which this
+            # cluster's API server refuses in a NetworkPolicy ("must not have
+            # an IPv4-mapped IPv6 address"), failing the whole sync. Such
+            # addresses leave the pod as IPv4, which egressExcept covers.
+            # Drop this override once the chart's default no longer has it.
+            egressExceptV6:
+              - fc00::/7
+              - fe80::/10
+              - 64:ff9b::/96
           orchestrator:
             toolServers:
               websearch:
