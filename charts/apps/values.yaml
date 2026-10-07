@@ -125,7 +125,7 @@ applications:
   # netcup-k8s, namespace `another-agentic-system`. Three Applications in the
   # AppProject `another-agentic` (charts/cd/values.yaml):
   #
-  #   another-agentic-coder     vymalo/another-adam-rs  deploy/coder, release `coder`
+  #   another-agentic-coder     the coder: AgentService + AgentConfig `coder`, run by the operator
   #   another-agentic-system    vymalo/another-agentic-system  deploy/chart
   #   another-agentic-operator  vymalo/another-adam-rs  deploy/operator, release `adam-operator`
   #
@@ -136,11 +136,13 @@ applications:
   # app here to be healthy. The orchestrator starts without the coder and
   # reaches it by its card URL once it is up.
   #
-  # The charts live in their APP repos and Argo tracks HEAD, for the reason
-  # given at `ssegning-com`: home-os `main` is PR-only, so image tags are bumped
-  # by each app repo's own CI in its `deploy/*/values.yaml`. All the repos are
-  # PUBLIC, as are their GHCR packages: no repository credential, no
-  # imagePullSecret. This file holds only what is specific to THIS deployment.
+  # The charts of the system and of the operator live in their APP repos and
+  # Argo tracks HEAD, for the reason given at `ssegning-com`: home-os `main` is
+  # PR-only, so image tags are bumped by each app repo's own CI in its
+  # `deploy/*/values.yaml`. The coder has no chart: its image is pinned in its
+  # AgentConfig below. All the repos are PUBLIC, as are their GHCR packages: no
+  # repository credential, no imagePullSecret. This file holds only what is
+  # specific to THIS deployment.
   # Decisions: another-agentic-system ADR 0041
   # (docs/decisions/0041-deployed-with-helm-on-kubernetes-secrets-by-externalsecret.md).
   #
@@ -149,11 +151,7 @@ applications:
   # ClusterSecretStore `ssegning-aws` by External Secrets (the ARC runner pools'
   # mechanism). The coder's A2A bearer is `coder_a2a_token`, the property the
   # orchestrator's chart reads for the same agent, so the two sides cannot
-  # differ. The GitHub App's PEM is `github_app_private_key`: adam-rs's chart
-  # only mounts a Secret you provide (`github.app.privateKeySecret`) and has no
-  # ExternalSecret for it, so the Secret `coder-github-app` is rendered by the
-  # second source of the coder Application (bjw-s app-template rawResources, as
-  # in charts/cd/templates/arc-runner-pools.yaml).
+  # differ. The GitHub App's PEM is `github_app_private_key`.
   #
   # Before this merges (it deploys immediately), the owner actions of
   # vymalo/another-agentic-system#148 must be done: the AWS secret with every
@@ -167,85 +165,57 @@ applications:
   # unverified on this cluster, including the pods CloudNativePG creates. Raise
   # `enforce` to `restricted` once a sync shows no warning. All three
   # Applications carry the same metadata, so any may create the namespace first.
+  #
+  # another-agentic-coder: the coder is NOT a Helm release any more. The adam
+  # operator (`another-agentic-operator` below) runs it from an AgentService
+  # and an AgentConfig, both named `coder`, which this Application applies as
+  # bjw-s `rawResources` (the pattern of the ExternalSecrets of charts/cd-comms
+  # and of the ARC runner pools: no chart of ours to keep, the objects are in
+  # this values file next to every other deployment fact). The operator makes
+  # the StatefulSet `coder`, the Service `coder` (so the card URL the
+  # orchestrator reads, http://coder.another-agentic-system.svc:8080, does not
+  # change), the ConfigMap `coder-mcp`, the NetworkPolicy `coder` and, per
+  # pod, the claim `work-coder-0`: the name the old release's claim has too, so
+  # the new StatefulSet takes the old workspace over (unverified on this
+  # cluster; delete the claim for a clean start). The pods keep the labels
+  # `app.kubernetes.io/name: coder` and `app.kubernetes.io/instance: coder`,
+  # which the system chart's NetworkPolicies select (the search pod's and the
+  # orchestrator's).
+  #
+  # Sources (three objects of ours, two bjw-s releases):
+  #   coder-github-app  the Secret `coder-github-app` (key private-key.pem),
+  #                     property `github_app_private_key`; unchanged.
+  #   coder-agent       the Secret `coder-secrets` and the two custom resources.
+  #
+  # The Secret `coder-secrets` has the keys the AgentConfig and the AgentService
+  # name, and each key is an existing property of the AWS secret, the same the
+  # coder's chart read (nothing new in AWS):
+  #   MODEL_API_KEY      <- model_api_key
+  #   MODEL_BASE_URL     <- model_base_url   (the gateway's URL, kept out of git)
+  #   A2A_BEARER_TOKENS  <- coder_a2a_token
+  #   SEARCH_MCP_TOKEN   <- search_mcp_token
+  #   CONTEXT7_API_KEY   <- context7_api_key
+  # SEARCH_MCP_TOKEN and CONTEXT7_API_KEY are named as the variables that carry
+  # them: the operator names the variable of an MCP header after its Secret key.
+  # The database is the system chart's Secret `coder-db-uri` (key `uri`, the
+  # shared cluster). The image is pinned here, by tag and digest, and moves by
+  # a pull request to this file: the chart that followed adam-rs's main by
+  # itself is gone.
+  #
+  # Sync waves inside this Application (not in the app-of-apps): the Secrets
+  # (and the pruning of the old release, whose objects have the very names the
+  # operator needs: StatefulSet, Service, ConfigMap and NetworkPolicy `coder`),
+  # then the AgentConfig, then the AgentService. The operator refuses a name
+  # held by an object it did not make (NameConflict, nothing changed) and looks
+  # again every 15 s, so an old object still terminating only delays it. The
+  # old operator must be gone before the AgentService exists: it marks its
+  # objects `managed-by: aap-operator`, which the new one refuses for good.
+  # That is why the operator moved in an earlier merge than this one.
   - name: another-agentic-coder
     finalizers:
       - resources-finalizer.argocd.argoproj.io
     project: another-agentic
     sources:
-      - repoURL: https://github.com/vymalo/another-adam-rs
-        targetRevision: HEAD
-        path: deploy/coder
-        helm:
-          # The Service is `coder` (the chart's fullname collapses when the
-          # release name contains the chart name), which the orchestrator
-          # chart's default agents entry names:
-          # http://coder.another-agentic-system.svc:8080
-          releaseName: coder
-          valuesObject:
-            config:
-              # The AI gateway's URL is kept in
-              # AWS, property `model_base_url`, not in git (owner's choice,
-              # 2026-10-04; another-adam-rs #85).
-              modelBaseUrlFromSecret: true
-              # The models the AI gateway serves for the
-              # coder and for OpenCode through the same gateway (owner's
-              # choice, 2026-10-04).
-              model: deepseek-v4.1-flash
-              opencodeModel: deepseek-v4.1-flash
-              # Pull requests open as drafts while people are testing.
-              prDraft: true
-              # Commits are the App's bot user, so GitHub shows them as the
-              # App: <bot user id>+<slug>[bot]@users.noreply.github.com. The id
-              # is the bot user's (GET /users/bored-giant-panda[bot]), not the
-              # App's (owner, 2026-10-04).
-              gitAuthorName: "bored-giant-panda[bot]"
-              gitAuthorEmail: "337696346+bored-giant-panda[bot]@users.noreply.github.com"
-              extraEnv:
-                # The orchestrator's thread tools are plain http inside the
-                # cluster (another-adam-rs bin/adam-coder/README.md, "What the
-                # deployment decides").
-                MCP_ALLOW_INSECURE: "true"
-            github:
-              auth: app
-              # No repository creation by the coder (needs the App's
-              # Administration permission).
-              createRepoOwners: [ ]
-              app:
-                # The App bored-giant-panda, owned by vymalo (application ID
-                # 5185821); `id` is its client ID, the JWT's `iss`. The coder
-                # works on vymalo's repositories only. No installation ID: the
-                # coder finds the installation of each repository's owner with
-                # the App's key (another-adam-rs ADR 0017). Another account in
-                # `owners` needs the App installed there, so a public App.
-                id: "Iv23li4m1ZrQ8wdwjnQH"
-                owners: [ "vymalo" ]
-                privateKeySecret: coder-github-app
-            # Web search (the system chart's search pod, same namespace) and
-            # Context7 (hosted), as optional MCP servers of every conversation:
-            # a server that is down at start is skipped, not a crash loop
-            # (another-adam-rs ADR 0018). Plain http inside the cluster is
-            # allowed by MCP_ALLOW_INSECURE above. Keys: the AWS properties
-            # `search_mcp_token` and `context7_api_key` (chart defaults).
-            mcp:
-              websearch:
-                url: "http://another-agentic-websearch.another-agentic-system.svc:8080/mcp"
-              context7:
-                enabled: true
-            # The coder's run store is the database `coder` in the system
-            # chart's one CNPG cluster (owner decision, 2026-10-04): no Cluster
-            # of its own. The system chart renders the Secret coder-db-uri (key
-            # uri) with sharedDatabase.coder.enabled below.
-            database:
-              enabled: false
-              existingSecret:
-                name: coder-db-uri
-            externalSecrets:
-              key: prod/another-agentic/env
-              properties:
-                modelApiKey: model_api_key
-                # github.auth=app: no token.
-                githubToken: null
-                a2aBearerTokens: coder_a2a_token
       # The Secret `coder-github-app` (key private-key.pem), from the AWS
       # property `github_app_private_key`. One rawResource: its name comes
       # from forceRename.
@@ -275,6 +245,235 @@ applications:
                         remoteRef:
                           key: prod/another-agentic/env
                           property: github_app_private_key
+      # The coder: the Secret it reads, then AgentConfig and AgentService
+      # (agents.vymalo.com/v1alpha1; a rawResource's own `spec` is the
+      # document, so the CR's spec is the `spec` inside it).
+      - repoURL: https://bjw-s-labs.github.io/helm-charts
+        targetRevision: "4.*"
+        chart: app-template
+        helm:
+          releaseName: coder-agent
+          valuesObject:
+            rawResources:
+              secrets:
+                enabled: true
+                forceRename: coder-secrets
+                apiVersion: external-secrets.io/v1
+                kind: ExternalSecret
+                spec:
+                  spec:
+                    refreshInterval: 1h
+                    secretStoreRef:
+                      name: ssegning-aws
+                      kind: ClusterSecretStore
+                    target:
+                      name: coder-secrets
+                      creationPolicy: Owner
+                    data:
+                      - secretKey: MODEL_API_KEY
+                        remoteRef:
+                          key: prod/another-agentic/env
+                          property: model_api_key
+                      - secretKey: MODEL_BASE_URL
+                        remoteRef:
+                          key: prod/another-agentic/env
+                          property: model_base_url
+                      - secretKey: A2A_BEARER_TOKENS
+                        remoteRef:
+                          key: prod/another-agentic/env
+                          property: coder_a2a_token
+                      - secretKey: SEARCH_MCP_TOKEN
+                        remoteRef:
+                          key: prod/another-agentic/env
+                          property: search_mcp_token
+                      - secretKey: CONTEXT7_API_KEY
+                        remoteRef:
+                          key: prod/another-agentic/env
+                          property: context7_api_key
+              config:
+                enabled: true
+                forceRename: coder
+                apiVersion: agents.vymalo.com/v1alpha1
+                kind: AgentConfig
+                annotations:
+                  argocd.argoproj.io/sync-wave: "1"
+                spec:
+                  spec:
+                    harness:
+                      type: adam-rs
+                      adam:
+                        binary: adam-coder
+                        agent:
+                          embedded: {}
+                        coder:
+                          workers: 4
+                          maxCheckCycles: 3
+                          checkTimeoutSecs: 900
+                          workspaceSweepSecs: 300
+                          allowedRepoHosts: [ github.com ]
+                          githubApiUrl: https://api.github.com
+                          # Pull requests open as drafts while people are
+                          # testing.
+                          prDraft: true
+                          # Commits are the App's bot user, so GitHub shows
+                          # them as the App: <bot user id>+<slug>[bot]@users.noreply.github.com.
+                          # The id is the bot user's (GET
+                          # /users/bored-giant-panda[bot]), not the App's
+                          # (owner, 2026-10-04).
+                          gitAuthor:
+                            name: "bored-giant-panda[bot]"
+                            email: "337696346+bored-giant-panda[bot]@users.noreply.github.com"
+                          # No repository creation by the coder (needs the
+                          # App's Administration permission).
+                          createRepoOwners: [ ]
+                          # The model OpenCode uses through the same gateway
+                          # (owner's choice, 2026-10-04).
+                          opencodeModel: deepseek-v4.1-flash
+                          github:
+                            app:
+                              # The App bored-giant-panda, owned by vymalo
+                              # (application ID 5185821); `id` is its client
+                              # ID, the JWT's `iss`. The coder works on
+                              # vymalo's repositories only. No installation ID:
+                              # the coder finds the installation of each
+                              # repository's owner with the App's key
+                              # (another-adam-rs ADR 0017). Another account in
+                              # `owners` needs the App installed there, so a
+                              # public App.
+                              id: "Iv23li4m1ZrQ8wdwjnQH"
+                              owners: [ vymalo ]
+                              # Mounted as the file
+                              # /var/run/secrets/github-app/private-key.pem,
+                              # never a variable.
+                              privateKeySecretRef:
+                                name: coder-github-app
+                                key: private-key.pem
+                    model:
+                      # The model the AI gateway serves for the coder (owner's
+                      # choice, 2026-10-04).
+                      model: deepseek-v4.1-flash
+                      # The AI gateway's URL is kept in AWS, property
+                      # `model_base_url`, not in git (owner's choice,
+                      # 2026-10-04; another-adam-rs #85).
+                      baseUrl:
+                        secretRef:
+                          name: coder-secrets
+                          key: MODEL_BASE_URL
+                      apiKeySecretRef:
+                        name: coder-secrets
+                        key: MODEL_API_KEY
+                    tools:
+                      # The read-only GitHub MCP server, a native sidecar on
+                      # loopback with no credential of its own.
+                      githubMcp:
+                        sidecar: true
+                        port: 8082
+                      # Web search (the system chart's search pod, same
+                      # namespace) and Context7 (hosted), as optional MCP
+                      # servers of every conversation: a server that is down
+                      # at start is skipped, not a crash loop (another-adam-rs
+                      # ADR 0018). Plain http inside the cluster is allowed by
+                      # allowInsecureHttp below.
+                      mcpServers:
+                        websearch:
+                          url: "http://another-agentic-websearch.another-agentic-system.svc:8080/mcp"
+                          headers:
+                            Authorization:
+                              prefix: "Bearer "
+                              secretRef:
+                                name: coder-secrets
+                                key: SEARCH_MCP_TOKEN
+                          optional: true
+                        context7:
+                          url: "https://mcp.context7.com/mcp"
+                          headers:
+                            Authorization:
+                              prefix: "Bearer "
+                              secretRef:
+                                name: coder-secrets
+                                key: CONTEXT7_API_KEY
+                          optional: true
+                      # The orchestrator's thread tools are plain http inside
+                      # the cluster (another-adam-rs bin/adam-coder/README.md,
+                      # "What the deployment decides"): MCP_ALLOW_INSECURE.
+                      allowInsecureHttp: true
+                    environment:
+                      image:
+                        # Tag and digest, verified 2026-10-07 with an
+                        # anonymous ghcr.io manifest request (the package is
+                        # public). It is the tag the chart's `image.tag` had
+                        # at that date. Change both together.
+                        ref: ghcr.io/vymalo/another-adam-rs/coder:sha-4363924@sha256:1eb43882cc1a94663f03212f4df8999084b11e4f55a9d935041239fe60962c38
+                      # The chart's defaults, as they were.
+                      resources:
+                        requests:
+                          cpu: 500m
+                          memory: 1Gi
+                        limits:
+                          memory: 6Gi
+                      volumes:
+                        # Mirrors and worktrees: one claim per pod, named
+                        # work-<service>-<n>, as before.
+                        - name: work
+                          scope: agent
+                          mountPath: /work
+                          source:
+                            persistent:
+                              size: 20Gi
+                              storageClass: longhorn
+                              perReplica: true
+                      terminationGracePeriodSeconds: 120
+                    security:
+                      runAsUser: 10001
+                      runAsGroup: 10001
+                      fsGroup: 10001
+                      fsGroupChangePolicy: OnRootMismatch
+              service:
+                enabled: true
+                forceRename: coder
+                apiVersion: agents.vymalo.com/v1alpha1
+                kind: AgentService
+                annotations:
+                  argocd.argoproj.io/sync-wave: "2"
+                spec:
+                  spec:
+                    description: Adam, the agent that turns a coding task into a verified pull request.
+                    configRef:
+                      name: coder
+                    interfaces:
+                      a2a:
+                        enabled: true
+                        # No token, no server: the agent fails closed. The
+                        # orchestrator reads the same property
+                        # (coder_a2a_token) as its CODER_A2A_TOKEN.
+                        bearerTokensSecretRef:
+                          name: coder-secrets
+                          key: A2A_BEARER_TOKENS
+                        # publicUrl is left empty: the card says
+                        # http://coder.another-agentic-system.svc:8080/.
+                    scaling:
+                      topology: combined
+                      workers: 1
+                    suspend: false
+                    store:
+                      # The system chart's one CNPG cluster (owner decision,
+                      # 2026-10-04): its Secret coder-db-uri, key uri.
+                      postgres:
+                        secretRef:
+                          name: coder-db-uri
+                          key: uri
+                    access:
+                      # Ingress on 8080 only from this namespace, as the
+                      # chart's NetworkPolicy had it. Egress is not limited.
+                      allowFrom:
+                        - namespaceSelector:
+                            matchLabels:
+                              kubernetes.io/metadata.name: another-agentic-system
+                    registry:
+                      title: Adam
+                      tags: [ coding, git ]
+                    # The compute goes, the work volume stays.
+                    deletionPolicy: Retain
     destination:
       name: netcup-k8s
       namespace: another-agentic-system
@@ -303,8 +502,8 @@ applications:
         releaseName: another-agentic-system
         # Mirrors deploy/chart/examples/netcup.values.yaml (what that repo's CI
         # renders), except `sharing`. Agents: the
-        # chart's defaults, the coder (by its card at the Service above) and the
-        # chat agent; no researcher.
+        # chart's defaults, the coder (by its card at the Service `coder` of its
+        # AgentService, above) and the chat agent; no researcher.
         valuesObject:
           host: agentic.servers.segning.pro
           auth:
@@ -395,9 +594,8 @@ applications:
   # replica of the operator binary, namespaced, watching only
   # `another-agentic-system` (a Role and RoleBinding there, no ClusterRole, no
   # right on Secrets), which reconciles the custom resources AgentService and
-  # AgentConfig and serves the agent registry. No AgentService exists yet: the
-  # coder keeps running from `another-agentic-coder` above, and nothing here
-  # touches it.
+  # AgentConfig and serves the agent registry. It runs the coder, whose
+  # AgentService and AgentConfig are in `another-agentic-coder` above.
   #
   # Chart: `deploy/operator` of the adam-rs repo at HEAD, release
   # `adam-operator` (the chart fixes every object's name, so the registry
