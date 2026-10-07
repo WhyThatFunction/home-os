@@ -274,6 +274,20 @@ applications:
                 dnsNames: 
                   - "*.netcup.ssegning"
                   - traefik.netcup.ssegning
+            - |
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: wildcard-servers-segning-pro-certificate
+              spec:
+                secretName: wildcard-servers-segning-pro-tls
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: cert-cloudflare
+                  group: cert-manager.io
+                commonName: all.servers.segning.pro
+                dnsNames: 
+                  - "*.servers.segning.pro"
 
     destination:
       name: netcup-k8s
