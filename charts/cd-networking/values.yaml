@@ -288,6 +288,7 @@ applications:
                 commonName: all.servers.segning.pro
                 dnsNames: 
                   - "*.servers.segning.pro"
+                  - "all.servers.segning.pro"
 
     destination:
       name: netcup-k8s
