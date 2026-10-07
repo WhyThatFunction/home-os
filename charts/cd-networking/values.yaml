@@ -239,6 +239,20 @@ applications:
           providers:
             kubernetesCRD:
               allowCrossNamespace: true
+            # The chart's publishedService (default on) points Ingress status at
+            # this release's own Service — ClusterIP here (no LB on netcup, we
+            # use hostPort), with no externalIPs to copy, so Traefik had nothing
+            # to write and every Ingress kept an empty status.loadBalancer.
+            # ArgoCD's Ingress health (gitops-engine) calls that "Progressing",
+            # so `another-agentic` sat pending forever. Publish the cluster's
+            # real entry name instead: servers.segning.pro resolves to the
+            # nodes' public IPs. Traefik skips identical status updates, so this
+            # converges without the Gateway-provider hot loop below.
+            kubernetesIngress:
+              publishedService:
+                enabled: false
+              ingressEndpoint:
+                hostname: servers.segning.pro
             # Off on netcup: the chart publishes the Gateway status address from
             # its own Service, which is ClusterIP here (no LB on netcup, we use
             # hostPort), so it never gets a loadBalancer ingress. The Gateway
