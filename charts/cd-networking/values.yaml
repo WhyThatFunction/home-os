@@ -258,6 +258,16 @@ applications:
               tls:
                 secretName: wildcard-netcup-tls
 
+          # The *.servers.segning.pro wildcard (created in extraObjects below)
+          # as the fallback for TLS connections with no SNI or no matching
+          # router cert. Routes that name their own secret still win over this
+          # store, and Traefik only reads TLS secrets from the route's own
+          # namespace — another-agentic-system's Ingress keeps its own cert.
+          tlsStore:
+            default:
+              defaultCertificate:
+                secretName: wildcard-servers-segning-pro-tls
+
           extraObjects:
             - |
               apiVersion: cert-manager.io/v1
