@@ -121,15 +121,15 @@ applications:
 
   # another-agentic — the orchestration layer (chat web + orchestrator behind
   # oauth2-proxy and Caddy, CNPG databases, the `chat` agent), its coder
-  # agent and the operator that will run agents as custom resources, on
+  # agent and the operator that runs agents as custom resources, on
   # netcup-k8s, namespace `another-agentic-system`. Three Applications in the
   # AppProject `another-agentic` (charts/cd/values.yaml):
   #
   #   another-agentic-coder     vymalo/another-adam-rs  deploy/coder, release `coder`
   #   another-agentic-system    vymalo/another-agentic-system  deploy/chart
-  #   another-agentic-operator  vymalo/another-agentic-platform  deploy/operator, release `aap-operator`
+  #   another-agentic-operator  vymalo/another-adam-rs  deploy/operator, release `adam-operator`
   #
-  # (The operator's CRDs are a fourth Application, `aap-operator-crds`, in the
+  # (The operator's CRDs are a fourth Application, `adam-operator-crds`, in the
   # `infrastructure` project of charts/cd/values.yaml.)
   #
   # No sync-wave: a later wave in this app-of-apps would wait for every other
@@ -390,64 +390,71 @@ applications:
         prune: true
         selfHeal: true
 
-  # another-agentic-operator — the operator of vymalo/another-agentic-platform
-  # (§59a, "Operator v0"): ONE replica of `operator run`, namespaced, watching
-  # only `another-agentic-system` (a Role and RoleBinding there, no
-  # ClusterRole, no right on Secrets), which reconciles the custom resources
-  # AgentService and AgentConfig and serves the agent registry. This is
-  # slice S10: the operator with NO AgentService yet. The coder keeps running
-  # from `another-agentic-coder` above; a shadow `coder-next` (S13) comes
-  # before any cutover (S14), and nothing here touches the coder.
+  # another-agentic-operator — the adam operator of vymalo/another-adam-rs
+  # (it began in vymalo/another-agentic-platform, §59a "Operator v0"): ONE
+  # replica of the operator binary, namespaced, watching only
+  # `another-agentic-system` (a Role and RoleBinding there, no ClusterRole, no
+  # right on Secrets), which reconciles the custom resources AgentService and
+  # AgentConfig and serves the agent registry. No AgentService exists yet: the
+  # coder keeps running from `another-agentic-coder` above, and nothing here
+  # touches it.
   #
-  # Chart: `deploy/operator` of the platform repo at HEAD, release
-  # `aap-operator` (the chart fixes every object's name, so the registry Service
-  # is `aap-operator-registry` whatever the release is called). The image tag
-  # (`image.tag`, `sha-<7>`) is bumped on main by that repo's CI and is NOT set
-  # here. This is the platform's `examples/netcup.values.yaml`, as the
-  # platform's README says; the rest are the chart's defaults.
+  # Chart: `deploy/operator` of the adam-rs repo at HEAD, release
+  # `adam-operator` (the chart fixes every object's name, so the registry
+  # Service is `adam-operator-registry` whatever the release is called). The
+  # image is `ghcr.io/vymalo/another-adam-rs/operator`; its tag (`image.tag`,
+  # `sha-<7>`) is bumped on main by adam-rs's CI and is NOT set here. This is
+  # the chart's `examples/netcup.values.yaml`; the rest are the chart's
+  # defaults.
   #
-  # The CRDs are NOT in this chart: Application `aap-operator-crds` in the
+  # The CRDs are NOT in this chart: Application `adam-operator-crds` in the
   # `infrastructure` project (charts/cd/values.yaml, never pruned). Until they
   # exist the operator pod stays unready.
+  #
+  # This Application used to deploy `aap-operator` from
+  # vymalo/another-agentic-platform. Same Application, new source: Argo
+  # replaces the Deployment, Service, Role, NetworkPolicy and ExternalSecret
+  # named `aap-operator*` with `adam-operator*` in one sync (prune is on). The
+  # new operator marks what it makes `app.kubernetes.io/managed-by:
+  # adam-operator`, and refuses an object marked otherwise (NameConflict), so
+  # no AgentService may exist while the old operator is still running: none
+  # does (`kubectl get agentservices -A` is empty before this merges).
   #
   # Secret: the registry's bearer token is the AWS property
   # `agent_registry_token` of `prod/another-agentic/env`, read through the
   # ClusterSecretStore `ssegning-aws` by the chart's own ExternalSecret
-  # `aap-operator-registry` (defaults: store, key and property are the ones in
-  # the chart's values), mounted as a file, never an env var. Nothing secret is
-  # in git. The orchestrator will read the same property as its
-  # `AGENT_REGISTRY_TOKEN` (S12), so the two sides cannot differ. If the
-  # property is missing the operator pod waits in ContainerCreating.
+  # `adam-operator-registry` (defaults: store, key and property are the ones in
+  # the chart's values), mounted as a file, never an env var. The property is
+  # the one the old operator read; nothing new is needed in AWS and nothing
+  # secret is in git. If the property is missing the operator pod waits in
+  # ContainerCreating.
   #
-  # Before this merges (it deploys immediately), the owner must:
-  #   1. Make the GHCR package
-  #      ghcr.io/vymalo/another-agentic-platform/operator public (GitHub:
-  #      Packages > operator > Package settings > Change visibility > Public)
-  #      and check the anonymous pull; 200 means yes:
-  #        TOKEN=$(curl -s "https://ghcr.io/token?scope=repository:vymalo/another-agentic-platform/operator:pull" | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
-  #        curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOKEN" \
-  #          -H 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json' \
-  #          https://ghcr.io/v2/vymalo/another-agentic-platform/operator/manifests/<image.tag of deploy/operator/values.yaml at HEAD>
-  #      Otherwise the pod is in ImagePullBackOff.
-  #   2. Add the property `agent_registry_token` to the AWS secret
-  #      `prod/another-agentic/env`: random, at least 32 bytes
-  #      (`openssl rand -hex 32`).
+  # Before this merges (it deploys immediately), the owner must make the GHCR
+  # package ghcr.io/vymalo/another-adam-rs/operator public (GitHub: Packages >
+  # operator > Package settings > Change visibility > Public), after adam-rs's
+  # workflow has pushed it, and check the anonymous pull; 200 means yes:
+  #   TOKEN=$(curl -s "https://ghcr.io/token?scope=repository:vymalo/another-adam-rs/operator:pull" | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+  #   curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOKEN" \
+  #     -H 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json' \
+  #     https://ghcr.io/v2/vymalo/another-adam-rs/operator/manifests/<image.tag of deploy/operator/values.yaml at HEAD>
+  # Otherwise the pod is in ImagePullBackOff. (The other images of the family
+  # are public and need no pull secret.)
   #
-  # NOT changed by this PR: the orchestrator's own registry URL
+  # NOT changed here: the orchestrator's own registry URL
   # (`AGENT_REGISTRY_URL`) in the another-agentic-system Application above and
-  # its chart. It stays on its current registry until S12 points it at
-  # `http://aap-operator-registry.another-agentic-system.svc:8080/registry/v1/agents`
+  # its chart. It stays on its current registry until it is pointed at
+  # `http://adam-operator-registry.another-agentic-system.svc:8080/registry/v1/agents`
   # with the same token. The ingress rule below is ready for that.
   - name: another-agentic-operator
     finalizers:
       - resources-finalizer.argocd.argoproj.io
     project: another-agentic
     source:
-      repoURL: https://github.com/vymalo/another-agentic-platform
+      repoURL: https://github.com/vymalo/another-adam-rs
       targetRevision: HEAD
       path: deploy/operator
       helm:
-        releaseName: aap-operator
+        releaseName: adam-operator
         valuesObject:
           # watchNamespace is left empty: the release's namespace,
           # another-agentic-system.
@@ -455,7 +462,7 @@ applications:
             enabled: true
           registry:
             # The registry document's own URL, sent as its `anchor`.
-            publicUrl: http://aap-operator-registry.another-agentic-system.svc:8080/registry/v1/agents
+            publicUrl: http://adam-operator-registry.another-agentic-system.svc:8080/registry/v1/agents
           networkPolicy:
             registry:
               # Who may read the registry: the orchestrator's pods only (the
