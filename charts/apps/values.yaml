@@ -401,11 +401,13 @@ applications:
                       image:
                         # Tag and digest, verified 2026-10-07 with an
                         # anonymous ghcr.io manifest request (the package is
-                        # public): the image adam-rs's main built at d9d5ea4
-                        # (#95 production fixes, #96 A2A push and ListTasks,
-                        # off unless configured; the run store migrates to
-                        # schema 3 at its first start). Change both together.
-                        ref: ghcr.io/vymalo/another-adam-rs/coder:sha-d9d5ea4@sha256:0c19142da2aeb8eea887a06d34e5931e294f209b9a857c802e9afadf3abe1460
+                        # public; linux/amd64, revision label 8e1133d2...): the
+                        # image adam-rs's main built at 8e1133d (#95 production
+                        # fixes, #96 A2A push and ListTasks, off unless
+                        # configured, #98 Swagger UI at /docs and the A2A REST
+                        # binding, reached with kubectl port-forward). Change
+                        # both together.
+                        ref: ghcr.io/vymalo/another-adam-rs/coder:sha-8e1133d@sha256:70184513160d112e166bb662eb63edfed43817f57a674d14498bb58c945dcb60
                       # The chart's defaults, as they were.
                       resources:
                         requests:
