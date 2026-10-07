@@ -231,6 +231,14 @@ applications:
                 url: "http://another-agentic-websearch.another-agentic-system.svc:8080/mcp"
               context7:
                 enabled: true
+            # The coder's run store is the database `coder` in the system
+            # chart's one CNPG cluster (owner decision, 2026-10-04): no Cluster
+            # of its own. The system chart renders the Secret coder-db-uri (key
+            # uri) with sharedDatabase.coder.enabled below.
+            database:
+              enabled: false
+              existingSecret:
+                name: coder-db-uri
             externalSecrets:
               key: prod/another-agentic/env
               properties:
@@ -346,6 +354,16 @@ applications:
               - fc00::/7
               - fe80::/10
               - 64:ff9b::/96
+          # One CNPG cluster (owner decision, 2026-10-04): the coder's
+          # database, role and Secret coder-db-uri in this chart's cluster (AWS
+          # property coder_db_password). Needs CNPG 1.25 or later (the
+          # Database CRD). coder-github-app keeps its own Cluster for now: a
+          # second entry needs an AWS property of its own.
+          sharedDatabase:
+            coders:
+              - name: coder
+                secretName: coder-db-uri
+                passwordProperty: coder_db_password
           orchestrator:
             toolServers:
               websearch:
