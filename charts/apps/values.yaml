@@ -594,9 +594,8 @@ applications:
   # replica of the operator binary, namespaced, watching only
   # `another-agentic-system` (a Role and RoleBinding there, no ClusterRole, no
   # right on Secrets), which reconciles the custom resources AgentService and
-  # AgentConfig and serves the agent registry. No AgentService exists yet: the
-  # coder keeps running from `another-agentic-coder` above, and nothing here
-  # touches it.
+  # AgentConfig and serves the agent registry. It runs the coder, whose
+  # AgentService and AgentConfig are in `another-agentic-coder` above.
   #
   # Chart: `deploy/operator` of the adam-rs repo at HEAD, release
   # `adam-operator` (the chart fixes every object's name, so the registry
