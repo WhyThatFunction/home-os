@@ -253,24 +253,28 @@ projects:
       - "*"
 
   # another-agentic: the orchestration layer (vymalo/another-agentic-system),
-  # its coder agent (vymalo/another-adam-rs) and the agent operator
-  # (vymalo/another-agentic-platform), all on netcup-k8s.
+  # its coder agent and the adam operator that runs it (vymalo/another-adam-rs),
+  # all on netcup-k8s.
   #
   # Deliberately the narrowest project here: one cluster, ONE namespace, and
   # `Namespace` as the only cluster-scoped kind (it is what CreateNamespace and
   # managedNamespaceMetadata need). Everything else the charts render (CNPG
   # Clusters, ExternalSecrets, Ingress, NetworkPolicies, ...) is namespaced.
-  # The operator's chart (deploy/operator of another-agentic-platform) renders
+  # The operator's chart (deploy/operator of another-adam-rs) renders
   # a Deployment, a ServiceAccount, a Role and RoleBinding, two Services, a
   # NetworkPolicy and an ExternalSecret, all namespaced and no ClusterRole
   # (its render check fails on one), so it needs nothing added to
   # clusterResourceWhitelist. Its CRDs ARE cluster-scoped and are NOT allowed
-  # here: they are the Application `aap-operator-crds` of the `infrastructure`
+  # here: they are the Application `adam-operator-crds` of the `infrastructure`
   # project (below), which is where a CRD belongs and which is not pruned.
+  # `sourceRepos` allows `another-adam-rs`, whose charts are the coder's and
+  # the operator's. The custom resources the operator reconciles, AgentService
+  # and AgentConfig, are namespaced kinds and fall under
+  # `namespaceResourceWhitelist`.
   # `sourceNamespaces` is left out on purpose: only Applications in the argocd
   # namespace (the `apps` app-of-apps) may use this project.
   #
-  # sourceRepos: the three app repos (public, so no repository credential) and
+  # sourceRepos: the two app repos (public, so no repository credential) and
   # bjw-s's app-template, which `another-agentic-coder` uses as a second source
   # to render the coder's GitHub App Secret as an ExternalSecret (the ARC
   # runner pools' pattern); adam-rs's chart has no ExternalSecret for the key.
@@ -284,7 +288,6 @@ projects:
     sourceRepos:
       - https://github.com/vymalo/another-agentic-system
       - https://github.com/vymalo/another-adam-rs
-      - https://github.com/vymalo/another-agentic-platform
       - https://bjw-s-labs.github.io/helm-charts
     destinations:
       - namespace: another-agentic-system
@@ -538,14 +541,13 @@ applications:
         prune: true
         selfHeal: true
 
-  # aap-operator-crds: the CustomResourceDefinitions of the another-agentic
-  # operator, `agentservices.agents.vymalo.com` and
-  # `agentconfigs.agents.vymalo.com` (v1alpha1), from
-  # vymalo/another-agentic-platform `deploy/operator-crds`. Their own app, in
-  # THIS project, not `another-agentic`: a CRD is cluster-scoped, and that
-  # project lets in one namespace and no cluster-scoped kind but Namespace. The
-  # operator itself is the Application `another-agentic-operator`
-  # (charts/apps/values.yaml). Decided in the platform's §93 ("Operator v0").
+  # adam-operator-crds: the CustomResourceDefinitions of the adam operator,
+  # `agentservices.agents.vymalo.com` and `agentconfigs.agents.vymalo.com`
+  # (v1alpha1), from vymalo/another-adam-rs `deploy/operator-crds`. Their own
+  # app, in THIS project, not `another-agentic`: a CRD is cluster-scoped, and
+  # that project lets in one namespace and no cluster-scoped kind but
+  # Namespace. The operator itself is the Application
+  # `another-agentic-operator` (charts/apps/values.yaml).
   #
   # Deleting a CRD deletes every AgentService and AgentConfig on the cluster,
   # so unlike the Gateway API CRDs (charts/cd-networking), which are plain
@@ -565,17 +567,30 @@ applications:
   # the chart does not set it and this repository does not edit a chart it does
   # not own. An upstream chart change would add the second lock.
   #
+  # Renamed from `aap-operator-crds` (source vymalo/another-agentic-platform,
+  # `deploy/operator-crds`), which installed the same two CRDs under the same
+  # names. The old Application must go WITHOUT cascade, or the CRDs, and every
+  # AgentService and AgentConfig with them, go too. It has no finalizer, so
+  # deleting it, which `cd` does by itself now that its entry is gone from this
+  # list (prune: true), removes only the Application object and leaves what it
+  # applied; `argocd app delete aap-operator-crds --cascade=false` says the same
+  # explicitly. Verified 2026-10-07: Argo CD docs, user-guide/app_deletion.md
+  # ("To perform a non-cascade delete, make sure the finalizer is unset and then
+  # delete the app", and a cascading delete happens "when deleting an
+  # Application with this finalizer"). The CRDs are then applied by this
+  # Application (server-side apply takes over their tracking annotation).
+  #
   # No sync-wave: `another-agentic-operator` may start before this app has
   # synced and then waits, unready, until the CRDs exist (its readiness is
   # "both caches listed"). The first sync of both settles it within minutes.
-  - name: aap-operator-crds
+  - name: adam-operator-crds
     project: infrastructure
     source:
-      repoURL: https://github.com/vymalo/another-agentic-platform
+      repoURL: https://github.com/vymalo/another-adam-rs
       targetRevision: HEAD
       path: deploy/operator-crds
       helm:
-        releaseName: aap-operator-crds
+        releaseName: adam-operator-crds
     destination:
       name: netcup-k8s
       # CRDs are cluster-scoped: the namespace is not used, and is not created.
