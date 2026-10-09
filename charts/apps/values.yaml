@@ -530,6 +530,10 @@ applications:
             # The gateway's model for the chat agent (owner's choice,
             # 2026-10-04).
             model: glm-5.3
+            # glm-5.3's context window in tokens (owner, 2026-10-09: "1
+            # million"), the chat's MODEL_CONTEXT_WINDOW: the web's token
+            # ring fills against it (another-agentic-system ADR 0056, #201).
+            contextWindow: 1000000
           # Thread sharing by revocable link, all three tiers: private,
           # internal (signed-in) and public (another-agentic-system ADR 0040;
           # owner's choice, 2026-10-06). Public reads are rate limited and hide
