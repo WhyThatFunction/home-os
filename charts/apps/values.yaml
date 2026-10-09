@@ -407,14 +407,13 @@ applications:
                       image:
                         # Tag and digest, verified 2026-10-09 with an
                         # anonymous ghcr.io manifest request (the package is
-                        # public; linux/amd64, revision label 09291a61...): the
-                        # image adam-rs's main built at 09291a6 (#98 Swagger UI
-                        # at /docs and the A2A REST binding, reached with
-                        # kubectl port-forward; #99 usage/v1, the tokens of
-                        # each model call for the chat's token ring; without
-                        # MODEL_CONTEXT_WINDOW the ring shows totals, no fill).
-                        # Change both together.
-                        ref: ghcr.io/vymalo/another-adam-rs/coder:sha-09291a6@sha256:4c74046219176bd7af2db1b9b38030bf3f042ebbd7a2722f6d6799c0d840b818
+                        # public; linux/amd64, revision label 1a290162...): the
+                        # image adam-rs's main built at 1a29016 (#103: built on
+                        # the workspace image 1.98.1-cfd2917, which has the
+                        # obscura headless browser, so the coder screenshots a
+                        # site it serves on 127.0.0.1 instead of downloading
+                        # Chromium). Change both together.
+                        ref: ghcr.io/vymalo/another-adam-rs/coder:sha-1a29016@sha256:7a6abc27a39f0c854fcc46f821065225f28486c4af4731781afbb2debbd834ac
                       # The chart's defaults, as they were.
                       resources:
                         requests:
