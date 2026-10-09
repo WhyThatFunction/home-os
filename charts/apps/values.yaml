@@ -362,6 +362,12 @@ applications:
                       apiKeySecretRef:
                         name: coder-secrets
                         key: MODEL_API_KEY
+                      # deepseek-v4.1-flash's context window in tokens (owner,
+                      # 2026-10-09: "1 million"), the coder's
+                      # MODEL_CONTEXT_WINDOW: the chat's token ring fills
+                      # against it. Needs the CRDs and the operator of
+                      # another-adam-rs #100 or later.
+                      contextWindow: 1000000
                     tools:
                       # The read-only GitHub MCP server, a native sidecar on
                       # loopback with no credential of its own.
