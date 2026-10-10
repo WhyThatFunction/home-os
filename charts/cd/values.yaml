@@ -773,6 +773,35 @@ arcRunnerPools:
     managedNamespacePrivileged: true
     enableRunner: true
 
+  - name: vymalo-medium-runners
+    releaseName: vymalo-runner
+    githubConfigUrl: https://github.com/vymalo
+    runnerScaleSetName: ubuntu-amd-x64-medium
+    runnerGroup: default
+    resourceProfile: medium
+    maxRunners: 6
+    containersSizeLimit: 60Gi
+    turboTeam: vymalo
+    destinationCluster: netcup-k8s
+    namespace: gh-runners-vymalo-medium
+    managedNamespacePrivileged: true
+    enableRunner: true
+
+  - name: vymalo-high-runners
+    releaseName: vymalo-runner
+    githubConfigUrl: https://github.com/vymalo
+    runnerScaleSetName: ubuntu-amd-x64-high
+    runnerGroup: default
+    resourceProfile: high
+    maxRunners: 4
+    containersSizeLimit: 80Gi
+    turboTeam: vymalo
+    destinationCluster: netcup-k8s
+    namespace: gh-runners-vymalo-high
+    managedNamespacePrivileged: true
+    enableRunner: true
+    #priorityClass: 1000
+
   - name: vaam-store-runners
     releaseName: vaam-store-runner
     githubConfigUrl: https://github.com/vaam-store
