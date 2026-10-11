@@ -518,6 +518,14 @@ applications:
           host: agentic.servers.segning.pro
           auth:
             issuer: https://auth.verif.fyi/realms/vymalo
+            # The web signs in itself as the public client another-agentic-web
+            # and holds DPoP-bound tokens with an offline refresh token
+            # (another-agentic-system ADR 0054; deploy/chart/README.md "Tokens
+            # in the browser"). The owner imported the Keycloak clients on
+            # 2026-10-11. Only after oauth2Proxy.cookieExpire (12 h) has passed
+            # may the realm turn on Revoke Refresh Token with reuse 0.
+            browser:
+              enabled: true
           ingress:
             # DNS-01 through the Cloudflare token. Whether that token can edit
             # the zone segning.pro is UNVERIFIED; if not, name another
@@ -583,6 +591,13 @@ applications:
                 enabled: true
               context7:
                 enabled: true
+            # The desktop app (another-agentic-system ADR 0047, public client
+            # another-agentic-desktop) calls the API from these origins with
+            # DPoP-bound tokens; never with credentials.
+            cors:
+              allowedOrigins:
+                - tauri://localhost
+                - http://tauri.localhost
           networkPolicy:
             # Only Traefik (namespace traefik-system on netcup, see
             # charts/cd-networking) may reach the edge.
