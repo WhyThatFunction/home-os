@@ -708,7 +708,10 @@ applications:
         selfHeal: true
 
   # Webank root: tracks argocd/prod on main of the private deploy repo. Values live
-  # there, never in this public repo.
+  # there, never in this public repo. Clone access comes from the existing
+  # `repo-creds` Secret `github-app-creds--whythatfunction` (GitHub App, URL prefix
+  # https://github.com/WhyThatFunction, declared in home-secrets), which ArgoCD
+  # matches by prefix — no per-repo credential is needed here.
   - name: webank-deploy
     finalizers:
       - resources-finalizer.argocd.argoproj.io
@@ -728,7 +731,8 @@ applications:
         selfHeal: true
 
   # vaam root: tracks argocd/prod on main of the private deploy repo. Values live
-  # there, never in this public repo.
+  # there, never in this public repo. Clone access: same `repo-creds` Secret
+  # `github-app-creds--whythatfunction` as the webank root above (prefix match).
   - name: vaam-deploy
     finalizers:
       - resources-finalizer.argocd.argoproj.io
