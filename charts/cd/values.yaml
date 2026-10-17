@@ -1044,3 +1044,53 @@ arcRunnerPools:
     managedNamespacePrivileged: true
     enableRunner: true
     #priorityClass: 1000
+
+  ## Org ADORSYS-GIS
+  # Added 2026-10-17: ADORSYS-GIS/webank-services (and its sibling repos) run CI
+  # on REPO-level self-hosted runners labelled `ci` / `heavy`
+  # (sky-ci-05-webank-services, webank-runner-0{1..4}-webank-services[-light]).
+  # All nine were offline, 50 runs had been queued since 2026-10-16 20:34 UTC
+  # and the last green `main` was 2026-10-16 05:27 UTC - nothing in that org
+  # could merge. These two pools register at ORG level, named exactly after
+  # the labels the workflows already use (`runs-on: ci`, `runs-on: heavy`), so
+  # no workflow edit is needed and the queued jobs drain as soon as the
+  # listeners come up. Same shared PAT as every other pool here
+  # (prod/meta/test-app#github_token): its owner is an ADORSYS-GIS org admin
+  # and the token already registers org-level scale sets for vymalo,
+  # vaam-store and vaam-apps, so it carries `admin:org`. If ADORSYS-GIS ever
+  # turns on SAML SSO the PAT must additionally be SSO-authorised for the org,
+  # or the listener logs `403` at registration.
+  - name: adorsys-gis-ci-runners
+    releaseName: adorsys-gis-runner
+    githubConfigUrl: https://github.com/ADORSYS-GIS
+    runnerScaleSetName: ci
+    runnerGroup: default
+    resourceProfile: standard
+    maxRunners: 10
+    containersSizeLimit: 40Gi
+    turboTeam: adorsys-gis
+    destinationCluster: netcup-k8s
+    namespace: gh-runners-adorsys-gis-ci
+    managedNamespacePrivileged: true
+    enableRunner: true
+
+  - name: adorsys-gis-heavy-runners
+    releaseName: adorsys-gis-runner
+    githubConfigUrl: https://github.com/ADORSYS-GIS
+    runnerScaleSetName: heavy
+    runnerGroup: default
+    resourceProfile: high
+    # Burstable requests, same reasoning as vaam-apps-high-runners above: the
+    # `high` profile's 7 CPU / 12Gi as a Guaranteed request stranded that pool
+    # at 3-of-4 offline; limits stay at the profile so a scheduled build gets
+    # the full headroom (`heavy` jobs are ~10 min release compiles).
+    resourceRequests:
+      cpu: "3"
+      memory: 6Gi
+    maxRunners: 4
+    containersSizeLimit: 80Gi
+    turboTeam: adorsys-gis
+    destinationCluster: netcup-k8s
+    namespace: gh-runners-adorsys-gis-heavy
+    managedNamespacePrivileged: true
+    enableRunner: true
