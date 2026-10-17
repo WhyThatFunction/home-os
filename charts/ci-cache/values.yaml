@@ -102,7 +102,7 @@ rustfs:
     name: longhorn
     # netcup's default StorageClass is `longhorn` with numberOfReplicas=2, so
     # 200Gi consumes ~400Gi of the ~1.8Ti cluster raw capacity.
-    dataStorageSize: 200Gi
+    dataStorageSize: 350Gi
     logStorageSize: 1Gi
 
 # This instance's RustFS ROOT credential is deliberately the same
