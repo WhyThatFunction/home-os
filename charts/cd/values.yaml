@@ -6,6 +6,18 @@ argoCdConfigs:
         url: "https://github.com/whythatfunction/home-os"
         name: home-os
         type: git
+    # Public OCI Helm registry for the vaam products (vsms, vpay). ArgoCD only
+    # treats a Helm source as OCI when a repo credential with `enableOCI: true`
+    # matches its repoURL; the packages are public, so no username/password.
+    # `repo-creds` matches by URL PREFIX, covering every
+    # `oci://ghcr.io/vaam-apps/charts/<chart>` the vaam project is allowed to use.
+    vaam-apps-charts-oci-creds:
+      type: repo-creds
+      data:
+        url: "oci://ghcr.io/vaam-apps/charts"
+        name: vaam-apps-charts
+        type: helm
+        enableOCI: "true"
 
 projects:
   - name: external
@@ -302,6 +314,77 @@ projects:
     orphanedResources: { }
     roles: [ ]
     syncWindows: [ ]
+
+  # Webank: this public repo only wires the project and its root app. All values and
+  # workload config live in the private WhyThatFunction/webank-deploy repo, never here.
+  - name: webank
+    additionalLabels: { }
+    additionalAnnotations: { }
+    permitOnlyProjectScopedClusters: false
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    description: Webank (A24) product on home-remote
+    sourceRepos:
+      - https://github.com/WhyThatFunction/webank-deploy
+      # the tigerbeetle chart (OCI; Applications use oci://ghcr.io/adorsys-gis/charts/<chart>)
+      - oci://ghcr.io/adorsys-gis/charts/*
+    destinations:
+      # child Applications
+      - namespace: "argocd"
+        server: https://kubernetes.default.svc
+      - namespace: "webank"
+        name: home-remote
+      # KeycloakRealmImport only
+      - namespace: "keycloak"
+        name: home-remote
+    clusterResourceWhitelist:
+      - group: ""
+        kind: Namespace
+    clusterResourceBlacklist: [ ]
+    namespaceResourceBlacklist: [ ]
+    namespaceResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    orphanedResources: { }
+    roles: [ ]
+    syncWindows: [ ]
+    sourceNamespaces:
+      - "*"
+
+  # vaam: this public repo only wires the project and its root app. All values and
+  # workload config live in the private WhyThatFunction/vaam-deploy repo, never here.
+  - name: vaam
+    additionalLabels: { }
+    additionalAnnotations: { }
+    permitOnlyProjectScopedClusters: false
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    description: vaam products (vsms, vpay) on home-remote
+    sourceRepos:
+      - https://github.com/WhyThatFunction/vaam-deploy
+      # the vsms / vpay charts (OCI; Applications use oci://ghcr.io/vaam-apps/charts/<chart>)
+      - oci://ghcr.io/vaam-apps/charts/*
+    destinations:
+      # child Applications
+      - namespace: "argocd"
+        server: https://kubernetes.default.svc
+      - namespace: "vsms"
+        name: home-remote
+      - namespace: "vpay"
+        name: home-remote
+    clusterResourceWhitelist:
+      - group: ""
+        kind: Namespace
+    clusterResourceBlacklist: [ ]
+    namespaceResourceBlacklist: [ ]
+    namespaceResourceWhitelist:
+      - group: "*"
+        kind: "*"
+    orphanedResources: { }
+    roles: [ ]
+    syncWindows: [ ]
+    sourceNamespaces:
+      - "*"
 
 applications:
   - name: cd
@@ -616,6 +699,50 @@ applications:
       # Rollback: pin this back to release-2026.06.22-v02 (or any prior tag).
       targetRevision: main
       path: charts/apps
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: argocd
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+
+  # Webank root: tracks argocd/prod on main of the private deploy repo. Values live
+  # there, never in this public repo. Clone access comes from the existing
+  # `repo-creds` Secret `github-app-creds--whythatfunction` (GitHub App, URL prefix
+  # https://github.com/WhyThatFunction, declared in home-secrets), which ArgoCD
+  # matches by prefix — no per-repo credential is needed here.
+  - name: webank-deploy
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: webank
+    source:
+      repoURL: https://github.com/WhyThatFunction/webank-deploy
+      targetRevision: main
+      path: argocd/prod
+      directory:
+        recurse: false
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: argocd
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+
+  # vaam root: tracks argocd/prod on main of the private deploy repo. Values live
+  # there, never in this public repo. Clone access: same `repo-creds` Secret
+  # `github-app-creds--whythatfunction` as the webank root above (prefix match).
+  - name: vaam-deploy
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    project: vaam
+    source:
+      repoURL: https://github.com/WhyThatFunction/vaam-deploy
+      targetRevision: main
+      path: argocd/prod
+      directory:
+        recurse: false
     destination:
       server: https://kubernetes.default.svc
       namespace: argocd
