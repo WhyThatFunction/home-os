@@ -262,6 +262,8 @@ configs:
       g, ArgoCDAI, role:ai
       g, ArgoCDKYC, role:kyc
       g, ArgoCDKeycloak, role:keycloak
+      g, ArgoCDWebank, role:webank
+      g, ArgoCDVaam, role:vaam
       g, ArgoCDViewer, role:readonly
 
       # --- Hyperswitch role ---
@@ -316,3 +318,27 @@ configs:
       p, role:keycloak, applications, override, keycloak/*, allow
       p, role:keycloak, logs, get, keycloak/*, allow
       p, role:keycloak, exec, create, keycloak/*, allow
+
+      # --- webank role ---
+      # webank project: read/write
+      p, role:webank, projects, get, webank, allow
+      p, role:webank, applications, get, webank/*, allow
+      p, role:webank, applications, create, webank/*, allow
+      p, role:webank, applications, update, webank/*, allow
+      p, role:webank, applications, delete, webank/*, allow
+      p, role:webank, applications, sync, webank/*, allow
+      p, role:webank, applications, override, webank/*, allow
+      p, role:webank, logs, get, webank/*, allow
+      p, role:webank, exec, create, webank/*, allow
+
+      # --- vaam role ---
+      # vaam project: read/write
+      p, role:vaam, projects, get, vaam, allow
+      p, role:vaam, applications, get, vaam/*, allow
+      p, role:vaam, applications, create, vaam/*, allow
+      p, role:vaam, applications, update, vaam/*, allow
+      p, role:vaam, applications, delete, vaam/*, allow
+      p, role:vaam, applications, sync, vaam/*, allow
+      p, role:vaam, applications, override, vaam/*, allow
+      p, role:vaam, logs, get, vaam/*, allow
+      p, role:vaam, exec, create, vaam/*, allow
