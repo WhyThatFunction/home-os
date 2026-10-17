@@ -1064,7 +1064,12 @@ arcRunnerPools:
     releaseName: adorsys-gis-runner
     githubConfigUrl: https://github.com/ADORSYS-GIS
     runnerScaleSetName: ci
-    runnerGroup: default
+    # NOT `default`: the ADORSYS-GIS "Default" runner group has
+    # visibility=selected and lists 13 repos, none of them webank-*. Scale sets
+    # registered there came up healthy on 2026-10-17 but GitHub assigned them 0
+    # of the 50 queued jobs. `flaky-rescue` (also selected-visibility) lists
+    # webank-services, webank-frontends and webank-models among its 35 repos.
+    runnerGroup: flaky-rescue
     resourceProfile: standard
     maxRunners: 10
     containersSizeLimit: 40Gi
@@ -1078,7 +1083,7 @@ arcRunnerPools:
     releaseName: adorsys-gis-runner
     githubConfigUrl: https://github.com/ADORSYS-GIS
     runnerScaleSetName: heavy
-    runnerGroup: default
+    runnerGroup: flaky-rescue # same reason as the `ci` pool above
     resourceProfile: high
     # Burstable requests, same reasoning as vaam-apps-high-runners above: the
     # `high` profile's 7 CPU / 12Gi as a Guaranteed request stranded that pool
